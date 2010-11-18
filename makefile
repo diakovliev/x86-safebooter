@@ -26,7 +26,10 @@ export CFLAGS				=	-march=i386 -m32 -nostdlib -O0 -Wa,-R,-aln=$@.S
 export ASFLAGS				=	-march=i386 -m32 -Wl,--oformat=elf32-i386
 LD_CMD						=	ld -A i386 -melf_i386 -N -static -Ttext $1 --oformat binary -Map=$@.map $^ -o$@
 
-HEADERS						= loader.h loader.gen.h
+BASE_HEADERS				:= loader.h loader.gen.h
+HEADERS						:= loader.h loader.gen.h bios_tools.h 
+SOURCES						:= C_loader_start.c bios_tools.c 
+OBJECTS						:= loader_start.o C_loader_start.o bios_tools.o 
 
 loader.gen.h: define_var 	=	echo '\#define $1 $($1)'
 loader.gen.h:
@@ -34,22 +37,24 @@ loader.gen.h:
 	$(call define_var,LOADER_DESCRIPTOR_ADDRESS) >> $@
 	$(call define_var,LOADER_CODE_ADDRESS) >> $@
 
-mbr.o: mbr.S $(HEADERS)
+mbr.o: mbr.S $(BASE_HEADERS)
 
 mbr.img: mbr.o
 	$(call LD_CMD,$(MBR_CODE_ADDRESS))
 
-loader_descriptor.o: loader_descriptor.S $(HEADERS)
-loader_start.o: loader_start.S $(HEADERS)
-C_loader_start.o: C_loader_start.c $(HEADERS)
+loader_descriptor.o: loader_descriptor.S $(BASE_HEADERS)
+loader_start.o: loader_start.S $(BASE_HEADERS)
 
 loader_descriptor.img: loader_descriptor.o
 	$(call LD_CMD,$(LOADER_DESCRIPTOR_ADDRESS))
 
-loader.img: loader_start.o C_loader_start.o
+$(OBJECTS): $(SOURCES) $(HEADERS)
+
+loader.img: $(OBJECTS)
 	$(call LD_CMD,$(LOADER_CODE_ADDRESS))
 
-# See http://jamesmcdonald.id.au/faqs/mine/Running_Bochs.html for details in geometry
+# See http://jamesmcdonald.id.au/faqs/mine/Running_Bochs.html for geometry details.
+# Currently used 10MB image.
 $(HDD_IMG): mbr.img loader_descriptor.img loader.img
 	dd if=/dev/zero 				of=$@ bs=512 count=20808 && \
 	dd if=mbr.img 					of=$@ bs=1 conv=notrunc && \
@@ -72,4 +77,3 @@ clean:
 	rm -f *.txt
 	rm -f *.o
 
-	

@@ -4,7 +4,7 @@
 
 .text
 
-.code16
+.code16gcc
 
 _start:
 	cli
