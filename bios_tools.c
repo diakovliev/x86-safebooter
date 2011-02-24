@@ -104,3 +104,17 @@ byte_t BIOS_run_input_loop(
 	return res;
 }
 
+#define BIOS_RESET(mode) \
+	asm ("mov $0x40,%%ax\n" \
+		 "mov %%ax,%%ds\n" \
+		 "movw %0,%%ds:(0x72)\n" \
+		 "mov $0xf000,%%ax\n" \
+		 "mov %%ax,%%cs\n" \
+		 "jmpl %%cs:(0xfff0)" \
+		: "=r" (mode) : : )
+
+void BIOS_reset(word_t mode)
+{
+	BIOS_RESET(mode);
+}
+

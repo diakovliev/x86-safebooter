@@ -28,3 +28,6 @@ extern byte_t BIOS_run_input_loop(
 	BIOS_input_cb_t input_cb, 
 	BIOS_no_input_cb_t no_input_cb
 	);
+
+/* mode == 0x1234 || mode == 0 */
+void BIOS_reset(word_t mode);

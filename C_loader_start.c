@@ -46,6 +46,8 @@ byte_t C_input_cb(byte_t scancode, byte_t ascii) {
 				BIOS_print_string("command error: ");
 				BIOS_print_number(res, 16);
 				BIOS_print_string("\r\n");
+				
+				BIOS_reset(0x1234);
 			}				
 		}
 		BIOS_print_string(CMD_PROMT_INVITE);
