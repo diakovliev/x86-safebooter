@@ -24,9 +24,9 @@ void BIOS_print_char(byte_t ch) {
 void BIOS_print_string(byte_t *str) {
 	if (str) {
 		char *s = str;
-		do {
-			BIOS_PRINT_CHAR(*s);
-		} while (*s++);
+		while (*s) {
+			BIOS_PRINT_CHAR(*s++);
+		};
 	}
 }
 
@@ -56,6 +56,18 @@ void BIOS_print_number(long i, byte_t base) {
 	} while (sz);
 }
 
+#define BIOS_QUERY_CURSOR_POSITION(r,c) \
+	asm("movb $0x03,%%ah\n" \
+		"movb $0x00,%%bh\n" \
+		"int $0x10\n" \
+		"movb %%dh,%0\n" \
+		"movb %%dl,%1\n" \
+	: "=m"(r),"=m"(c) : : )
+
+void BIOS_query_cursor_position(byte_t *row, byte_t *col) {
+	BIOS_QUERY_CURSOR_POSITION(row,col);
+}
+
 #define BIOS_CHECK_KEY(x) \
 	asm("movb $0x01,%%ah\n" \
 		"int $0x16\n" \
@@ -67,7 +79,7 @@ void BIOS_print_number(long i, byte_t base) {
 #define BIOS_GET_KEY(x) \
 	asm("movb $0x00,%%ah\n" \
 		"int $0x16\n" \
-		"movb %%ax, %0\n" \
+		"mov %%ax, %0\n" \
 	: "=r" (x) : : )
 	
 byte_t BIOS_run_input_loop(
@@ -82,7 +94,7 @@ byte_t BIOS_run_input_loop(
 		BIOS_CHECK_KEY(check);
 		if (check && input_cb) {
 			BIOS_GET_KEY(data);
-			res = (*input_cb)(((data)>>8),data&0xff);
+			res = (*input_cb)(data>>8,data&0xff);
 		}
 		else if (no_input_cb) {
 			res = (*no_input_cb)();

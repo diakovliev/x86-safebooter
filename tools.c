@@ -31,6 +31,15 @@ void lba2chs(unsigned long lba, word_t *C, byte_t *H, byte_t *S, byte_t *data)
 	}
 }
 
+long nlog2(long x) {
+	long r = x;
+	asm("bsrl %1,%%eax\n"
+		"incl %%eax\n"
+		"movl %%eax,%0\n"
+		: "=r" (r) : "r" (x) : );
+	return r;
+}
+
 #include <stdio.h>
 
 long test_data[] = {
@@ -59,6 +68,19 @@ int main()
 	
 	
 	printf("%d %d",byte0, byte1);
+
+
+#define PNLOG2(x) printf("nlog2(%d) = %d, nlg(%d) = %d\n",x,nlog2(x),x,nlog2(x)/nlog2(10))
+
+	PNLOG2(0b00001111);
+	PNLOG2(0b00000111);
+	PNLOG2(0b00000011);
+	PNLOG2(0b00000001);
+
+	PNLOG2(1111);
+	PNLOG2(111);
+	PNLOG2(11);
+	PNLOG2(1);
 
 	return 0;
 }
