@@ -26,8 +26,8 @@ export CFLAGS				=	-march=i386 -m32 -nostdlib -O0 -Wa,-R,-aln=$@.S
 export ASFLAGS				=	-march=i386 -m32 -Wl,--oformat=elf32-i386
 LD_CMD						=	ld -A i386 -melf_i386 -N -static -Ttext $1 --oformat binary -Map=$@.map $^ -o$@
 
-BASE_HEADERS				:= loader.h loader.gen.h loader_types.h
-HEADERS						:= $(BASE_HEADERS) bios_tools.h console_interface.h
+BASE_HEADERS				:= loader.h loader.gen.h
+HEADERS						:= $(BASE_HEADERS) loader_types.h bios_tools.h console_interface.h
 SOURCES						:= C_loader_start.c bios_tools.c console_interface.c
 OBJECTS						:= loader_start.o C_loader_start.o bios_tools.o console_interface.o
 

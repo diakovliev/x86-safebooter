@@ -2,7 +2,7 @@
 
 .text
 
-.code16
+.code16gcc
 
 loader_descriptor_magic:	.byte 0xAA,0x00
 loader_version: 			.byte 0x00,0x00,0x01

@@ -14,7 +14,10 @@ typedef struct loader_descriptor_s {
 	word_t magic;
 	byte_t version[3];
 	byte_t loader_sectors_count;
-	byte_t loader_env[512-5]; // sector_size - 3 previous fields
 } loader_descriptor_t;
+typedef struct loader_descriptor_s *loader_descriptor_p;
+
+#define LOADER_ENV(LOADER_DESCRIPTOR_POINTER) \
+	(LOADER_DESCRIPTOR_POINTER + sizeof(loader_descriptor_t))
 
 #endif//LOADER_TYPES_HEADER

@@ -88,7 +88,7 @@ void C_start(void *loader_descriptor_address, void *loader_code_address) {
 	BIOS_init_console_out(out);
 
 	/* Get loader descriptor information */
-	loader_descriptor_t *desc = (loader_descriptor_t*)loader_descriptor_address;
+	loader_descriptor_p desc = (loader_descriptor_p)loader_descriptor_address;
 	
 	/* Out information and command promt */
 	O(string,"SS loader v");
