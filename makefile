@@ -2,8 +2,8 @@
 # Memory map
 #
 MBR_CODE_ADDRESS			:= 0x7c00
-LOADER_DESCRIPTOR_ADDRESS	:= 0x8000
-LOADER_CODE_ADDRESS			:= 0x8200
+LOADER_DESCRIPTOR_ADDRESS	:= 0x1000
+LOADER_CODE_ADDRESS			:= 0x1200
 
 #
 # Disk map
@@ -26,10 +26,10 @@ export CFLAGS				=	-march=i386 -m32 -nostdlib -O0 -Wa,-R,-aln=$@.S
 export ASFLAGS				=	-march=i386 -m32 -Wl,--oformat=elf32-i386
 LD_CMD						=	ld -A i386 -melf_i386 -N -static -Ttext $1 --oformat binary -Map=$@.map $^ -o$@
 
-BASE_HEADERS				:= loader.h loader.gen.h
-HEADERS						:= loader.h loader.gen.h bios_tools.h 
-SOURCES						:= C_loader_start.c bios_tools.c 
-OBJECTS						:= loader_start.o C_loader_start.o bios_tools.o 
+BASE_HEADERS				:= loader.h loader.gen.h loader_types.h
+HEADERS						:= $(BASE_HEADERS) bios_tools.h console_interface.h
+SOURCES						:= C_loader_start.c bios_tools.c console_interface.c
+OBJECTS						:= loader_start.o C_loader_start.o bios_tools.o console_interface.o
 
 loader.gen.h: define_var 	=	echo '\#define $1 $($1)'
 loader.gen.h:

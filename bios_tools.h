@@ -2,12 +2,11 @@
 // This file is part of project
 // "x86 ssloader" (c) Dmytro Iakovliev 2010
 //
-#include "loader.h"
+#ifndef BIOS_TOOLS_HEADER
+#define BIOS_TOOLS_HEADER
 
-/* Common types */
-typedef unsigned char byte_t;
-typedef unsigned short word_t;
-typedef unsigned int dword_t;
+#include "loader.h"
+#include "loader_types.h"
 
 /* Loader descriptor */
 typedef struct loader_descriptor_s {
@@ -16,10 +15,8 @@ typedef struct loader_descriptor_s {
 	byte_t loader_sectors_count;
 } loader_descriptor_t;
 
-/**/
-extern void BIOS_print_char(byte_t ch);
-extern void BIOS_print_string(byte_t *str);
-extern void BIOS_print_number(long i, byte_t base);
+/* Console out routes */
+void BIOS_init_console_out(void *out); 
 
 typedef byte_t (*BIOS_no_input_cb_t)(void);
 typedef byte_t (*BIOS_input_cb_t)(byte_t/*scancode*/,byte_t/*ascii*/);
@@ -31,3 +28,6 @@ extern byte_t BIOS_run_input_loop(
 
 /* mode == 0x1234 || mode == 0 */
 void BIOS_reset(word_t mode);
+
+#endif//BIOS_TOOLS_HEADER
+

@@ -29,8 +29,8 @@ entry_point:
 	outb %al,$0x92
 
 	# Call 16-bit entry point
+	pushl $LOADER_CODE_ADDRESS
 	pushl $LOADER_DESCRIPTOR_ADDRESS
-#	movl $LOADER_DESCRIPTOR_ADDRESS,%eax
 	calll C_start
 	jmp fail
 

@@ -6,6 +6,7 @@
 asm(".code16gcc");
 
 #include "bios_tools.h"
+#include "console_interface.h"
 
 #define PUSHB(V) asm("push %0" : : "m" (V) )
 #define POPB(V) asm("pop %0" : "=m" (V) : )
@@ -17,11 +18,11 @@ asm(".code16gcc");
 	     "int $0x10\n" \
 		 : : "r" (C): "al")
 
-void BIOS_print_char(byte_t ch) {
+static void BIOS_print_char(byte_t ch) {
 	BIOS_PRINT_CHAR(ch);
 }
 
-void BIOS_print_string(byte_t *str) {
+static void BIOS_print_string(byte_t *str) {
 	if (str) {
 		char *s = str;
 		while (*s) {
@@ -30,7 +31,7 @@ void BIOS_print_string(byte_t *str) {
 	}
 }
 
-void BIOS_print_number(long i, byte_t base) {	
+static void BIOS_print_number(long i, byte_t base) {	
 	int v = i;
 	char ch = '-';
 	char n;
@@ -56,6 +57,14 @@ void BIOS_print_number(long i, byte_t base) {
 	} while (sz);
 }
 
+void BIOS_init_console_out(void *out)
+{
+	console_out_p out_p = (console_out_p)out;
+	out_p->out_char		= BIOS_print_char;
+	out_p->out_string	= BIOS_print_string;
+	out_p->out_number	= BIOS_print_number;
+}
+ 
 #define BIOS_QUERY_CURSOR_POSITION(r,c) \
 	asm("movb $0x03,%%ah\n" \
 		"movb $0x00,%%bh\n" \
