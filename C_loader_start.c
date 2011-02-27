@@ -48,7 +48,7 @@ byte_t C_input_cb(byte_t scancode, byte_t ascii) {
 				O(number,res,16);
 				O(string,"\r\n");
 				
-				BIOS_reset(0x1234);
+				//BIOS_reset(0x1234);
 			}				
 		}
 		O(string,CMD_PROMT_INVITE);
@@ -100,10 +100,14 @@ void C_start(void *loader_descriptor_address, void *loader_code_address) {
 	O(string," (c)daemondzk@gmail.com");
 	
 	/* Memory map */
+	O(string,"\r\nsectors: 0x");
+	O(number,desc->loader_sectors_count,16);
 	O(string,"\r\ndescriptor: 0x");
-	O(number,(long)desc,16);
+	O(number,loader_descriptor_address,16);
 	O(string,"\r\ncode: 0x");
-	O(number,(long)loader_code_address,16);
+	O(number,loader_code_address,16);
+	O(string,"\r\nstack: 0x");
+	O(number,STACK_ADDRESS,16);
 	O(string,"\r\n" CMD_PROMT_INVITE);
 
 	/* Run main loop */

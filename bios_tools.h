@@ -8,13 +8,6 @@
 #include "loader.h"
 #include "loader_types.h"
 
-/* Loader descriptor */
-typedef struct loader_descriptor_s {
-	word_t magic;
-	byte_t version[3];
-	byte_t loader_sectors_count;
-} loader_descriptor_t;
-
 /* Console out routes */
 void BIOS_init_console_out(void *out); 
 

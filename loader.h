@@ -6,5 +6,5 @@
 #include "loader.gen.h"
 
 /* Address where has been placed stack */
-#define STACK_ADDRESS		0x2000
+#define STACK_ADDRESS		0xA000
 

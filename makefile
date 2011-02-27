@@ -42,7 +42,12 @@ mbr.o: mbr.S $(BASE_HEADERS)
 mbr.img: mbr.o
 	$(call LD_CMD,$(MBR_CODE_ADDRESS))
 
-loader_descriptor.o: loader_descriptor.S $(BASE_HEADERS)
+loader.img: $(OBJECTS)
+	$(call LD_CMD,$(LOADER_CODE_ADDRESS))
+
+loader.img.size: loader.img
+	echo ".byte `du --apparent-size -B512 $^ | sed s/\s*$^//g`+1" > $@
+loader_descriptor.o: loader.img.size loader_descriptor.S $(BASE_HEADERS)
 loader_start.o: loader_start.S $(BASE_HEADERS)
 
 loader_descriptor.img: loader_descriptor.o
@@ -50,12 +55,9 @@ loader_descriptor.img: loader_descriptor.o
 
 $(OBJECTS): $(SOURCES) $(HEADERS)
 
-loader.img: $(OBJECTS)
-	$(call LD_CMD,$(LOADER_CODE_ADDRESS))
-
 # See http://jamesmcdonald.id.au/faqs/mine/Running_Bochs.html for geometry details.
 # Currently used 10MB image.
-$(HDD_IMG): mbr.img loader_descriptor.img loader.img
+$(HDD_IMG): mbr.img loader_descriptor.img
 	dd if=/dev/zero 				of=$@ bs=512 count=20808 && \
 	dd if=mbr.img 					of=$@ bs=1 conv=notrunc && \
 	dd if=loader_descriptor.img 	of=$@ bs=1 conv=notrunc seek=${LOADER_DESCRIPTOR_OFFSET} && \
@@ -71,6 +73,7 @@ clean:
 	rm -f ${HDD_IMG}
 	rm -f *.gen.h
 	rm -f *.img
+	rm -f *.img.size
 	rm -f *.map
 	rm -f *.o.S
 	rm -f *.out

@@ -4,5 +4,7 @@
 //
 #include "console_interface.h"
 
+asm(".code16gcc");
+
 console_out_p out = 0;
 
