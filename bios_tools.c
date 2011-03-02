@@ -120,10 +120,34 @@ byte_t BIOS_run_input_loop(
 		 "mov $0xf000,%%ax\n" \
 		 "mov %%ax,%%cs\n" \
 		 "jmpl %%cs:(0xfff0)" \
-		: "=r" (mode) : : )
+		:  : "r" (mode) : )
 
 void BIOS_reset(word_t mode)
 {
 	BIOS_RESET(mode);
+}
+
+#define BIOS_READ_DATA(X,R) \
+	asm ("xor %%ax,%%ax\n" \
+		 "xor %%si,%%si\n" \
+		 "movb $0x42,%%ah\n" \
+		 "movw %1,%%si\n" \
+		 "int $0x13\n" \
+		 "jnc 1f\n" \
+		 "movb $0x1,%%ah\n" \
+		 "1: movb $0x0,%%ah\n" \
+		 "movb %%ah,%0\n" \
+		: "=r" (R) : "m" (X) : )
+
+byte_t BIOS_read_storage_data(void *disk_address)
+{
+	disk_address_packet_p address = 
+		(disk_address_packet_p)disk_address;
+
+	address->struct_size = 0x10;
+
+	byte_t res;
+	BIOS_READ_DATA(address,res);
+	return res;	
 }
 

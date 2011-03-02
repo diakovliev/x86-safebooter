@@ -22,12 +22,46 @@ asm(".code16gcc");
 /* Command promt */
 #define CMD_PROMT_INVITE ">> "
 
+/* TEMPORARY CODE */
+void IMAGE_load_kernel_to_memory(void)
+{
+	/* Load real mode kernel */
+	disk_address_packet_t address;
+	address.blocks	= (32*1024)/512; /* 32K */
+	address.buffer	= KERNEL_REAL_CODE_ADDRESS;
+	address.lba		= (KERNEL_CODE_OFFSET/512);
+	if ( BIOS_read_storage_data(&address) ) {
+		/* IO error */
+		O(string,"OOPS: Failed to load real mode kernel\r\n");
+		return;
+	}
+	
+	O(string,"Real mode kernel is loaded to address: ");
+	O(number,KERNEL_REAL_CODE_ADDRESS,16);
+	O(string,"\r\n");
+
+	//void *kernel_header_offset = KERNEL_REAL_CODE_ADDRESS + 0x01f1;
+	byte_t *kernel_header_sig = KERNEL_REAL_CODE_ADDRESS + 0x0202;
+	
+	O(string,"Kernel signature: ");
+	int i;
+	for (i = 0; i < 4; ++i) {
+		O(string,"0x");
+		O(number,kernel_header_sig[i],16);
+		O(string," ");
+	}
+	O(string,"\r\n");
+}
+
 /* Command processor entry point */
 byte_t C_process_command(byte_t *cmd_buffer) {
 
 	O(string,"command: ");
 	O(string,cmd_buffer);
 	O(string,"\r\n");
+
+	// !!!!!!!!!
+	IMAGE_load_kernel_to_memory();
 
 	return ERR_CMD_NOT_SUPPORTED;
 }

@@ -8,6 +8,8 @@ typedef unsigned short word_t;
 typedef word_t *word_p;
 typedef unsigned int dword_t;
 typedef dword_t *dword_p;
+typedef unsigned long quad_t;
+typedef quad_t *quad_p;
 
 /* Loader descriptor */
 typedef struct loader_descriptor_s {

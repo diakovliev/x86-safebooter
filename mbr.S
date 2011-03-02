@@ -88,7 +88,7 @@ loader_descriptor_loaded:
 	movb (%bx),%al
 	movb %al,buffer
 
-/* Load loader descriptor. One sector, place to LOADER_DESCRIPTOR_ADDRESS */
+/* Load loader code. */
 load_code:
 	MSG(string_code)
 	movb $0x42,%ah

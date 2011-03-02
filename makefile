@@ -1,15 +1,18 @@
 #
 # Memory map
 #
-MBR_CODE_ADDRESS			:= 0x7c00
-LOADER_DESCRIPTOR_ADDRESS	:= 0x1000
-LOADER_CODE_ADDRESS			:= 0x1200
+MBR_CODE_ADDRESS			:= 0x0007c00
+LOADER_DESCRIPTOR_ADDRESS	:= 0x0001000
+LOADER_CODE_ADDRESS			:= 0x0001200
+KERNEL_REAL_CODE_ADDRESS	:= 0x0008000
+KERNEL_CODE_ADDRESS			:= 0x1000000
 
 #
 # Disk map
 #
 LOADER_DESCRIPTOR_OFFSET	:=	17408
 LOADER_CODE_OFFSET			:=	17920
+KERNEL_CODE_OFFSET			:=	28560
 
 HDD_IMG						:=	hdd.raw
 
@@ -36,6 +39,9 @@ loader.gen.h:
 	echo -n > $@
 	$(call define_var,LOADER_DESCRIPTOR_ADDRESS) >> $@
 	$(call define_var,LOADER_CODE_ADDRESS) >> $@
+	$(call define_var,KERNEL_REAL_CODE_ADDRESS) >> $@
+	$(call define_var,KERNEL_CODE_ADDRESS) >> $@
+	$(call define_var,KERNEL_CODE_OFFSET) >> $@
 
 mbr.o: mbr.S $(BASE_HEADERS)
 
@@ -62,6 +68,7 @@ $(HDD_IMG): mbr.img loader_descriptor.img
 	dd if=mbr.img 					of=$@ bs=1 conv=notrunc && \
 	dd if=loader_descriptor.img 	of=$@ bs=1 conv=notrunc seek=${LOADER_DESCRIPTOR_OFFSET} && \
 	dd if=loader.img 				of=$@ bs=1 conv=notrunc seek=${LOADER_CODE_OFFSET}
+	dd if=bzImage 					of=$@ bs=1 conv=notrunc seek=${KERNEL_CODE_OFFSET}
 
 qemu: ${HDD_IMG}
 	qemu $<
