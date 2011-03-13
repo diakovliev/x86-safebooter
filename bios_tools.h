@@ -23,8 +23,8 @@ extern byte_t BIOS_run_input_loop(
 void BIOS_reset(word_t mode);
 
 typedef struct disk_address_packet_s {
-	byte_t	struct_size; /* should be 0x10 */
-	byte_t	reserved;
+	byte_t	struct_size; 	/* should be 0x10 */
+	byte_t	reserved;		/* should be 0 */
 	word_t	blocks;
 	dword_t	buffer;
 	quad_t	lba;

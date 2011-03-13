@@ -16,7 +16,7 @@ asm(".code16gcc");
 		 "movb %0,%%al\n" \
 		 "movb $0x0e,%%ah\n" \
 	     "int $0x10\n" \
-		 : : "r" (C): "al")
+		 : : "r" (C) )
 
 static void BIOS_print_char(byte_t ch) {
 	BIOS_PRINT_CHAR(ch);
@@ -32,10 +32,16 @@ static void BIOS_print_string(byte_t *str) {
 }
 
 static void BIOS_print_number(long i, byte_t base) {	
-	int v = i;
-	char ch = '-';
-	char n;
-	char sz = 1;
+	long v = i;
+	byte_t ch = '-';
+	byte_t n;
+#if COMPILE_PLATFORM__X86_64
+	byte_t sz = 1;
+#elif COMPILE_PLATFORM__IA32
+	byte_t sz = 0;
+#else
+	byte_t sz = 0;
+#endif
 	if (i < 0) {
 		BIOS_PRINT_CHAR(ch);
 		v = -v;
@@ -71,7 +77,7 @@ void BIOS_init_console_out(void *out)
 		"int $0x10\n" \
 		"movb %%dh,%0\n" \
 		"movb %%dl,%1\n" \
-	: "=m"(r),"=m"(c) : : )
+	: "=m"(r),"=m"(c) )
 
 void BIOS_query_cursor_position(byte_t *row, byte_t *col) {
 	BIOS_QUERY_CURSOR_POSITION(row,col);
@@ -83,13 +89,13 @@ void BIOS_query_cursor_position(byte_t *row, byte_t *col) {
 		"jz 1f\n" \
 		"movb $0x00, %0\n" \
 		"1: movb %%ah, %0\n" \
-	: "=r" (x) : : )
+	: "=r" (x) )
 
 #define BIOS_GET_KEY(x) \
 	asm("movb $0x00,%%ah\n" \
 		"int $0x16\n" \
 		"mov %%ax, %0\n" \
-	: "=r" (x) : : )
+	: "=r" (x) )
 	
 byte_t BIOS_run_input_loop(
 	BIOS_input_cb_t input_cb, 
@@ -120,7 +126,7 @@ byte_t BIOS_run_input_loop(
 		 "mov $0xf000,%%ax\n" \
 		 "mov %%ax,%%cs\n" \
 		 "jmpl %%cs:(0xfff0)" \
-		:  : "r" (mode) : )
+		:  : "r" (mode) )
 
 void BIOS_reset(word_t mode)
 {
@@ -131,20 +137,20 @@ void BIOS_reset(word_t mode)
 	asm ("xor %%ax,%%ax\n" \
 		 "xor %%si,%%si\n" \
 		 "movb $0x42,%%ah\n" \
+		 "movb $0x80,%%dl\n" \
 		 "movw %1,%%si\n" \
 		 "int $0x13\n" \
 		 "jnc 1f\n" \
 		 "movb $0x1,%%ah\n" \
-		 "1: movb $0x0,%%ah\n" \
-		 "movb %%ah,%0\n" \
-		: "=r" (R) : "m" (X) : )
+		 "jmp 2f\n" \
+		 "1:movb $0x0,%%ah\n" \
+		 "2:movb %%ah,%0\n" \
+		: "=r" (R) : "m" (X) )
 
 byte_t BIOS_read_storage_data(void *disk_address)
 {
 	disk_address_packet_p address = 
 		(disk_address_packet_p)disk_address;
-
-	address->struct_size = 0x10;
 
 	byte_t res;
 	BIOS_READ_DATA(address,res);

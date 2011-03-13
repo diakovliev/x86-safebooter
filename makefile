@@ -1,25 +1,7 @@
-#
-# Memory map
-#
-MBR_CODE_ADDRESS			:= 0x0007c00
-LOADER_DESCRIPTOR_ADDRESS	:= 0x0001000
-LOADER_CODE_ADDRESS			:= 0x0001200
-KERNEL_REAL_CODE_ADDRESS	:= 0x0008000
-KERNEL_CODE_ADDRESS			:= 0x1000000
+include .config
 
-#
-# Disk map
-#
-LOADER_DESCRIPTOR_OFFSET	:=	17408
-LOADER_CODE_OFFSET			:=	17920
-KERNEL_CODE_OFFSET			:=	28560
-
-HDD_IMG						:=	hdd.raw
-
-export BXSHARE				:= /usr/share/bochs
-
-#default: qemu
-default: bochs
+default: qemu
+#default: bochs
 .PHONY: loader_gen.h qemu clean
 
 #
@@ -30,13 +12,15 @@ export ASFLAGS				=	-march=i386 -m32 -Wl,--oformat=elf32-i386
 LD_CMD						=	ld -A i386 -melf_i386 -N -static -Ttext $1 --oformat binary -Map=$@.map $^ -o$@
 
 BASE_HEADERS				:= loader.h loader.gen.h
-HEADERS						:= $(BASE_HEADERS) loader_types.h bios_tools.h console_interface.h
+HEADERS						:= $(BASE_HEADERS) loader_types.h bios_tools.h console_interface.h string.h lbp.h
 SOURCES						:= C_loader_start.c bios_tools.c console_interface.c
 OBJECTS						:= loader_start.o C_loader_start.o bios_tools.o console_interface.o
 
 loader.gen.h: define_var 	=	echo '\#define $1 $($1)'
-loader.gen.h:
+loader.gen.h: .config
 	echo -n > $@
+	$(call define_var,COMPILE_PLATFORM__X86_64) >> $@
+	$(call define_var,COMPILE_PLATFORM__IA32) >> $@
 	$(call define_var,LOADER_DESCRIPTOR_ADDRESS) >> $@
 	$(call define_var,LOADER_CODE_ADDRESS) >> $@
 	$(call define_var,KERNEL_REAL_CODE_ADDRESS) >> $@
@@ -53,7 +37,11 @@ loader.img: $(OBJECTS)
 
 loader.img.size: loader.img
 	echo ".byte `du --apparent-size -B512 $^ | sed s/\s*$^//g`+1" > $@
-loader_descriptor.o: loader.img.size loader_descriptor.S $(BASE_HEADERS)
+
+kernel.img.size: bzImage
+	echo ".word `du --apparent-size -B512 $^ | sed s/\s*$^//g`+1" > $@
+
+loader_descriptor.o: loader.img.size kernel.img.size loader_descriptor.S $(BASE_HEADERS)
 loader_start.o: loader_start.S $(BASE_HEADERS)
 
 loader_descriptor.img: loader_descriptor.o
@@ -68,7 +56,7 @@ $(HDD_IMG): mbr.img loader_descriptor.img
 	dd if=mbr.img 					of=$@ bs=1 conv=notrunc && \
 	dd if=loader_descriptor.img 	of=$@ bs=1 conv=notrunc seek=${LOADER_DESCRIPTOR_OFFSET} && \
 	dd if=loader.img 				of=$@ bs=1 conv=notrunc seek=${LOADER_CODE_OFFSET}
-	dd if=bzImage 					of=$@ bs=1 conv=notrunc seek=${KERNEL_CODE_OFFSET}
+	dd if=${KERNEL_IMG}				of=$@ bs=1 conv=notrunc seek=${KERNEL_CODE_OFFSET}
 
 qemu: ${HDD_IMG}
 	qemu $<

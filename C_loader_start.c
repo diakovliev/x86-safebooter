@@ -8,13 +8,17 @@ asm(".code16gcc");
 #include "loader.h"
 #include "bios_tools.h"
 #include "console_interface.h"
+#include "string.h"
+#include "lbp.h"
 
 /* TODO: I have to find header with VK codes */
 #define VK_ENTER 0x1C
 
 /* TODO: Move to command processor header */
 #define ERR_CMD_OK				0
-#define ERR_CMD_NOT_SUPPORTED	ERR_CMD_OK+1
+#define ERR_CMD_FAIL			ERR_CMD_OK+1
+#define ERR_CMD_NOT_SUPPORTED	ERR_CMD_OK+2
+#define ERR_CMD_BAD_PARAMS		ERR_CMD_OK+3
 
 /* Max command identifier size */
 #define CMD_BUFFER_MAX 0x20
@@ -22,48 +26,139 @@ asm(".code16gcc");
 /* Command promt */
 #define CMD_PROMT_INVITE ">> "
 
-/* TEMPORARY CODE */
-void IMAGE_load_kernel_to_memory(void)
+/* Pointer to loader descriptor */
+static loader_descriptor_p loader_descriptor = 0;
+
+static inline void tools_memory_dump(void *addr, word_t size)
+{
+	word_t i;
+	for (i=0; i < size; ++i) {
+		if (i != 0) 
+			O(string," ");		
+
+		O(string,"0x");
+		if (((byte_t*)addr)[i] < 0x10)
+			O(string,"0");
+
+		O(number,((byte_t*)addr)[i],16);	
+	}
+}
+
+byte_t IMAGE_load_kernel_to_memory(byte_t *cmd_buffer)
 {
 	/* Load real mode kernel */
+
+	/* 1. Load first 2 sectors */
 	disk_address_packet_t address;
-	address.blocks	= (32*1024)/512; /* 32K */
-	address.buffer	= KERNEL_REAL_CODE_ADDRESS;
-	address.lba		= (KERNEL_CODE_OFFSET/512);
+	memset(&address,0,sizeof(address));
+	address.struct_size	= sizeof(address);
+	address.blocks		= 2;
+	address.buffer		= KERNEL_REAL_CODE_ADDRESS;
+	address.lba			= (KERNEL_CODE_OFFSET/512);
+	O(string,"Loading kernel header... ");
 	if ( BIOS_read_storage_data(&address) ) {
 		/* IO error */
-		O(string,"OOPS: Failed to load real mode kernel\r\n");
-		return;
+		O(string,"FAIL\r\n");
+		return ERR_CMD_FAIL;
+	}
+	else {
+		O(string,"DONE\r\n");
+	}
+
+	/* 2. Check kernel signature */
+	kernel_header_p kernel_header = GET_KERNEL_HEADER_ADDRESS(address.buffer);
+	if ( kernel_header->header != KERNEL_HDRS ) {
+		O(string,"Wrong kernel signature\r\n");
+		return ERR_CMD_FAIL;
 	}
 	
-	O(string,"Real mode kernel is loaded to address: ");
-	O(number,KERNEL_REAL_CODE_ADDRESS,16);
+	/* 3. Header analyze */
+	if (!kernel_header->setup_sects) {
+		kernel_header->setup_sects = 4;
+	}
+	
+//	O(string,"Supported LBP: 0x");
+//	O(number,kernel_header->version,16);
+//	O(string,"\r\n");
+//	O(string,"==> setup_sects: 0x");
+//	O(number,kernel_header->setup_sects,16);
+//	O(string,"\r\n");
+
+	/* 3. Load realmode kernel */
+	O(string,"Loading real mode kernel... ");
+	address.blocks = kernel_header->setup_sects;
+	if ( BIOS_read_storage_data(&address) ) {
+		/* IO error */
+		O(string,"FAIL\r\n");
+		return ERR_CMD_FAIL;
+	}
+	else {
+		O(string,"DONE\r\n");
+	}
+	/* correct setup_sects */
+	if (!kernel_header->setup_sects) {
+		kernel_header->setup_sects = 4;
+	}
+
+	/* 4. Load protected mode kernel */
+	address.lba 	+=	kernel_header->setup_sects + 1;
+	address.blocks	=	loader_descriptor->kernel_sectors_count - (kernel_header->setup_sects + 1);
+	address.buffer	=	0x10000; /* 0x100000 - bzImage ; other - 0x10000*/
+	O(string,"Loading protected mode kernel... ");
+	if ( BIOS_read_storage_data(&address) ) {
+		/* IO error */
+		O(string,"FAIL\r\n");
+		return ERR_CMD_FAIL;
+	}
+	else {
+		O(string,"DONE\r\n");
+	}
+	
+	return ERR_CMD_OK;
+}
+
+/* Display memory */
+byte_t TOOLS_display_memory(byte_t *cmd_buffer) {
+	
+	strtok(" ", cmd_buffer);
+	strtok(" ", 0);
+
+	byte_t *addr_s = strtok(" ", 0);
+	if (!addr_s)
+		return ERR_CMD_BAD_PARAMS;
+
+	word_t addr = atol(addr_s, 16);
+	
+	byte_t *sz_s = strtok(" ", 0);
+	if (!sz_s)
+		return ERR_CMD_BAD_PARAMS;
+	
+	word_t sz = atol(sz_s, 10);	
+	
+	O(string,"address: 0x");
+	O(number,addr,16);
+	O(string,"\r\nsize: ");
+	O(number,sz,10);
+	O(string,"\r\n");
+	tools_memory_dump(addr, sz);
 	O(string,"\r\n");
 
-	//void *kernel_header_offset = KERNEL_REAL_CODE_ADDRESS + 0x01f1;
-	byte_t *kernel_header_sig = KERNEL_REAL_CODE_ADDRESS + 0x0202;
-	
-	O(string,"Kernel signature: ");
-	int i;
-	for (i = 0; i < 4; ++i) {
-		O(string,"0x");
-		O(number,kernel_header_sig[i],16);
-		O(string," ");
-	}
-	O(string,"\r\n");
+	return ERR_CMD_OK;	
 }
 
 /* Command processor entry point */
 byte_t C_process_command(byte_t *cmd_buffer) {
+	byte_t r = ERR_CMD_NOT_SUPPORTED;
 
-	O(string,"command: ");
-	O(string,cmd_buffer);
-	O(string,"\r\n");
+	if ( !strcmp(cmd_buffer, "display") || !strcmp(cmd_buffer, "d") ) {
+		r = TOOLS_display_memory(cmd_buffer);
+	}
+	else
+	if ( !strcmp(cmd_buffer, "load") || !strcmp(cmd_buffer, "l") ) {
+		r = IMAGE_load_kernel_to_memory(cmd_buffer);
+	}
 
-	// !!!!!!!!!
-	IMAGE_load_kernel_to_memory();
-
-	return ERR_CMD_NOT_SUPPORTED;
+	return r;
 }
 
 /* Input loop callback */
@@ -123,6 +218,7 @@ void C_start(void *loader_descriptor_address, void *loader_code_address) {
 
 	/* Get loader descriptor information */
 	loader_descriptor_p desc = (loader_descriptor_p)loader_descriptor_address;
+	loader_descriptor = desc;
 	
 	/* Out information and command promt */
 	O(string,"SS loader v");
@@ -134,14 +230,16 @@ void C_start(void *loader_descriptor_address, void *loader_code_address) {
 	O(string," (c)daemondzk@gmail.com");
 	
 	/* Memory map */
-	O(string,"\r\nsectors: 0x");
-	O(number,desc->loader_sectors_count,16);
-	O(string,"\r\ndescriptor: 0x");
+	O(string,"\r\nDescriptor: 0x");
 	O(number,loader_descriptor_address,16);
-	O(string,"\r\ncode: 0x");
+	O(string,"\r\nCode: 0x");
 	O(number,loader_code_address,16);
-	O(string,"\r\nstack: 0x");
+	O(string,"\r\nStack: 0x");
 	O(number,STACK_ADDRESS,16);
+	O(string,"\r\nLoader sectors: 0x");
+	O(number,desc->loader_sectors_count,16);
+	O(string,"\r\nKernel sectors: 0x");
+	O(number,desc->kernel_sectors_count,16);
 	O(string,"\r\n" CMD_PROMT_INVITE);
 
 	/* Run main loop */

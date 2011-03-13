@@ -52,7 +52,7 @@ _start:
 
 disk_address_packet:
 				.byte 0x10, 0x00
-blocks_count:	.word 0x1
+blocks_count:	.byte 0x01, 0x00
 buffer:			.long LOADER_DESCRIPTOR_ADDRESS
 lba_arrress:	.quad 0x22
 
