@@ -5,7 +5,7 @@
 #include "gdt_table.gen.h"
 
 extern void calculate_gdt_address(void);
-extern word_t	__gdt;
+extern word_t	__gdtr;
 extern dword_t	__gdt_addr;
 
 #endif

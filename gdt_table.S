@@ -52,7 +52,7 @@ __gdt_table_size: .word .-__gdt_table
 
 .global __gdt
 .global __gdt_addr
-__gdt:		.word	__gdt_table_size - 1
+__gdtr:		.word	__gdt_table_size - 1
 __gdt_addr:	.int	0
  
 /* Calculate physical address of GDT and place it to __gdt_addr */
