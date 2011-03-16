@@ -12,11 +12,11 @@ export ASFLAGS				=	-march=i386 -m32 -Wl,--oformat=elf32-i386
 LD_CMD						=	ld -A i386 -melf_i386 -N -static -Ttext $1 --oformat binary -Map=$@.map $^ -o$@
 
 BASE_HEADERS				:= loader.h loader.gen.h
-HEADERS						:= $(BASE_HEADERS) loader_types.h bios_tools.h console_interface.h string.h lbp.h
+HEADERS						:= $(BASE_HEADERS) gdt_table.h gdt_table.gen.h loader_types.h bios_tools.h console_interface.h string.h lbp.h
 SOURCES						:= C_loader_start.c bios_tools.c console_interface.c
-OBJECTS						:= loader_start.o C_loader_start.o bios_tools.o console_interface.o
+OBJECTS						:= loader_start.o gdt_table.o C_loader_start.o bios_tools.o console_interface.o
 
-loader.gen.h: define_var 	=	echo '\#define $1 $($1)'
+loader.gen.h: define_var		=	echo '\#define $1 $($1)'
 loader.gen.h: .config
 	echo -n > $@
 	$(call define_var,COMPILE_PLATFORM__X86_64) >> $@
@@ -31,6 +31,15 @@ mbr.o: mbr.S $(BASE_HEADERS)
 
 mbr.img: mbr.o
 	$(call LD_CMD,$(MBR_CODE_ADDRESS))
+
+gdt_table.o : gdt_table.S $(BASE_HEADERS)
+
+gdt_table.gen.h: define_gdt_entry	=	echo '\#define $1 0x$(shell nm gdt_table.o | grep $2 | cut -d " " -f 1)'
+gdt_table.gen.h: gdt_table.o
+	echo -n > $@
+	$(call define_gdt_entry,GDT_CODE_SEGMENT,__code) >> $@
+	$(call define_gdt_entry,GDT_DATA_SEGMENT,__data) >> $@
+	$(call define_gdt_entry,GDT_STACK_SEGMENT,__stack) >> $@
 
 loader.img: $(OBJECTS)
 	$(call LD_CMD,$(LOADER_CODE_ADDRESS))

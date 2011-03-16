@@ -210,15 +210,20 @@ void C_stop(void) {
 		 "hlt\n");
 }
 
+#include "gdt_table.h"
+
 /* 16 bit C code entry point */
 void C_start(void *loader_descriptor_address, void *loader_code_address) {
-	
+
 	/* Get console out interface */
 	BIOS_init_console_out(out);
 
 	/* Get loader descriptor information */
 	loader_descriptor_p desc = (loader_descriptor_p)loader_descriptor_address;
 	loader_descriptor = desc;
+	
+	/* Calculate GDT address */
+	calculate_gdt_address();
 	
 	/* Out information and command promt */
 	O(string,"SS loader v");
@@ -239,7 +244,10 @@ void C_start(void *loader_descriptor_address, void *loader_code_address) {
 	O(string,"\r\nLoader sectors: 0x");
 	O(number,desc->loader_sectors_count,16);
 	O(string,"\r\nKernel sectors: 0x");
-	O(number,desc->kernel_sectors_count,16);
+	O(number,desc->kernel_sectors_count,16);	
+	O(string,"\r\nGDT: 0x");
+	O(number,__gdt_addr,16);
+
 	O(string,"\r\n" CMD_PROMT_INVITE);
 
 	/* Run main loop */
