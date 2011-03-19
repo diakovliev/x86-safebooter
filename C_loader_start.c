@@ -150,11 +150,11 @@ byte_t TOOLS_display_memory(byte_t *cmd_buffer) {
 byte_t C_process_command(byte_t *cmd_buffer) {
 	byte_t r = ERR_CMD_NOT_SUPPORTED;
 
-	if ( !strcmp(cmd_buffer, "display") || !strcmp(cmd_buffer, "d") ) {
+	if ( starts_from(cmd_buffer, "display") || starts_from(cmd_buffer, "d") ) {
 		r = TOOLS_display_memory(cmd_buffer);
 	}
 	else
-	if ( !strcmp(cmd_buffer, "load") || !strcmp(cmd_buffer, "l") ) {
+	if ( starts_from(cmd_buffer, "load") || starts_from(cmd_buffer, "l") ) {
 		r = IMAGE_load_kernel_to_memory(cmd_buffer);
 	}
 

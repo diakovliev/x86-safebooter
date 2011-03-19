@@ -19,7 +19,7 @@ static inline word_t FUNC(strlen) (byte_t *s) {
 static inline byte_t FUNC(strncmp) (byte_t *s0, byte_t *s1, word_t n) {
 	byte_t r = 0;
 	word_t cnt = 0;
-	while ( *s0 && *s1 && !(r = *s0-*s1) && cnt < n-1 ) {
+	while ( *s0 || *s1 && !(r = *s0-*s1) && cnt < n-1 ) {
 		++cnt, ++s0, ++s1;
 	}
 	return r;
@@ -27,10 +27,18 @@ static inline byte_t FUNC(strncmp) (byte_t *s0, byte_t *s1, word_t n) {
 
 static inline byte_t FUNC(strcmp) (byte_t *s0, byte_t *s1) {
 	byte_t r = 0;
-	while ( *s0 && *s1 && !(r = *s0-*s1) ) {
+	while ( *s0 || *s1 && !(r = *s0-*s1) ) {
 		++s0, ++s1;
 	}
 	return r;
+}
+
+static inline byte_t FUNC(starts_from) (byte_t *s0, byte_t *s1) {
+	byte_t r = 0;
+	while ( *s0 && *s1 && !(r = *s0-*s1) ) {
+		++s0, ++s1;
+	}
+	return !r;
 }
 
 static inline word_t FUNC(memcpy) (void *dst, void *src, word_t sz) {
@@ -48,6 +56,7 @@ static inline word_t FUNC(memset) (void *dst, byte_t src, word_t sz) {
 	}
 	return cnt;
 }
+
 
 static inline word_t FUNC(strcpy) (byte_t *dst, byte_t *src) {
 	word_t sz = FUNC(strlen) (src) + 1;
@@ -81,8 +90,7 @@ static inline byte_t *FUNC(strtok) (byte_t *sep, byte_t *str) {
 }
 
 /* !!! Modify buffer s !!! */
-static inline void FUNC(strrev) (byte_t *s, word_t ln)
-{
+static inline void FUNC(strrev) (byte_t *s, word_t ln) {
 	word_t i;
 	byte_t c;
 	for (i = 0; i < ln/2; i++) {
@@ -92,6 +100,19 @@ static inline void FUNC(strrev) (byte_t *s, word_t ln)
 	}
 }
 
+static inline byte_t FUNC(xnumber) (byte_t ch, byte_t base) {
+	if (ch >= 0x30 && ch <= 0x39) /* 0..9 */
+		return (ch - 0x30);
+	else
+	if (ch >= 0x41 && ch <= 0x46 && base > 10) /* A..F */
+		return (ch - 0x37);
+	else
+	if (ch >= 0x61 && ch <= 0x66 && base > 10) /* a..f */
+		return (ch - 0x57);
+	else
+		return 0;
+}
+
 static unsigned long FUNC(atol) (byte_t *str, byte_t base) {
 	byte_t *str_r = str + FUNC(strlen) (str) - 1;
 
@@ -99,16 +120,8 @@ static unsigned long FUNC(atol) (byte_t *str, byte_t base) {
 	unsigned long mul = 1;
 
 	while (str_r >= str) {
-		if (*str_r >= 0x30 && *str_r <= 0x39) /* 0..9 */
-			r += (*str_r - 0x30) * mul;
-		else
-		if (*str_r >= 0x41 && *str_r <= 0x46 && base > 10) /* A..F */
-			r += (*str_r - 0x37) * mul;
-		else
-		if (*str_r >= 0x61 && *str_r <= 0x66 && base > 10) /* a..f */
-			r += (*str_r - 0x57) * mul;
+		r += FUNC(xnumber) (*str_r--,base) * mul;
 		mul *= base;
-		--str_r;
 	}
 		
 	return r;
