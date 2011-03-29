@@ -8,7 +8,7 @@
 __gdt_table:
 		.space 8,0
 
-/************************************************************/
+/**************************************************************/
 
 // Code descriptor 
 //	base: 0x00000000 
@@ -46,23 +46,23 @@ __stack:
 //                EWA    B
 .byte 0x00,0b10010110,0b11001111,0x00
 
-/************************************************************/
+/**************************************************************/
+gdtr:		.word	.-__gdt_table-1
+gdt_addr:	.int	0
 
-__gdt_table_size: .word .-__gdt_table
-
-.global __gdt
-.global __gdt_addr
-__gdtr:		.word	__gdt_table_size - 1
-__gdt_addr:	.int	0
- 
-/* Calculate physical address of GDT and place it to __gdt_addr */
-.global calculate_gdt_address
-.type calculate_gdt_address, @function
-calculate_gdt_address:
+/**************************************************************/
+/* Calculate physical address of GDT and place it to gdt_addr */
+.type	init_gdt, @function
+init_gdt:		
 		xor %eax,%eax
 		mov LOADER_CODE_ADDRESS,%ax
 		shl $4,%eax
 		add __gdt_table,%eax
-		mov %eax,__gdt_addr
+		mov %eax,gdt_addr
 		ret
+
+/**************************************************************/
+.global gdtr
+.global gdt_addr
+.global	init_gdt
 

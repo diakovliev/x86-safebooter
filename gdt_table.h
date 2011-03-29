@@ -4,8 +4,8 @@
 #include "loader_types.h"
 #include "gdt_table.gen.h"
 
-extern void calculate_gdt_address(void);
-extern word_t	__gdtr;
-extern dword_t	__gdt_addr;
+extern void init_gdt(void);
+extern word_t	gdtr;
+extern dword_t	gdt_addr;
 
 #endif

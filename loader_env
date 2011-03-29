@@ -1,2 +1,1 @@
-STARTUP=Hello loader
-TEMPORARY=tmp
+STARTUP=load
