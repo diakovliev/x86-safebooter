@@ -12,9 +12,9 @@ export ASFLAGS				=	-march=i386 -m32 -Wl,--oformat=elf32-i386 -D__DEBUG__
 LD_CMD						=	ld -A i386 -melf_i386 -N -static -Ttext $1 --oformat binary -Map=$@.map $^ -o$@
 
 BASE_HEADERS				:= loader.h loader.gen.h
-HEADERS						:= $(BASE_HEADERS) gdt_table.h gdt_table.gen.h loader_types.h copy_to_upper_memory.h bios_tools.h console_interface.h string.h lbp.h
-SOURCES						:= C_loader_start.c bios_tools.c console_interface.c copy_to_upper_memory.S
-OBJECTS						:= loader_start.o gdt_table.o copy_to_upper_memory.o C_loader_start.o bios_tools.o console_interface.o
+HEADERS						:= $(BASE_HEADERS) gdt_table.h gdt_table.gen.h loader_types.h copy_to_upper_memory.h jump_to_kernel.h bios_tools.h console_interface.h string.h lbp.h
+SOURCES						:= C_loader_start.c bios_tools.c console_interface.c copy_to_upper_memory.S jump_to_kernel.S
+OBJECTS						:= loader_start.o gdt_table.o copy_to_upper_memory.o jump_to_kernel.o C_loader_start.o bios_tools.o console_interface.o
 loader.gen.h: define_var		=	echo '\#define $1 $($1)'
 loader.gen.h: .config
 	echo -n > $@

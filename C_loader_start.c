@@ -11,6 +11,7 @@ asm(".code16gcc");
 #include "string.h"
 #include "lbp.h"
 #include "copy_to_upper_memory.h"
+#include "jump_to_kernel.h"
 
 /* TODO: I have to find header with VK codes */
 #define VK_ENTER 0x1C
@@ -45,7 +46,7 @@ static inline void tools_memory_dump(void *addr, word_t size)
 	}
 }
 
-void TOOLS_copy_to_upper_memory(dword_t dst, dword_t src, dword_t size)
+static void tools_copy_to_upper_memory(dword_t dst, dword_t src, dword_t size)
 {
 /*  
  * - go to the protected mode
@@ -54,6 +55,11 @@ void TOOLS_copy_to_upper_memory(dword_t dst, dword_t src, dword_t size)
  *
  */
 	copy_to_upper_memory_asm(dst,src,size);
+}
+
+static void tools_jump_to_kernel() 
+{
+	jump_to_kernel_asm();
 }
 
 byte_t IMAGE_load_kernel_to_memory(byte_t *cmd_buffer)
@@ -133,7 +139,7 @@ byte_t IMAGE_load_kernel_to_memory(byte_t *cmd_buffer)
 		O(string,".");
 
 		/* Copy block to upper memory */
-		TOOLS_copy_to_upper_memory(IO_BUFFER_ADDRESS,target_buffer,0x200);
+		tools_copy_to_upper_memory(IO_BUFFER_ADDRESS,target_buffer,0x200);
 
 //		O(char,'(');
 //		O(number,p_mode_dst,16);
@@ -147,7 +153,9 @@ byte_t IMAGE_load_kernel_to_memory(byte_t *cmd_buffer)
 		target_buffer	+= 0x200;
 	}
 	
-	O(string,"DONE\r\n");
+	O(string,"DONE\r\nJumping to kernel...");
+
+	tools_jump_to_kernel();
 
 	return ERR_CMD_OK;
 }

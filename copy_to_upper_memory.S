@@ -8,9 +8,6 @@
 p_mode_dst:		.int 0
 p_mode_src:		.int 0
 p_mode_size:	.int 0
-.global p_mode_dst
-.global p_mode_src
-.global p_mode_size
 
 /* real mode registers */
 r_mode_sp: .int 0
@@ -29,6 +26,7 @@ r_mode_ebp: .int 0
 copy_to_upper_memory_asm:
 	enter $0,$0
 
+/* store arguments */
 	mov 8(%ebp),%eax
 	mov 12(%ebp),%edx
 	mov 16(%ebp),%ecx
@@ -115,6 +113,7 @@ copy_to_upper_memory_asm_32_entry:
 	mov %ax,%ss
 
 /* -------------------------------------- */	
+/* protected mode code */
 /* copy data */
 	mov p_mode_dst,%eax
 	mov p_mode_src,%edx

@@ -5,8 +5,10 @@
 
 extern void copy_to_upper_memory_asm(dword_t dst,dword_t src,dword_t size);
 
+#if 0
 extern dword_t p_mode_dst;
 extern dword_t p_mode_src;
 extern dword_t p_mode_size;
+#endif
 
 #endif
