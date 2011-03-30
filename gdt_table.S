@@ -46,6 +46,30 @@ __stack:
 //                EWA    B
 .byte 0x00,0b10010110,0b11001111,0x00
 
+// Real mode code descriptor 
+//	base: 0x00000000 
+//	limit: 0xFFFF 
+//	granumarity: 0
+//
+//              LIMI   CODE
+__r_code:	
+		.word 0xFFFF,0x0000
+//           P  STYPE   GD0 LIMI
+//                EWA    B
+.byte 0x00,0b10011010,0b00001111,0x00
+
+// Real mode data descriptor 
+//	base: 0x00000000 
+//	limit: 0xFFFF 
+//	granumarity: 0
+//
+//              LIMI   CODE
+__r_data:	
+		.word 0xFFFF,0x0000
+//           P  STYPE   GD0 LIMI
+//                EWA    B
+.byte 0x00,0b10010010,0b00001111,0x00
+
 /**************************************************************/
 gdtr:		.word	.-__gdt_table-1
 gdt_addr:	.int	0
@@ -55,9 +79,10 @@ gdt_addr:	.int	0
 .type	init_gdt, @function
 init_gdt:		
 		xor %eax,%eax
-		mov LOADER_CODE_ADDRESS,%ax
+		mov %ds,%ax
 		shl $4,%eax
-		add __gdt_table,%eax
+		lea __gdt_table,%dx
+		add %edx,%eax
 		mov %eax,gdt_addr
 		ret
 
@@ -65,4 +90,3 @@ init_gdt:
 .global gdtr
 .global gdt_addr
 .global	init_gdt
-

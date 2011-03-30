@@ -10,6 +10,7 @@ asm(".code16gcc");
 #include "console_interface.h"
 #include "string.h"
 #include "lbp.h"
+#include "copy_to_upper_memory.h"
 
 /* TODO: I have to find header with VK codes */
 #define VK_ENTER 0x1C
@@ -42,6 +43,17 @@ static inline void tools_memory_dump(void *addr, word_t size)
 
 		O(number,((byte_t*)addr)[i],16);	
 	}
+}
+
+void TOOLS_copy_to_upper_memory(dword_t dst, dword_t src, dword_t size)
+{
+/*  
+ * - go to the protected mode
+ * - copy buffer
+ * - return to real mode
+ *
+ */
+	copy_to_upper_memory_asm(dst,src,size);
 }
 
 byte_t IMAGE_load_kernel_to_memory(byte_t *cmd_buffer)
@@ -101,19 +113,34 @@ byte_t IMAGE_load_kernel_to_memory(byte_t *cmd_buffer)
 	}
 
 	/* 4. Load protected mode kernel */
+	word_t needed_blocks = loader_descriptor->kernel_sectors_count - (kernel_header->setup_sects + 1);
+ 	/* 0x100000 - bzImage ; other - 0x10000*/
+	dword_t target_buffer = 0x10000;
+	
 	address.lba 	+=	kernel_header->setup_sects + 1;
-	address.blocks	=	loader_descriptor->kernel_sectors_count - (kernel_header->setup_sects + 1);
-	address.buffer	=	0x10000; /* 0x100000 - bzImage ; other - 0x10000*/
-	O(string,"Loading protected mode kernel... ");
-	if ( BIOS_read_storage_data(&address) ) {
-		/* IO error */
-		O(string,"FAIL\r\n");
-		return ERR_CMD_FAIL;
-	}
-	else {
-		O(string,"DONE\r\n");
+	address.blocks	=	1;	
+	address.buffer	=	IO_BUFFER_ADDRESS;
+	O(string,"Loading protected mode kernel");
+	
+	while (needed_blocks) {
+		if ( BIOS_read_storage_data(&address) ) {
+			/* IO error */
+			O(string,"FAIL\r\n");
+			return ERR_CMD_FAIL;
+		}
+		O(string,".");
+
+		/* Copy block to upper memory */
+		TOOLS_copy_to_upper_memory(IO_BUFFER_ADDRESS,target_buffer,0x200);
+
+		O(string,"+");
+		address.lba += 1;
+		--needed_blocks;
+		target_buffer += 0x200;
 	}
 	
+	O(string,"DONE\r\n");
+
 	return ERR_CMD_OK;
 }
 
