@@ -7,8 +7,8 @@ default: qemu
 #
 # Compile using x86_64
 #
-export CFLAGS				=	-march=i386 -m32 -nostdlib -O0 -Wa,-R,-aln=$@.S
-export ASFLAGS				=	-march=i386 -m32 -Wl,--oformat=elf32-i386
+export CFLAGS				=	-march=i386 -m32 -nostdlib -O0 -Wa,-R,-aln=$@.S -D__DEBUG__
+export ASFLAGS				=	-march=i386 -m32 -Wl,--oformat=elf32-i386 -D__DEBUG__
 LD_CMD						=	ld -A i386 -melf_i386 -N -static -Ttext $1 --oformat binary -Map=$@.map $^ -o$@
 
 BASE_HEADERS				:= loader.h loader.gen.h

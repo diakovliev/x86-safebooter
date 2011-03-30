@@ -5,6 +5,13 @@
 
 .text
 
+p_mode_dst:		.int 0
+p_mode_src:		.int 0
+p_mode_size:	.int 0
+.global p_mode_dst
+.global p_mode_src
+.global p_mode_size
+
 /* real mode registers */
 r_mode_sp: .int 0
 r_mode_ss: .int 0
@@ -13,11 +20,22 @@ r_mode_es: .int 0
 r_mode_fs: .int 0
 r_mode_gs: .int 0
 
+/* stored ebp for access to function parameters */
+r_mode_ebp: .int 0
+
 /**************************************************************/
 .global copy_to_upper_memory_asm
 .type	copy_to_upper_memory_asm, @function
 copy_to_upper_memory_asm:
 	enter $0,$0
+
+	mov 8(%ebp),%eax
+	mov 12(%ebp),%edx
+	mov 16(%ebp),%ecx
+
+	mov %eax,p_mode_dst
+	mov %edx,p_mode_src
+	mov %ecx,p_mode_size
 
 /* store registers */	
 	mov %ss,r_mode_ss
@@ -98,7 +116,18 @@ copy_to_upper_memory_asm_32_entry:
 
 /* -------------------------------------- */	
 /* copy data */
-	nop
+	mov p_mode_dst,%eax
+	mov p_mode_src,%edx
+	mov p_mode_size,%ecx
+
+copy:
+	xor %ebx,%ebx
+	movb (%eax),%bl
+	movb %bl,(%edx)
+
+	inc %eax
+	inc %edx
+	loop copy
 
 /* -------------------------------------- */	
 

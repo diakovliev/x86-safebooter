@@ -115,17 +115,19 @@ byte_t IMAGE_load_kernel_to_memory(byte_t *cmd_buffer)
 	/* 4. Load protected mode kernel */
 	word_t needed_blocks = loader_descriptor->kernel_sectors_count - (kernel_header->setup_sects + 1);
  	/* 0x100000 - bzImage ; other - 0x10000*/
-	dword_t target_buffer = 0x10000;
+	dword_t target_buffer = 0x100000;
 	
 	address.lba 	+=	kernel_header->setup_sects + 1;
 	address.blocks	=	1;	
 	address.buffer	=	IO_BUFFER_ADDRESS;
 	O(string,"Loading protected mode kernel");
 	
-	while (needed_blocks) {
+	while (needed_blocks--) {
 		if ( BIOS_read_storage_data(&address) ) {
 			/* IO error */
-			O(string,"FAIL\r\n");
+			O(string,"FAIL(");
+			O(number,needed_blocks,10);
+			O(string,")\r\n");
 			return ERR_CMD_FAIL;
 		}
 		O(string,".");
@@ -133,10 +135,16 @@ byte_t IMAGE_load_kernel_to_memory(byte_t *cmd_buffer)
 		/* Copy block to upper memory */
 		TOOLS_copy_to_upper_memory(IO_BUFFER_ADDRESS,target_buffer,0x200);
 
-		O(string,"+");
-		address.lba += 1;
-		--needed_blocks;
-		target_buffer += 0x200;
+//		O(char,'(');
+//		O(number,p_mode_dst,16);
+//		O(char,',');
+//		O(number,p_mode_src,16);
+//		O(char,',');
+//		O(number,p_mode_size,16);
+//		O(string,")\r\n");
+
+		address.lba		+= 1;
+		target_buffer	+= 0x200;
 	}
 	
 	O(string,"DONE\r\n");
