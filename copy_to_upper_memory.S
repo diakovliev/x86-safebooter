@@ -63,26 +63,6 @@ copy_to_upper_memory_asm:
 	.byte 0xEA
 	.short copy_to_upper_memory_asm_32_entry
 	.short GDT_CODE_SEGMENT
-	
-copy_to_upper_memory_asm_16_entry:
-
-/* restore real mode */
-	mov $GDT_R_DATA_SEGMENT,%ax
-	mov %ax,%ss
-	mov %ax,%ds
-	mov %ax,%es
-	mov %ax,%fs
-	mov %ax,%gs
-
-/* go to real mode */
-	mov %cr0,%eax
-	and $0xFE,%al
-	mov %eax,%cr0
-
-/* final jump */
-	.byte 0x66,0xEA
-r_mode_offset: .int 0
-r_mode_segment: .int 0
 
 r_mode_entry:
 	mov r_mode_ss,%ss
@@ -115,19 +95,23 @@ copy_to_upper_memory_asm_32_entry:
 /* -------------------------------------- */	
 /* protected mode code */
 /* copy data */
-	mov p_mode_dst,%eax
-	mov p_mode_src,%edx
+	mov p_mode_dst,%edi
+	mov p_mode_src,%esi
 	mov p_mode_size,%ecx
 
+/*
 copy:
 	xor %ebx,%ebx
-	movb (%eax),%bl
-	movb %bl,(%edx)
+	movb (%edi),%bl
+	movb %bl,(%esi)
 
 	inc %eax
 	inc %edx
 	loop copy
+*/
 
+	cld
+	rep movsb
 /* -------------------------------------- */	
 
 	/* jmpl copy_to_upper_memory_asm_16_entry */
@@ -135,3 +119,22 @@ copy:
 	.int copy_to_upper_memory_asm_16_entry
 	.int GDT_R_CODE_SEGMENT
 
+copy_to_upper_memory_asm_16_entry:
+
+/* restore real mode */
+	mov $GDT_R_DATA_SEGMENT,%ax
+	mov %ax,%ss
+	mov %ax,%ds
+	mov %ax,%es
+	mov %ax,%fs
+	mov %ax,%gs
+
+/* go to real mode */
+	mov %cr0,%eax
+	and $0xFE,%al
+	mov %eax,%cr0
+
+/* final jump */
+	.byte 0x66,0xEA
+r_mode_offset: .int 0
+r_mode_segment: .int 0

@@ -100,7 +100,7 @@ static inline void FUNC(strrev) (byte_t *s, word_t ln) {
 	}
 }
 
-static inline byte_t FUNC(xnumber) (byte_t ch, byte_t base) {
+static inline char FUNC(xnumber) (byte_t ch, byte_t base) {
 	if (ch >= 0x30 && ch <= 0x39) /* 0..9 */
 		return (ch - 0x30);
 	else
@@ -110,21 +110,19 @@ static inline byte_t FUNC(xnumber) (byte_t ch, byte_t base) {
 	if (ch >= 0x61 && ch <= 0x66 && base > 10) /* a..f */
 		return (ch - 0x57);
 	else
-		return 0;
+		return -1;
 }
 
 static unsigned long FUNC(atol) (byte_t *str, byte_t base) {
-	byte_t *str_r = str + FUNC(strlen) (str) - 1;
 
 	unsigned long r = 0;	
-	unsigned long mul = 1;
 
-	while (str_r >= str) {
-		r += FUNC(xnumber) (*str_r--,base) * mul;
-		mul *= base;
+	while (FUNC(xnumber) (*str,base) >= 0) {
+		r += FUNC(xnumber) (*str++,base);
+		r *= base;
 	}
 		
-	return r;
+	return r/base;
 }
 
 #endif/*STRING_HEADER*/

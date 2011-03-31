@@ -46,42 +46,85 @@ static inline void tools_memory_dump(void *addr, word_t size)
 	}
 }
 
-static void tools_copy_to_upper_memory(dword_t dst, dword_t src, dword_t size)
-{
-/*  
- * - go to the protected mode
- * - copy buffer
- * - return to real mode
- *
- */
-	copy_to_upper_memory_asm(dst,src,size);
-}
-
 static void tools_jump_to_kernel() 
 {
 	jump_to_kernel_asm();
+}
+
+static int tools_read_storage_data(disk_address_packet_t *address)
+{
+	int result = 0;
+	
+	if ( address->buffer & 0xFFFF0000 ) {
+		/* upper memory */
+		/* dst_seg is ignored, interpret address->buffer as linear 32bit address */
+		/* store address */
+		disk_address_packet_t stored_address;
+		memcpy(&stored_address,address,sizeof(disk_address_packet_t));
+
+		dword_t dst				= address->buffer;
+		word_t needed_blocks	= address->blocks;
+
+		address->buffer 		= IO_BUFFER_ADDRESS;
+		address->blocks 		= 1;
+		
+		while (needed_blocks--) {
+
+			result = BIOS_read_storage_data(address);
+			if (result) {
+				//O(char,'F');
+				break;
+			}
+			//O(char,'.');
+
+			copy_to_upper_memory_asm(dst,address->buffer,DISK_SECTOR_SIZE);
+			address->lba	+= 1;
+			dst 			+= DISK_SECTOR_SIZE;
+		}
+
+		/* restore address */
+		memcpy(address,&stored_address,sizeof(disk_address_packet_t));
+	}
+	else {
+		/* lower memory */
+		result = BIOS_read_storage_data(address);
+		if (result) {
+			//O(char,'F');
+		}
+		//O(char,'.');
+	}
+	
+	if (result) {
+		O(string,"\r\nbuffer: 0x");
+		O(number,address->buffer,16);
+		O(string,"\r\nblocks: ");
+		O(number,address->blocks,10);
+		O(string,"\r\nlba: ");
+		O(number,address->lba,10);
+		O(string,"\r\n");
+	}
+
+	return result;
 }
 
 byte_t IMAGE_load_kernel_to_memory(byte_t *cmd_buffer)
 {
 	/* Load real mode kernel */
 
-	/* 1. Load first 2 sectors */
+	/* 1. Load first KERNEL_SETUP_SECTORS sectors */
 	disk_address_packet_t address;
 	memset(&address,0,sizeof(address));
 	address.struct_size	= sizeof(address);
-	address.blocks		= 2;
-	address.buffer		= KERNEL_REAL_CODE_ADDRESS;
-	address.lba			= (KERNEL_CODE_OFFSET/512);
-	O(string,"Loading kernel header... ");
-	if ( BIOS_read_storage_data(&address) ) {
+	address.blocks		= KERNEL_SETUP_SECTORS;
+	address.buffer		= KERNEL_SETUP_ADDRESS;
+	address.lba			= (KERNEL_CODE_OFFSET/DISK_SECTOR_SIZE);
+	O(string,"Loading kernel header ");
+	if ( tools_read_storage_data(&address) ) {
 		/* IO error */
-		O(string,"FAIL\r\n");
+		O(string," FAIL\r\n");
 		return ERR_CMD_FAIL;
 	}
-	else {
-		O(string,"DONE\r\n");
-	}
+	O(string," DONE\r\n");
 
 	/* 2. Check kernel signature */
 	kernel_header_p kernel_header = GET_KERNEL_HEADER_ADDRESS(address.buffer);
@@ -95,66 +138,45 @@ byte_t IMAGE_load_kernel_to_memory(byte_t *cmd_buffer)
 		kernel_header->setup_sects = 4;
 	}
 	
-//	O(string,"Supported LBP: 0x");
-//	O(number,kernel_header->version,16);
-//	O(string,"\r\n");
-//	O(string,"==> setup_sects: 0x");
-//	O(number,kernel_header->setup_sects,16);
-//	O(string,"\r\n");
+	O(string,"Supported LBP: 0x");
+	O(number,kernel_header->version,16);
+	O(string,"\r\n");
 
 	/* 3. Load realmode kernel */
-	O(string,"Loading real mode kernel... ");
-	address.blocks = kernel_header->setup_sects;
-	if ( BIOS_read_storage_data(&address) ) {
+	address.blocks = kernel_header->setup_sects+1;
+	address.buffer = KERNEL_REAL_CODE_ADDRESS;
+	O(string,"Loading real mode kernel ");
+	if ( tools_read_storage_data(&address) ) {
 		/* IO error */
-		O(string,"FAIL\r\n");
+		O(string," FAIL\r\n");
 		return ERR_CMD_FAIL;
 	}
-	else {
-		O(string,"DONE\r\n");
-	}
+	O(string," DONE\r\n");
+
 	/* correct setup_sects */
 	if (!kernel_header->setup_sects) {
 		kernel_header->setup_sects = 4;
 	}
 
 	/* 4. Load protected mode kernel */
-	word_t needed_blocks = loader_descriptor->kernel_sectors_count - (kernel_header->setup_sects + 1);
- 	/* 0x100000 - bzImage ; other - 0x10000*/
-	dword_t target_buffer = 0x100000;
-	
 	address.lba 	+=	kernel_header->setup_sects + 1;
-	address.blocks	=	1;	
-	address.buffer	=	IO_BUFFER_ADDRESS;
+	address.blocks	=	loader_descriptor->kernel_sectors_count - (kernel_header->setup_sects + 1);	
+	address.buffer	=	KERNEL_CODE_ADDRESS;
 	O(string,"Loading protected mode kernel");
-	
-	while (needed_blocks--) {
-		if ( BIOS_read_storage_data(&address) ) {
-			/* IO error */
-			O(string,"FAIL(");
-			O(number,needed_blocks,10);
-			O(string,")\r\n");
-			return ERR_CMD_FAIL;
-		}
-		O(string,".");
-
-		/* Copy block to upper memory */
-		tools_copy_to_upper_memory(IO_BUFFER_ADDRESS,target_buffer,0x200);
-
-//		O(char,'(');
-//		O(number,p_mode_dst,16);
-//		O(char,',');
-//		O(number,p_mode_src,16);
-//		O(char,',');
-//		O(number,p_mode_size,16);
-//		O(string,")\r\n");
-
-		address.lba		+= 1;
-		target_buffer	+= 0x200;
+	if ( tools_read_storage_data(&address) ) {
+		/* IO error */
+		O(string," FAIL\r\n");
+		return ERR_CMD_FAIL;
 	}
-	
-	O(string,"DONE\r\nJumping to kernel...");
+	O(string," DONE\r\n");
 
+	return ERR_CMD_OK;
+}
+
+byte_t IMAGE_boot(byte_t *cmd_buffer) {
+
+	O(string,"Boot...\r\n");
+	
 	tools_jump_to_kernel();
 
 	return ERR_CMD_OK;
@@ -170,7 +192,7 @@ byte_t TOOLS_display_memory(byte_t *cmd_buffer) {
 	if (!addr_s)
 		return ERR_CMD_BAD_PARAMS;
 
-	word_t addr = atol(addr_s, 16);
+	dword_t addr = atol(addr_s, 16);
 	
 	byte_t *sz_s = strtok(" ", 0);
 	if (!sz_s)
@@ -199,6 +221,10 @@ byte_t C_process_command(byte_t *cmd_buffer) {
 	else
 	if ( starts_from(cmd_buffer, "load") || starts_from(cmd_buffer, "l") ) {
 		r = IMAGE_load_kernel_to_memory(cmd_buffer);
+	}
+	else
+	if ( starts_from(cmd_buffer, "boot") || starts_from(cmd_buffer, "b") ) {
+		r = IMAGE_boot(cmd_buffer);
 	}
 
 	return r;

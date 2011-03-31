@@ -16,7 +16,7 @@ HEADERS						:= $(BASE_HEADERS) gdt_table.h gdt_table.gen.h loader_types.h copy_
 SOURCES						:= C_loader_start.c bios_tools.c console_interface.c copy_to_upper_memory.S jump_to_kernel.S
 OBJECTS						:= loader_start.o gdt_table.o copy_to_upper_memory.o jump_to_kernel.o C_loader_start.o bios_tools.o console_interface.o
 loader.gen.h: define_var		=	echo '\#define $1 $($1)'
-loader.gen.h: .config
+loader.gen.h: .config makefile
 	echo -n > $@
 	$(call define_var,COMPILE_PLATFORM__X86_64) >> $@
 	$(call define_var,COMPILE_PLATFORM__IA32) >> $@
@@ -26,6 +26,9 @@ loader.gen.h: .config
 	$(call define_var,IO_BUFFER_ADDRESS) >> $@
 	$(call define_var,KERNEL_CODE_ADDRESS) >> $@
 	$(call define_var,KERNEL_CODE_OFFSET) >> $@
+	$(call define_var,KERNEL_SETUP_SECTORS) >> $@
+	$(call define_var,KERNEL_SETUP_ADDRESS) >> $@
+	$(call define_var,DISK_SECTOR_SIZE) >> $@
 
 mbr.o: mbr.S $(BASE_HEADERS)
 
