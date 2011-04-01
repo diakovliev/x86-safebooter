@@ -109,6 +109,8 @@ static int tools_read_storage_data(disk_address_packet_t *address)
 
 byte_t IMAGE_load_kernel_to_memory(byte_t *cmd_buffer)
 {
+	cmd_buffer = cmd_buffer;
+
 	/* Load real mode kernel */
 
 	/* 1. Load first KERNEL_SETUP_SECTORS sectors */
@@ -174,6 +176,8 @@ byte_t IMAGE_load_kernel_to_memory(byte_t *cmd_buffer)
 }
 
 byte_t IMAGE_boot(byte_t *cmd_buffer) {
+
+	cmd_buffer = cmd_buffer;
 
 	O(string,"Boot...\r\n");
 	
@@ -319,10 +323,26 @@ void C_start(void *loader_descriptor_address, void *loader_code_address) {
 	O(string,"\r\nGDT address: 0x");
 	O(number,gdt_addr,16);
 
+#ifdef CONFIG_SUPPORT_CMD_LINE
+
 	O(string,"\r\n" CMD_PROMT_INVITE);
 
 	/* Run main loop */
 	BIOS_run_input_loop(C_input_cb,C_no_input_cb);
+
+#else
+
+	O(string,"\r\n");
+
+	/* Boot linux image */
+	if ( ERR_CMD_OK != IMAGE_load_kernel_to_memory(0) )	{
+		O(string,"\r\nError during loading linux image");
+	}
+	else {
+		IMAGE_boot(0);
+	}
+
+#endif // CONFIG_SUPPORT_CMD_LINE
 
 	/* Stop */
 	C_stop();

@@ -89,8 +89,11 @@ copy_to_upper_memory_asm_32_entry:
 	mov $GDT_DATA_SEGMENT,%ax
 	mov %ax,%es
 
+/* We don't use stack */
+#if 0
 	mov $GDT_STACK_SEGMENT,%ax
 	mov %ax,%ss
+#endif
 
 /* -------------------------------------- */	
 /* protected mode code */
