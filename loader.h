@@ -8,7 +8,9 @@
 
 #include "loader.gen.h"
 
-/* Address where has been placed stack */
-#define STACK_ADDRESS		0x7000
+#define LOADER_MAGIC 0xAA,0x00
+#define VER_MAJ 0x00
+#define VER_MID 0x00
+#define VER_MIN 0x05
 
 #endif

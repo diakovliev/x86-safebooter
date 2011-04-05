@@ -15,8 +15,8 @@ entry_point:
 	movw %ax,%ss
 	movw %ax,%es
 	movw %ax,%ds
-	movw $STACK_ADDRESS,%sp
-	movw $STACK_ADDRESS,%bp
+	movw $LOADER_STACK_ADDRESS,%sp
+	movw $LOADER_STACK_ADDRESS,%bp
 	sti
 
 	# clear screen

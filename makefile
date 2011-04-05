@@ -49,10 +49,13 @@ loader.gen.h: .config makefile
 	$(call define_var,COMPILE_PLATFORM__IA32) >> $@
 	$(call define_var,LOADER_DESCRIPTOR_ADDRESS) >> $@
 	$(call define_var,LOADER_CODE_ADDRESS) >> $@
+	$(call define_var,LOADER_STACK_ADDRESS) >> $@
 	$(call define_var,KERNEL_REAL_CODE_ADDRESS) >> $@
 	$(call define_var,IO_BUFFER_ADDRESS) >> $@
 	$(call define_var,KERNEL_CODE_ADDRESS) >> $@
-	$(call define_var,KERNEL_CODE_OFFSET) >> $@
+	$(call define_var,KERNEL_CODE_LBA) >> $@
+	$(call define_var,LOADER_CODE_LBA) >> $@
+	$(call define_var,LOADER_DESCRIPTOR_LBA) >> $@
 	$(call define_var,KERNEL_SETUP_SECTORS) >> $@
 	$(call define_var,KERNEL_SETUP_ADDRESS) >> $@
 	$(call define_var,DISK_SECTOR_SIZE) >> $@
@@ -80,12 +83,15 @@ loader.img: $(OBJECTS)
 	$(call LD_CMD,$(LOADER_CODE_ADDRESS))
 
 loader.img.size: loader.img
-	echo ".byte `du --apparent-size -B512 $^ | sed s/\s*$^//g`+1" > $@
+	echo ".word `du --apparent-size -B512 $^ | cut -f 1`+1" > $@
 
 kernel.img.size: $(BZIMAGE)
 	echo ".word `du --apparent-size -B512 $^ | cut -f 1`+1" > $@
 
-loader_descriptor.o: loader.img.size kernel.img.size loader_descriptor.S $(BASE_HEADERS)
+loader_descriptor.img.size: loader_env
+	echo ".word `du --apparent-size -B512 $^ | cut -f 1`+1" > $@
+
+loader_descriptor.o: loader.img.size kernel.img.size loader_descriptor.img.size loader_descriptor.S $(BASE_HEADERS)
 loader_start.o: loader_start.S $(BASE_HEADERS)
 
 loader_descriptor.img: loader_descriptor.o
@@ -95,19 +101,15 @@ $(OBJECTS): $(SOURCES) $(HEADERS)
 
 # See http://jamesmcdonald.id.au/faqs/mine/Running_Bochs.html for geometry details.
 # Currently used 10MB image.
-$(HDD_IMG): mbr.img loader_descriptor.img
-	dd if=/dev/zero 				of=$@ bs=512 count=20808 && \
-	dd if=mbr.img 					of=$@ bs=1 conv=notrunc && \
-	dd if=loader_descriptor.img 	of=$@ bs=1 conv=notrunc seek=${LOADER_DESCRIPTOR_OFFSET} && \
-	dd if=loader.img 				of=$@ bs=1 conv=notrunc seek=${LOADER_CODE_OFFSET} && \
-	dd if=${BZIMAGE}				of=$@ bs=1 conv=notrunc seek=${KERNEL_CODE_OFFSET}
+$(HDD_IMG): mbr.img loader_descriptor.img loader.img ${BZIMAGE}
+	dd if=/dev/zero 				of=$@ bs=$(DISK_SECTOR_SIZE) count=20808 && \
+	dd if=mbr.img 					of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc && \
+	dd if=loader_descriptor.img 	of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc seek=${LOADER_DESCRIPTOR_LBA} && \
+	dd if=loader.img 				of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc seek=${LOADER_CODE_LBA} && \
+	dd if=${BZIMAGE}				of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc seek=${KERNEL_CODE_LBA}
 
 qemu: ${HDD_IMG}
-#ifeq ($(CONFIG_SUPPORT_CMD_LINE),y) 
 	qemu $<
-#else
-#	qemu -nographic -serial stdio $<
-#endif
 
 bochs: ${HDD_IMG}
 	bochs -f bochsrc -q

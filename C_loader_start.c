@@ -119,7 +119,7 @@ byte_t IMAGE_load_kernel_to_memory(byte_t *cmd_buffer)
 	address.struct_size	= sizeof(address);
 	address.blocks		= KERNEL_SETUP_SECTORS;
 	address.buffer		= KERNEL_SETUP_ADDRESS;
-	address.lba			= (KERNEL_CODE_OFFSET/DISK_SECTOR_SIZE);
+	address.lba			= KERNEL_CODE_LBA;
 	O(string,"Loading kernel header ");
 	if ( tools_read_storage_data(&address) ) {
 		/* IO error */
@@ -313,7 +313,7 @@ void C_start(void *loader_descriptor_address, void *loader_code_address) {
 	O(string,"\r\nCode: 0x");
 	O(number,loader_code_address,16);
 	O(string,"\r\nStack: 0x");
-	O(number,STACK_ADDRESS,16);
+	O(number,LOADER_STACK_ADDRESS,16);
 	O(string,"\r\nLoader sectors: 0x");
 	O(number,desc->loader_sectors_count,16);
 	O(string,"\r\nKernel sectors: 0x");

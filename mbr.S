@@ -2,13 +2,6 @@
 
 /*
 
-Disk structure:
-	
-At address LBA 34: Loader code descriptor
-	loader_descriptor_magic:	.byte 0xAA,0x00
-	loader_version: 			.byte 0x00,0x00,0x01
-	loader_sectors_count:		.byte 0x05
-
 NOTES:
 	- Now supports only read using int 0x13 extensions
 
@@ -54,7 +47,7 @@ disk_address_packet:
 				.byte 0x10, 0x00
 blocks_count:	.byte 0x01, 0x00
 buffer:			.long LOADER_DESCRIPTOR_ADDRESS
-lba_arrress:	.quad 0x22
+lba_address:	.quad LOADER_DESCRIPTOR_LBA
 
 	. = _start + BPB_SIZE
 
@@ -64,12 +57,23 @@ real_start:
 	movw %ax,%ds
 	movw %ax,%ss
 	movw %ax,%es
-	movw $STACK_ADDRESS,%sp
+	movw $LOADER_STACK_ADDRESS,%sp
 	sti
 
 /* Load loader descriptor. One sector, place to LOADER_DESCRIPTOR_ADDRESS */
 load_descriptor:
 	MSG(string_descriptor)
+	movb $0x42,%ah
+	movw $(disk_address_packet),%si
+	int $0x13
+	jnc loader_descriptor_pre_loaded
+	MSG(string_fail)
+	jmp fail
+
+loader_descriptor_pre_loaded:
+	movw $LOADER_DESCRIPTOR_ADDRESS,%bx
+	movw 9(%bx),%ax /* loader_descriptor_sectors_count */
+	movw %ax,blocks_count
 	movb $0x42,%ah
 	movw $(disk_address_packet),%si
 	int $0x13
@@ -82,11 +86,12 @@ loader_descriptor_loaded:
 
 /* Get data from loader descriptor */
 	movw $LOADER_DESCRIPTOR_ADDRESS,%bx
-	movb 5(%bx),%al
-	movb %al,blocks_count
+	movw 5(%bx),%ax /* loader_sectors_count */
+	movw %ax,blocks_count
 	movw $LOADER_CODE_ADDRESS,%bx
-	movb (%bx),%al
-	movb %al,buffer
+	movw %bx,buffer
+	movw $LOADER_CODE_LBA,%bx
+	movw %bx,lba_address
 
 /* Load loader code. */
 load_code:
@@ -106,6 +111,9 @@ loader_start:
 	MSG(string_jump)
     movw $LOADER_CODE_ADDRESS,%ax
     jmpw *%ax
+//	.byte 0xEA
+//	.word LOADER_CODE_ADDRESS
+//	.word 0
 
 PRINT_IMPL
 

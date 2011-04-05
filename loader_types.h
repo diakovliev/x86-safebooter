@@ -16,8 +16,9 @@ typedef quad_t *quad_p;
 typedef struct loader_descriptor_s {
 	word_t magic;
 	byte_t version[3];
-	byte_t loader_sectors_count;
+	word_t loader_sectors_count;
 	word_t kernel_sectors_count;
+	word_t loader_descriptor_sectors_count;
 } loader_descriptor_t;
 #pragma pack(pop)
 typedef struct loader_descriptor_s *loader_descriptor_p;
