@@ -24,6 +24,6 @@ typedef struct loader_descriptor_s {
 typedef struct loader_descriptor_s *loader_descriptor_p;
 
 #define LOADER_ENV(LOADER_DESCRIPTOR_POINTER) \
-	(LOADER_DESCRIPTOR_POINTER + sizeof(loader_descriptor_t))
+	(LOADER_DESCRIPTOR_POINTER + DISK_SECTOR_SIZE)
 
 #endif//LOADER_TYPES_HEADER

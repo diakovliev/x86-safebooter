@@ -1,4 +1,5 @@
-hilevel_1:lba=3500,size=5000
-hilevel_2:lba=8500,size=5000
-active:0
+autostart:0
+default:0
 startup:load;boot
+image_1:lba=3500,size=5000
+image_2:lba=8500,size=5000
