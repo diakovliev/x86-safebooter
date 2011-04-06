@@ -67,8 +67,9 @@ static inline word_t FUNC(strcpy) (byte_t *dst, byte_t *src) {
 static inline byte_t *FUNC(strtok) (byte_t *sep, byte_t *str) {
 	static byte_t *buf = 0;
 	if (str) {
+		byte_t *old_buf = buf;
 		buf = str;
-		return buf;
+		return old_buf;
 	}
 	if (!*buf) {
 		return 0;
@@ -86,6 +87,23 @@ static inline byte_t *FUNC(strtok) (byte_t *sep, byte_t *str) {
 		}
 		++buf;
 	}
+	return res;
+}
+
+static inline byte_t *FUNC(strltrim) (byte_t *trim, byte_t *str) {
+	byte_t *res = str;
+	byte_t *trim_p = trim;
+
+	while (*trim_p && *res) {
+		if (*res == *trim_p) {
+			res++;
+			trim_p = trim;
+		}
+		else {
+			++trim_p;
+		}
+	}
+
 	return res;
 }
 

@@ -26,10 +26,37 @@ asm(".code16gcc");
 #define CMD_BUFFER_MAX 0x20
 
 /* Command promt */
-#define CMD_PROMT_INVITE ">> "
+#define CMD_PROMT_INVITE	">> "
+#define CMD_PARAM_SEP		" "
+#define CMD_CMD_SEP			";"
 
 /* Pointer to loader descriptor */
 static loader_descriptor_p loader_descriptor = 0;
+
+/* Command line command */
+typedef struct cmd_command_s {
+	byte_t *name;
+	byte_t *alias;
+	byte_t *help;
+	byte_t (*function)(byte_t *);
+} cmd_command_t;
+
+/* forward declarations */
+byte_t IMAGE_load_kernel_to_memory(byte_t *cmd_buffer);
+byte_t IMAGE_boot(byte_t *cmd_buffer);
+byte_t TOOLS_display_memory(byte_t *cmd_buffer);
+byte_t TOOLS_help(byte_t *cmd_buffer);
+
+/* Registered commands */
+static cmd_command_t commands[] = {
+	{"help", "h", "list available commands", TOOLS_help},
+	{"load", "l", "load kernel to memory", IMAGE_load_kernel_to_memory},
+	{"boot", "b", "boot kernel", IMAGE_boot},
+	{"display", "d", "display memory", TOOLS_display_memory},
+
+	/* last element */
+	{0,0,0,0},
+};
 
 static inline void tools_memory_dump(void *addr, word_t size)
 {
@@ -187,18 +214,38 @@ byte_t IMAGE_boot(byte_t *cmd_buffer) {
 }
 
 /* Display memory */
-byte_t TOOLS_display_memory(byte_t *cmd_buffer) {
-	
-	strtok(" ", cmd_buffer);
-	strtok(" ", 0);
+byte_t TOOLS_help(byte_t *cmd_buffer) {
 
-	byte_t *addr_s = strtok(" ", 0);
+	cmd_command_t *command = commands;
+	O(string,"command(alias) - help\r\n");
+	O(string,"---------------------\r\n");
+	while (command->name) {
+		O(string,command->name);
+		O(string,"(");
+		O(string,command->alias);
+		O(string,") - ");
+		O(string,command->help);
+		O(string,"\r\n");
+		++command;
+	}
+
+	return ERR_CMD_OK;
+}
+
+/* Display memory */
+byte_t TOOLS_display_memory(byte_t *cmd_buffer) {
+
+	/* store old strtok buffer */	
+	byte_t *buf = strtok(CMD_PARAM_SEP, cmd_buffer);
+	strtok(CMD_PARAM_SEP, 0);
+
+	byte_t *addr_s = strtok(CMD_PARAM_SEP, 0);
 	if (!addr_s)
 		return ERR_CMD_BAD_PARAMS;
 
 	dword_t addr = atol(addr_s, 16);
 	
-	byte_t *sz_s = strtok(" ", 0);
+	byte_t *sz_s = strtok(CMD_PARAM_SEP, 0);
 	if (!sz_s)
 		return ERR_CMD_BAD_PARAMS;
 	
@@ -211,24 +258,34 @@ byte_t TOOLS_display_memory(byte_t *cmd_buffer) {
 	O(string,"\r\n");
 	tools_memory_dump(addr, sz);
 	O(string,"\r\n");
+	
+	/* restore old strtok buffer */
+	strtok(CMD_CMD_SEP,buf);
 
 	return ERR_CMD_OK;	
 }
+
 
 /* Command processor entry point */
 byte_t C_process_command(byte_t *cmd_buffer) {
 	byte_t r = ERR_CMD_NOT_SUPPORTED;
 
-	if ( starts_from(cmd_buffer, "display") || starts_from(cmd_buffer, "d") ) {
-		r = TOOLS_display_memory(cmd_buffer);
-	}
-	else
-	if ( starts_from(cmd_buffer, "load") || starts_from(cmd_buffer, "l") ) {
-		r = IMAGE_load_kernel_to_memory(cmd_buffer);
-	}
-	else
-	if ( starts_from(cmd_buffer, "boot") || starts_from(cmd_buffer, "b") ) {
-		r = IMAGE_boot(cmd_buffer);
+	strtok(CMD_CMD_SEP, cmd_buffer );
+	byte_t *buf = 0;	
+	byte_t buffer[CMD_BUFFER_MAX];
+
+	while ( buf = strtok(CMD_CMD_SEP,0) ) {
+		buf = strltrim(" ",buf);
+		strcpy(buffer,buf);
+		
+		cmd_command_t *command = commands;
+		while (command->name) {
+			if ( 	starts_from(buffer, command->name) || 
+					starts_from(buffer, command->alias) ) {
+				r = (*command->function)(buffer);
+			}
+			++command;
+		}		
 	}
 
 	return r;
@@ -249,8 +306,7 @@ byte_t C_input_cb(byte_t scancode, byte_t ascii) {
 				O(string,"command error: ");
 				O(number,res,16);
 				O(string,"\r\n");
-				
-				//BIOS_reset(0x1234);
+				O(string,"Type 'help' for list available commands\r\n");
 			}				
 		}
 		O(string,CMD_PROMT_INVITE);
@@ -314,10 +370,10 @@ void C_start(void *loader_descriptor_address, void *loader_code_address) {
 	O(number,loader_code_address,16);
 	O(string,"\r\nStack: 0x");
 	O(number,LOADER_STACK_ADDRESS,16);
-	O(string,"\r\nLoader sectors: 0x");
-	O(number,desc->loader_sectors_count,16);
-	O(string,"\r\nKernel sectors: 0x");
-	O(number,desc->kernel_sectors_count,16);	
+	O(string,"\r\nLoader sectors: ");
+	O(number,desc->loader_sectors_count,10);
+	O(string,"\r\nKernel sectors: ");
+	O(number,desc->kernel_sectors_count,10);	
 	O(string,"\r\nGDT size: ");
 	O(number,gdtr,10);
 	O(string,"\r\nGDT address: 0x");

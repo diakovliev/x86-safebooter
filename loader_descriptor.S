@@ -16,6 +16,8 @@ kernel_sectors_count:
 .include "kernel.img.size"
 loader_descriptor_sectors_count:
 .include "loader_descriptor.img.size"
+
+/* Environment */
 loader_env:
 .incbin "loader_env"
 
