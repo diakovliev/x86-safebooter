@@ -61,12 +61,13 @@ void display_init(display_t *d, word_t *address, byte_t width, byte_t height) {
 	d->width		= width;
 	d->height		= height;
 	d->attribute	= TXT_DEFAULT;
-	display_cursor_move(d,0,0);
+	//display_cursor_move(d,0,0);
+	d->x = d->y		= 0;
 	d->tab_width	= TXT_DEFAULT_TAB_WIDTH;
 } 
 
 void display_cursor_move(display_t *d, byte_t x, byte_t y) {
-	word_t location = y*d->width + x;	
+	word_t location = (y*d->width+x) + (d->address-(word_t*)TXT_VIDEO_MEM);
 	outb(0x3d4,14);
 	outb(0x3d5,location>>8);
 	outb(0x3d4,15);
@@ -94,7 +95,7 @@ void display_scroll(display_t *d) {
 		for (i = d->width; i < (d->height-1)*d->width; ++i)
 			d->address[i] = d->address[i+d->width];
 		
-		for (i = (d->height-1)*d->width; i < d->height*d->width; i++)
+		for (i = (d->height-1)*d->width; i < d->height*d->width; ++i)
 			d->address[i] = blank;
 
 		d->y = d->height-1;
@@ -114,7 +115,7 @@ void display_putc(display_t *d, byte_t c) {
 		}
 		break;
 	case '\t': {
-			d->x += d->tab_width;
+			d->x = (d->x+d->tab_width)&~(d->tab_width-1);
 			d->y = d->y;
 		}
 		break;
@@ -124,7 +125,7 @@ void display_putc(display_t *d, byte_t c) {
 			d->x = d->x+1 > d->width ? 0 : d->x+1;
 		}
 	}
-	display_scroll(d);
+	//display_scroll(d);
 	display_cursor_move(d,d->x,d->y);
 }
 
@@ -138,10 +139,22 @@ void display_puts(display_t *d, byte_t *s) {
 /* 32 bit C code entry point */
 void C_start(void *loader_descriptor_address, void *loader_code_address) 
 {
-	display_t d;
+	display_t d0;
+	display_t d1;
 	
-	display_init(&d, TXT_VIDEO_MEM, 80, 25);
-	display_clear(&d);
-	display_puts(&d,"Hello\r\n\tWorld");
+	display_init(&d0, TXT_VIDEO_MEM + 80*2*10, 80, 15);
+	display_clear(&d0);
+	
+	display_init(&d1, TXT_VIDEO_MEM, 80, 10);
+	display_clear(&d1);
+	
+	int i;
+	for (i = 0; i < 1500; ++i) {
+		if (i%2) 
+			display_puts(&d0,"Hello\r\n\tWorld");
+		else
+			display_puts(&d1,"\r\n1234567\tWorld");
+	}
+	
 }
 
