@@ -1,4 +1,5 @@
 #include "loader.h"
+#include "gdt_table.gen.h"
 
 .file "loader_start.S"
 
@@ -28,13 +29,47 @@ entry_point:
 	orb $2,%al
 	outb %al,$0x92
 
-	# Call 16-bit entry point
+	# Init gdt
+	call init_gdt
+
+/* set gdt */
+	cli
+	lgdt gdtr
+
+/* go to protected mode */
+	mov %cr0,%eax
+	or $1,%al
+	mov %eax,%cr0
+
+	/* jmpl _32_entry */
+	.byte 0x66,0xEA
+	.int _32entry
+	.int GDT_CODE_SEGMENT
+
+.code32
+_32entry:
+	/* set selectors */
+	mov $GDT_DATA_SEGMENT,%ax
+	mov %ax,%ds
+
+	mov $GDT_STACK_SEGMENT,%ax
+	mov %ax,%ss
+	
+	mov $GDT_DATA_SEGMENT,%ax
+	mov %ax,%es
+	mov %ax,%fs
+	mov %ax,%gs
+
+	/* set stack address */
+	mov $LOADER_STACK_ADDRESS,%esp
+
+	sti
+
+	# Call C 32-bit entry point
 	pushl $LOADER_CODE_ADDRESS
 	pushl $LOADER_DESCRIPTOR_ADDRESS
-	calll C_start
-	jmp fail
+	call C_start
 
-fail:
 	cli
 	hlt
 
