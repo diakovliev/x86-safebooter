@@ -7,11 +7,15 @@ default: qemu
 #
 # Compile using x86_64
 #
-CFLAGS	= -march=i386 -m32 -nostdlib -O0 -Wa,-R,-aln=$@.S -D__DEBUG_
+CFLAGS	= -ggdb3 -march=i386 -m32 -nostdlib -O0 -Wa,-R,-aln=$@.S -D__DEBUG__
 export CFLAGS_
-ASFLAGS	= -march=i386 -m32 -Wl,--oformat=elf32-i386 -D__DEBUG__
+ASFLAGS	= -ggdb3 -march=i386 -m32 -Wl,--oformat=elf32-i386 -D__DEBUG__
 export ASFLAGS
-LD_CMD	= ld -A i386 -melf_i386 -N -static -Ttext $1 --oformat binary -Map=$@.map $^ -o$@
+#LD_CMD	= ld -A i386 -melf_i386 -N -static -Ttext $1 --oformat binary -Map=$@.map $^ -o$@
+LD_CMD	= ld -A i386 -melf_i386 -N -static -Ttext $1 -Map=$@.map $^ -o$@.elf && \
+ objcopy --only-keep-debug $@.elf $@.dbg && \
+ objcopy --strip-debug $@.elf && \
+ objcopy -O binary $@.elf $@
 
 BASE_HEADERS+=loader.h 
 BASE_HEADERS+=loader.gen.h
@@ -26,12 +30,15 @@ HEADERS+=bios_tools.h
 HEADERS+=console_interface.h 
 HEADERS+=string.h 
 HEADERS+=lbp.h
+HEADERS+=common.h
+HEADERS+=txt_display.h
 
 SOURCES+=C_loader_start.c 
 SOURCES+=bios_tools.c 
 SOURCES+=console_interface.c 
 SOURCES+=copy_to_upper_memory.S 
 SOURCES+=jump_to_kernel.S
+SOURCES+=txt_display.c
 
 OBJECTS+=loader_start.o 
 OBJECTS+=gdt_table.o 
@@ -40,6 +47,7 @@ OBJECTS+=jump_to_kernel.o
 OBJECTS+=C_loader_start.o 
 OBJECTS+=bios_tools.o 
 OBJECTS+=console_interface.o
+OBJECTS+=txt_display.o
 
 loader.gen.h: define_var = echo '\#define $1 $($1)'
 loader.gen.h: define_cfg = echo '\#define $1'
@@ -110,8 +118,13 @@ $(HDD_IMG): mbr.img loader_descriptor.img loader.img ${BZIMAGE}
 	dd if=loader.img 				of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc seek=${LOADER_CODE_LBA} && \
 	dd if=${BZIMAGE}				of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc seek=${KERNEL_CODE_LBA}
 
+qemu: PORT=9999
+qemu: QEMU_ARGS=-S -gdb tcp::$(PORT) --daemonize
+qemu: GDB_ARGS=--symbols=loader.img.dbg --exec loader.img.elf --eval-command="target remote localhost:$(PORT)"
+
 qemu: ${HDD_IMG}
-	qemu $<
+	qemu $(QEMU_ARGS) $<
+	gdb $(GDB_ARGS)
 
 bochs: ${HDD_IMG}
 	bochs -f bochsrc -q
@@ -120,6 +133,8 @@ clean:
 	rm -f ${HDD_IMG}
 	rm -f *.gen.h
 	rm -f *.img
+	rm -f *.img.dbg
+	rm -f *.img.elf
 	rm -f *.img.size
 	rm -f *.map
 	rm -f *.o.S

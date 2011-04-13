@@ -63,7 +63,7 @@ _32entry:
 	/* set stack address */
 	mov $LOADER_STACK_ADDRESS,%esp
 
-	sti
+#	sti
 
 	# Call C 32-bit entry point
 	pushl $LOADER_CODE_ADDRESS
