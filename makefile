@@ -32,6 +32,7 @@ HEADERS+=string.h
 HEADERS+=lbp.h
 HEADERS+=common.h
 HEADERS+=txt_display.h
+HEADERS+=keyboard.h
 
 SOURCES+=C_loader_start.c 
 SOURCES+=bios_tools.c 
@@ -39,6 +40,7 @@ SOURCES+=console_interface.c
 SOURCES+=copy_to_upper_memory.S 
 SOURCES+=jump_to_kernel.S
 SOURCES+=txt_display.c
+SOURCES+=keyboard.c
 
 OBJECTS+=loader_start.o 
 OBJECTS+=gdt_table.o 
@@ -48,6 +50,7 @@ OBJECTS+=C_loader_start.o
 OBJECTS+=bios_tools.o 
 OBJECTS+=console_interface.o
 OBJECTS+=txt_display.o
+OBJECTS+=keyboard.o
 
 loader.gen.h: define_var = echo '\#define $1 $($1)'
 loader.gen.h: define_cfg = echo '\#define $1'

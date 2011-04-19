@@ -19,4 +19,8 @@ static inline word_t inw(word_t port) {
    return ret;
 }
 
+static inline void idle(void) {
+   asm volatile ("nop;pause");
+}
+
 #endif

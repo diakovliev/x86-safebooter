@@ -28,6 +28,7 @@ void display_clear(display_p d) {
 	for (i = 0; i < D(d)->width*D(d)->height; ++i) {
 		D(d)->address[i] = blank;
 	}
+	D(d)->x = D(d)->y	= 0;
 }
 
 void display_out(display_p d, byte_t c, byte_t x, byte_t y) {
