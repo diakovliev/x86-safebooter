@@ -90,6 +90,7 @@ static inline byte_t *FUNC(strtok) (byte_t *sep, byte_t *str) {
 	return res;
 }
 
+
 static inline byte_t *FUNC(strltrim) (byte_t *trim, byte_t *str) {
 	byte_t *res = str;
 	byte_t *trim_p = trim;
@@ -141,6 +142,27 @@ static unsigned long FUNC(atol) (byte_t *str, byte_t base) {
 	}
 		
 	return r/base;
+}
+
+static inline byte_t *FUNC(itoa) (unsigned long value, byte_t base) {
+	/* max is 128-bit binary value with sign */
+	static byte_t res[129];
+	byte_t *buf = res;
+	long v = value>=0?value:-value;
+	byte_t ch = '0';
+	byte_t n;
+	do {
+		n = v % base;
+		v /= base;
+		if (n < 10)
+			ch = n + 0x30;
+		else
+			ch = n + 0x37;
+		*buf++ = ch;
+	} while (v);
+	*buf++ = 0;
+	FUNC(strrev) (res, buf-res-1);
+	return res;
 }
 
 #endif/*STRING_HEADER*/

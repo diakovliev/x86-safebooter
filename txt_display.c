@@ -38,7 +38,7 @@ void display_scroll(display_p d) {
 	word_t blank = TXT_DEFAULT<<8|' ';
 	if (D(d)->y >= D(d)->height) {
     	int i;
-		for (i = D(d)->width; i < (D(d)->height-1)*D(d)->width; ++i)
+		for (i = 0; i < (D(d)->height-1)*D(d)->width; ++i)
 			D(d)->address[i] = D(d)->address[i+D(d)->width];
 		
 		for (i = (D(d)->height-1)*D(d)->width; i < D(d)->height*D(d)->width; ++i)

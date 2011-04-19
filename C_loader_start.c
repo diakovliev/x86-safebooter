@@ -5,25 +5,27 @@
 
 #include "common.h"
 #include "txt_display.h"
+#include "string.h"
 
 /* 32 bit C code entry point */
 void C_start(void *loader_descriptor_address, void *loader_code_address) 
 {
-	display_t d0;
-	display_t d1;
+	display_t d;
 	
-	display_init(&d0, TXT_VIDEO_MEM, 80, 10);
-	display_clear(&d0);
+	display_init(&d, TXT_VIDEO_MEM, 80, 25);
+	display_clear(&d);
+	
+	display_puts(&d, "Initialize keyboard...\r\n");
 
-	display_init(&d1, TXT_VIDEO_MEM + 80*2*10, 80, 15);
-	display_clear(&d1);		
+	//kbd_init();
 
-	int i;
-	for (i = 0; i < 1500; ++i) {
-		if (i%2) 
-			display_puts(&d0,"Hello\r\n");
-		else
-			display_puts(&d1,"\tWorld\r\n");
+	byte_t scancode = 20;
+	do {
+		//scancode = kbd_get();
+		display_puts(&d, "Pressed key: 0x");
+		display_puts(&d, itoa(scancode,16));
+		display_puts(&d, "\r\n");
 	}
+	while (scancode++);
 }
 
