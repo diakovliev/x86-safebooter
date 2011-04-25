@@ -1,5 +1,5 @@
-#include "txt_display.h"
-#include "common.h"
+#include "text_display_driver.h"
+#include <common.h>
 
 #define D(x) ((display_t*)x)
 

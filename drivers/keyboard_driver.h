@@ -1,7 +1,7 @@
-#ifndef KEYBOARD_HEADER
-#define KEYBOARD_HEADER
+#ifndef KEYBOARD_DRIVER_HEADER
+#define KEYBOARD_DRIVER_HEADER
 
-#include "loader_types.h"
+#include <loader_types.h>
 
 typedef byte_t (*key_handler_t)(byte_t scancode, word_t mod,void *context);
 typedef byte_t (*mice_handler_t)(byte_t data, void *context);
@@ -29,12 +29,12 @@ typedef struct keyboard_driver_s {
 } keyboard_driver_t;
 typedef keyboard_driver_t *keyboard_driver_p;
 
-extern byte_t keyboard_driver_init(keyboard_driver_p thiz, void *context);
-extern byte_t keyboard_driver_run_input_loop(keyboard_driver_p thiz, 
+extern byte_t keyboard_init(keyboard_driver_p thiz, void *context);
+extern byte_t keyboard_run_input_loop(keyboard_driver_p thiz, 
 	key_handler_t key_handler, 
 	mice_handler_t mice_handler, 
 	idle_handler_t idle_handler);
 
 #define KEYBOARD_OK 0x00
 
-#endif//KEYBOARD_HEADER
+#endif//KEYBOARD_DRIVER_HEADER

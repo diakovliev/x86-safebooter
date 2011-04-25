@@ -1,7 +1,7 @@
-#ifndef TXT_DISPLAY_HEADER
-#define TXT_DISPLAY_HEADER
+#ifndef TEXT_DISPLAY_DRIVER_HEADER
+#define TEXT_DISPLAY_DRIVER_HEADER
 
-#include "loader_types.h"
+#include <loader_types.h>
 
 typedef struct display_s {
 	/* pointer to video memory */

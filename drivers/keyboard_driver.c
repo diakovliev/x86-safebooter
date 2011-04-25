@@ -1,10 +1,7 @@
-#include "keyboard.h"
-#include "common.h"
+#include "keyboard_driver.h"
+#include <common.h>
 
-//#include "txt_display.h"
-//#include "string.h"
-
-byte_t keyboard_driver_init(keyboard_driver_p thiz, void *context)
+byte_t keyboard_init(keyboard_driver_p thiz, void *context)
 {
 	thiz->context = context;
 	thiz->mod = 0;
@@ -63,17 +60,14 @@ byte_t keyboard_driver_key_handler(keyboard_driver_p thiz, byte_t data)
 	} \
 	return res;
 
+#define REVERT_BIT(X,BIT) X = (X & !BIT)|(X ^ BIT)
+
 #define MOD(KEY,MODIFIER) \
 	case KEY: \
 	if (!(thiz->mod & KBD_MOD_KEY_UP)) { \
-		if (thiz->mod & MODIFIER)	thiz->mod &= ~MODIFIER; \
-		else						thiz->mod |= MODIFIER; \
+		REVERT_BIT(thiz->mod,MODIFIER); \
 	} \
 	return res;
-
-//	display_puts(thiz->context, "Scancode: 0x");
-//	display_puts(thiz->context, itoa(scancode,16));
-//	display_puts(thiz->context, "\r\n");
 
 	switch (scancode) {
 	/* modifiers */
@@ -89,6 +83,8 @@ byte_t keyboard_driver_key_handler(keyboard_driver_p thiz, byte_t data)
 #undef MOD_PRESS_ESCAPED
 #undef MOD_PRESS
 #undef MOD
+
+// TODO: Process leds 
 
 	/* call user handler */
 	if (thiz->key_handler) {
@@ -116,7 +112,7 @@ byte_t keyboard_driver_mice_handler(keyboard_driver_p thiz, byte_t scancode)
 #define KBD_TIMEOUT			(1<<6)
 #define KBD_PARITY_ERROR	(1<<7)
 
-byte_t keyboard_driver_run_input_loop(keyboard_driver_p thiz, 
+byte_t keyboard_run_input_loop(keyboard_driver_p thiz, 
 	key_handler_t key_handler, 
 	mice_handler_t mice_handler, 
 	idle_handler_t idle_handler)

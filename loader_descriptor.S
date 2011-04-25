@@ -4,8 +4,6 @@
 
 .text
 
-.code16gcc
-
 loader_descriptor_magic:
 .byte LOADER_MAGIC
 loader_version:

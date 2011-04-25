@@ -1,17 +1,14 @@
 include .config
 
-default: qemu
-#default: bochs
-.PHONY: loader_gen.h qemu clean
+DEFINES			:= 
+INCLUDES		:= -I./
 
-#
-# Compile using x86_64
-#
-CFLAGS	= -ggdb3 -march=i386 -m32 -nostdlib -O0 -Wa,-R,-aln=$@.S -D__DEBUG__
-export CFLAGS_
-ASFLAGS	= -ggdb3 -march=i386 -m32 -Wl,--oformat=elf32-i386 -D__DEBUG__
-export ASFLAGS
-#LD_CMD	= ld -A i386 -melf_i386 -N -static -Ttext $1 --oformat binary -Map=$@.map $^ -o$@
+CONFIG-DBG-y	:= -ggdb3 -O0 -D__DEBUG__
+CONFIG-DBG-n	:= 
+GCCARGS			:= -c $(CONFIG-DBG-$(CONFIG_DBG)) -m32 -march=i386 -nostdlib $(DEFINES) $(INCLUDES)
+GCC				:= gcc
+GCC_CMD			:= $(GCC) $(GCCARGS)
+
 LD_CMD	= ld -A i386 -melf_i386 -N -static -Ttext $1 -Map=$@.map $^ -o$@.elf && \
  objcopy --only-keep-debug $@.elf $@.dbg && \
  objcopy --strip-debug $@.elf && \
@@ -19,45 +16,65 @@ LD_CMD	= ld -A i386 -melf_i386 -N -static -Ttext $1 -Map=$@.map $^ -o$@.elf && \
 
 BASE_HEADERS+=loader.h 
 BASE_HEADERS+=loader.gen.h
+BASE_HEADERS+=gdt_table.h 
+BASE_HEADERS+=gdt_table.gen.h 
 
-HEADERS+=$(BASE_HEADERS)
-HEADERS+=gdt_table.h 
-HEADERS+=gdt_table.gen.h 
+HEADERS+=common.h
 HEADERS+=loader_types.h 
-HEADERS+=copy_to_upper_memory.h 
-HEADERS+=jump_to_kernel.h 
-HEADERS+=bios_tools.h 
-HEADERS+=console_interface.h 
 HEADERS+=string.h 
 HEADERS+=lbp.h
-HEADERS+=common.h
-HEADERS+=txt_display.h
-HEADERS+=keyboard.h
+DRIVERS_HEADERS+=drivers/text_display_driver.h
+DRIVERS_HEADERS+=drivers/keyboard_driver.h
+HEADERS+=$(DRIVERS_HEADERS)
 
 SOURCES+=C_loader_start.c 
-SOURCES+=bios_tools.c 
-SOURCES+=console_interface.c 
-SOURCES+=copy_to_upper_memory.S 
-SOURCES+=jump_to_kernel.S
-SOURCES+=txt_display.c
-SOURCES+=keyboard.c
+DRIVERS_SOURCES+=drivers/text_display_driver.c
+DRIVERS_SOURCES+=drivers/keyboard_driver.c
+SOURCES+=$(DRIVERS_SOURCES)
 
-OBJECTS+=loader_start.o 
-OBJECTS+=gdt_table.o 
-OBJECTS+=copy_to_upper_memory.o 
-OBJECTS+=jump_to_kernel.o 
+BASE_OBJECTS+=loader_start.o 
+BASE_OBJECTS+=gdt_table.o
+
 OBJECTS+=C_loader_start.o 
-OBJECTS+=bios_tools.o 
-OBJECTS+=console_interface.o
-OBJECTS+=txt_display.o
-OBJECTS+=keyboard.o
+DRIVERS_OBJECTS+=text_display_driver.o
+DRIVERS_OBJECTS+=keyboard_driver.o
+OBJECTS+=$(DRIVERS_OBJECTS)
 
+default: qemu
+.PHONY: loader_gen.h qemu bochs clean
+
+# Geometry
+loader.img.size: loader.img
+	echo ".word `du --apparent-size -B512 $^ | cut -f 1`+1" > $@
+
+kernel.img.size: $(BZIMAGE)
+	echo ".word `du --apparent-size -B512 $^ | cut -f 1`+1" > $@
+
+loader_descriptor.img.size: loader_env
+	echo ".word `du --apparent-size -B512 $^ | cut -f 1`+1" > $@
+
+# Base objects
+mbr.o: mbr.S $(BASE_HEADERS)
+	$(GCC_CMD) $<
+
+loader_start.o: loader_start.S $(BASE_HEADERS)
+	$(GCC_CMD) $<
+
+gdt_table.o : gdt_table.S
+	$(GCC_CMD) $<
+
+loader_descriptor.o: loader_descriptor.S $(BASE_HEADERS) loader.img.size kernel.img.size loader_descriptor.img.size 
+	$(GCC_CMD) $<
+
+# Objects
+$(OBJECTS) : $(HEADERS) $(SOURCES)
+	$(GCC_CMD) $(SOURCES)
+
+# Generated headers
 loader.gen.h: define_var = echo '\#define $1 $($1)'
 loader.gen.h: define_cfg = echo '\#define $1'
 loader.gen.h: .config makefile
 	echo -n > $@
-	$(call define_var,COMPILE_PLATFORM__X86_64) >> $@
-	$(call define_var,COMPILE_PLATFORM__IA32) >> $@
 	$(call define_var,LOADER_DESCRIPTOR_ADDRESS) >> $@
 	$(call define_var,LOADER_CODE_ADDRESS) >> $@
 	$(call define_var,LOADER_STACK_ADDRESS) >> $@
@@ -74,8 +91,6 @@ ifeq ($(CONFIG_SUPPORT_CMD_LINE),y)
 	$(call define_cfg,CONFIG_SUPPORT_CMD_LINE) >> $@
 endif
 
-gdt_table.o : gdt_table.S $(BASE_HEADERS)
-
 gdt_table.gen.h: define_gdt_entry = echo '\#define $1 0x$(shell nm gdt_table.o | grep $2 | cut -d " " -f 1)'
 gdt_table.gen.h: gdt_table.o
 	echo -n > $@
@@ -87,34 +102,40 @@ gdt_table.gen.h: gdt_table.o
 	$(call define_gdt_entry,GDT_R_CODE_SEGMENT,__r_code) >> $@
 	$(call define_gdt_entry,GDT_R_DATA_SEGMENT,__r_data) >> $@
 
-mbr.o: mbr.S $(BASE_HEADERS)
-
+# Images
 mbr.img: mbr.o
 	$(call LD_CMD,$(MBR_CODE_ADDRESS))
-
-loader.img: $(OBJECTS)
-	$(call LD_CMD,$(LOADER_CODE_ADDRESS))
-
-loader.img.size: loader.img
-	echo ".word `du --apparent-size -B512 $^ | cut -f 1`+1" > $@
-
-kernel.img.size: $(BZIMAGE)
-	echo ".word `du --apparent-size -B512 $^ | cut -f 1`+1" > $@
-
-loader_descriptor.img.size: loader_env
-	echo ".word `du --apparent-size -B512 $^ | cut -f 1`+1" > $@
-
-loader_descriptor.o: loader.img.size kernel.img.size loader_descriptor.img.size loader_descriptor.S $(BASE_HEADERS)
-loader_start.o: loader_start.S $(BASE_HEADERS)
 
 loader_descriptor.img: loader_descriptor.o
 	$(call LD_CMD,$(LOADER_DESCRIPTOR_ADDRESS))
 
-$(OBJECTS): $(SOURCES) $(HEADERS)
+loader.img: $(BASE_OBJECTS) $(OBJECTS)
+	$(call LD_CMD,$(LOADER_CODE_ADDRESS))
+
+# Build
+build: mbr.img loader_descriptor.img loader.img
+
+# Clean
+clean:
+	rm -f ${HDD_IMG}
+	rm -f ./drivers/*.gch
+	rm -f *.gch
+	rm -f *.gen.h
+	rm -f *.img
+	rm -f *.img.dbg
+	rm -f *.img.elf
+	rm -f *.img.size
+	rm -f *.map
+	rm -f *.o.S
+	rm -f *.out
+	rm -f *.txt
+	rm -f *.o
+
+# Run targets
 
 # See http://jamesmcdonald.id.au/faqs/mine/Running_Bochs.html for geometry details.
 # Currently used 10MB image.
-$(HDD_IMG): mbr.img loader_descriptor.img loader.img ${BZIMAGE}
+$(HDD_IMG): build ${BZIMAGE}
 	dd if=/dev/zero 				of=$@ bs=$(DISK_SECTOR_SIZE) count=20808 && \
 	dd if=mbr.img 					of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc && \
 	dd if=loader_descriptor.img 	of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc seek=${LOADER_DESCRIPTOR_LBA} && \
@@ -131,17 +152,4 @@ qemu: ${HDD_IMG}
 
 bochs: ${HDD_IMG}
 	bochs -f bochsrc -q
-
-clean:
-	rm -f ${HDD_IMG}
-	rm -f *.gen.h
-	rm -f *.img
-	rm -f *.img.dbg
-	rm -f *.img.elf
-	rm -f *.img.size
-	rm -f *.map
-	rm -f *.o.S
-	rm -f *.out
-	rm -f *.txt
-	rm -f *.o
 

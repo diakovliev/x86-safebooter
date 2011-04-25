@@ -3,10 +3,10 @@
 // "x86 ssloader" (c) Dmytro Iakovliev 2010
 //
 
-#include "common.h"
-#include "txt_display.h"
-#include "keyboard.h"
-#include "string.h"
+#include <common.h>
+#include <drivers/text_display_driver.h>
+#include <drivers/keyboard_driver.h>
+#include <string.h>
 
 byte_t key_handler(byte_t scancode, word_t mod, void *d)
 {
@@ -21,6 +21,7 @@ byte_t key_handler(byte_t scancode, word_t mod, void *d)
 	display_puts(d, "\r\n");
 	
 	display_puts(d, "Modifiers: ");
+
 	if (mod & KBD_MOD_LSHIFT)
 		display_puts(d, "LSHIFT ");		
 	if (mod & KBD_MOD_RSHIFT)
@@ -39,6 +40,7 @@ byte_t key_handler(byte_t scancode, word_t mod, void *d)
 		display_puts(d, "NUM ");
 	if (mod & KBD_MOD_SCROLL)
 		display_puts(d, "SCROLL ");
+
 	display_puts(d, "\r\n");
 
 }
@@ -55,9 +57,9 @@ void C_start(void *loader_descriptor_address, void *loader_code_address)
 	
 	display_puts(&d, "Initialize keyboard...\r\n");
 
-	res = keyboard_driver_init(&k,&d);
+	res = keyboard_init(&k,&d);
 	if (KEYBOARD_OK == res) {
-		keyboard_driver_run_input_loop(&k,key_handler,0,0);	
+		keyboard_run_input_loop(&k,key_handler,0,0);	
 	}
 }
 
