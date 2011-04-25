@@ -6,12 +6,13 @@
 #include <common.h>
 #include <drivers/text_display_driver.h>
 #include <drivers/keyboard_driver.h>
+#include <drivers/ascii_driver.h>
 #include <string.h>
 
 byte_t key_handler(byte_t scancode, word_t mod, void *d)
 {
-//	display_clear(d);
-
+	byte_t ascii = ascii_2ascii(scancode,mod);
+	
 	if (mod & KBD_MOD_KEY_UP)
 		display_puts(d, "Released key: 0x");
 	else
@@ -19,6 +20,11 @@ byte_t key_handler(byte_t scancode, word_t mod, void *d)
 		
 	display_puts(d, itoa(scancode,16));
 	display_puts(d, "\r\n");
+	display_puts(d, "ASCII : ");
+	display_puts(d, itoa(ascii,16));
+	display_puts(d, " '");
+	display_putc(d, ascii);
+	display_puts(d, "'\r\n");
 	
 	display_puts(d, "Modifiers: ");
 
@@ -42,7 +48,6 @@ byte_t key_handler(byte_t scancode, word_t mod, void *d)
 		display_puts(d, "SCROLL ");
 
 	display_puts(d, "\r\n");
-
 }
 
 /* 32 bit C code entry point */

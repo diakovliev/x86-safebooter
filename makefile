@@ -25,11 +25,13 @@ HEADERS+=string.h
 HEADERS+=lbp.h
 DRIVERS_HEADERS+=drivers/text_display_driver.h
 DRIVERS_HEADERS+=drivers/keyboard_driver.h
+DRIVERS_HEADERS+=drivers/ascii_driver.h
 HEADERS+=$(DRIVERS_HEADERS)
 
 SOURCES+=C_loader_start.c 
 DRIVERS_SOURCES+=drivers/text_display_driver.c
 DRIVERS_SOURCES+=drivers/keyboard_driver.c
+DRIVERS_SOURCES+=drivers/ascii_driver.c
 SOURCES+=$(DRIVERS_SOURCES)
 
 BASE_OBJECTS+=loader_start.o 
@@ -38,6 +40,7 @@ BASE_OBJECTS+=gdt_table.o
 OBJECTS+=C_loader_start.o 
 DRIVERS_OBJECTS+=text_display_driver.o
 DRIVERS_OBJECTS+=keyboard_driver.o
+DRIVERS_OBJECTS+=ascii_driver.o
 OBJECTS+=$(DRIVERS_OBJECTS)
 
 default: qemu
