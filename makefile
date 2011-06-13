@@ -7,12 +7,12 @@ CONFIG-DBG-y	:= -ggdb3 -O0 -D__DEBUG__
 CONFIG-DBG-n	:= 
 GCCARGS			:= -c $(CONFIG-DBG-$(CONFIG_DBG)) -m32 -march=i386 -nostdlib $(DEFINES) $(INCLUDES)
 GCC				:= gcc
-GCC_CMD			:= $(GCC) $(GCCARGS)
 
+GCC_CMD	= $(GCC) $(GCCARGS)
 LD_CMD	= ld -A i386 -melf_i386 -N -static -Ttext $1 -Map=$@.map $^ -o$@.elf && \
- objcopy --only-keep-debug $@.elf $@.dbg && \
- objcopy --strip-debug $@.elf && \
- objcopy -O binary $@.elf $@
+objcopy --only-keep-debug $@.elf $@.dbg && \
+objcopy --strip-debug $@.elf && \
+objcopy -O binary $@.elf $@
 
 BASE_HEADERS+=loader.h 
 BASE_HEADERS+=loader.gen.h
@@ -66,7 +66,7 @@ loader_start.o: loader_start.S $(BASE_HEADERS)
 gdt_table.o : gdt_table.S
 	$(GCC_CMD) $<
 
-loader_descriptor.o: loader_descriptor.S $(BASE_HEADERS) loader.img.size kernel.img.size loader_descriptor.img.size 
+loader_descriptor.o: loader_descriptor.S loader.img.size kernel.img.size loader_descriptor.img.size 
 	$(GCC_CMD) $<
 
 # Objects

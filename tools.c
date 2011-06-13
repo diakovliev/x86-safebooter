@@ -53,7 +53,7 @@ void print_chs(int lba)
 	byte_t S = 0;
 	byte_t data[3];
 	lba2chs(lba,&C,&H,&S,data);
-	printf("LBA:%d\tCHS:%d,%d,%d\tPT:0x%02X,0x%02X,0x%02X\n",lba,C,H,S,data[0],data[1],data[3]);
+	printf("LBA:%d\tCHS:%d,%d,%d\tPT:0x%02X,0x%02X,0x%02X\n",lba,C,H,S,data[0],data[1],data[2]);
 }
 
 int main()

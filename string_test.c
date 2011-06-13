@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#define TEST_STRING
+#define TEST_STRING_H
 #include "string.h"
 
 int main(int argc, char **argv) {
@@ -11,37 +11,37 @@ int main(int argc, char **argv) {
 	char * tst2 = "TEST string 2";
 	char dst[20];
 
-	printf(":: strlen(tst0 = %s) = %d\n", tst0, FUNC(strlen) (tst0) );
-	printf(":: strcmp(tst0 = %s, tst1 = %s) = %d\n", tst0, tst1, FUNC(strcmp) (tst0, tst1) );
-	printf(":: strcmp(tst = %s, tst0 = %s) = %d\n", tst, tst0, FUNC(strcmp) (tst, tst0) );
-	printf(":: strncmp(tst0 = %s, tst1 = %s, %d) = %d\n", tst0, tst1, 12, FUNC(strncmp) (tst0, tst1, 12) );
-	printf(":: strncmp(tst0 = %s, tst1 = %s, %d) = %d\n", tst0, tst1, 13, FUNC(strncmp) (tst0, tst1, 13) );
+	printf(":: strlen(tst0 = %s) = %d\n", tst0, STRING_H(strlen) (tst0) );
+	printf(":: strcmp(tst0 = %s, tst1 = %s) = %d\n", tst0, tst1, STRING_H(strcmp) (tst0, tst1) );
+	printf(":: strcmp(tst = %s, tst0 = %s) = %d\n", tst, tst0, STRING_H(strcmp) (tst, tst0) );
+	printf(":: strncmp(tst0 = %s, tst1 = %s, %d) = %d\n", tst0, tst1, 12, STRING_H(strncmp) (tst0, tst1, 12) );
+	printf(":: strncmp(tst0 = %s, tst1 = %s, %d) = %d\n", tst0, tst1, 13, STRING_H(strncmp) (tst0, tst1, 13) );
 
-	FUNC(strcpy) (dst, tst0);
+	STRING_H(strcpy) (dst, tst0);
 	printf(":: dst = %s\n", dst );
 
-	FUNC(memset) (dst, 0, 20);
+	STRING_H(memset) (dst, 0, 20);
 	printf(":: dst = %s\n", dst );
 
-	FUNC(memcpy) (dst, tst0, 4);
+	STRING_H(memcpy) (dst, tst0, 4);
 	printf(":: dst = %s\n", dst );
 
-	FUNC(strcpy) (dst, tst0);
+	STRING_H(strcpy) (dst, tst0);
 	printf(":: dst = %s\n", dst );
 
-	FUNC(strtok) (" ", dst);
+	STRING_H(strtok) (" ", dst);
 	char *tmp = 0;
-	while ( tmp = FUNC(strtok) (" ", 0) ) {
-		FUNC(strrev) (tmp, FUNC(strlen) (tmp) );
+	while ( tmp = STRING_H(strtok) (" ", 0) ) {
+		STRING_H(strrev) (tmp, STRING_H(strlen) (tmp) );
 		printf(":: tmp = %s\n", tmp );
 	}
 	
-	printf(":: i = %d\n", FUNC(atol) ("9980",10) );
-	printf(":: i = %d\n", FUNC(atol) ("9980",10) );
-	printf(":: i = %d\n", FUNC(atol) ("9980",10) );
+	printf(":: i = %d\n", STRING_H(atol) ("9980",10) );
+	printf(":: i = %d\n", STRING_H(atol) ("9980",10) );
+	printf(":: i = %d\n", STRING_H(atol) ("9980",10) );
 
-	printf(":: i = %X\n", FUNC(atol) ("ABF",16) );
-	printf(":: i = %x\n", FUNC(atol) ("abf",16) );
+	printf(":: i = %X\n", STRING_H(atol) ("ABF",16) );
+	printf(":: i = %x\n", STRING_H(atol) ("abf",16) );
 
 	return 0;
 }
