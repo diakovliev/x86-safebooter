@@ -5,11 +5,12 @@
 
 #include <loader.h>
 #include <common.h>
+#include <string.h>
 #include <drivers/text_display_driver.h>
 #include <drivers/keyboard_driver.h>
 #include <drivers/ascii_driver.h>
 #include <drivers/ata_driver.h>
-#include <string.h>
+#include <drivers/serial_driver.h>
 
 byte_t key_handler(byte_t scancode, word_t mod, void *d)
 {
@@ -95,6 +96,9 @@ void C_start(void *loader_descriptor_address, void *loader_code_address)
 	
 	display_init(&d, (void*)TXT_VIDEO_MEM, 80, 25);
 	display_clear(&d);
+
+	ser_init(COM1);
+	ser_write_string(COM1, "This is the first serial communication\r\n");
 
 	/* Detect ATA drives */
 	detect_ata_drive(ATA_BUS_PRIMARY, ATA_DRIVE_MASTER, &d);

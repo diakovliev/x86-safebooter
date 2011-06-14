@@ -144,7 +144,7 @@ static unsigned long STRING_H(atol) (byte_t *str, byte_t base) {
 	return r/base;
 }
 
-static inline byte_t *STRING_H(itoa) (unsigned long value, byte_t base) {
+static inline byte_t *STRING_H(itoa) (long value, byte_t base) {
 	/* max is 128-bit binary value with sign */
 	static byte_t res[129];
 	byte_t *buf = res;

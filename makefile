@@ -27,6 +27,7 @@ DRIVERS_HEADERS+=drivers/text_display_driver.h
 DRIVERS_HEADERS+=drivers/keyboard_driver.h
 DRIVERS_HEADERS+=drivers/ascii_driver.h
 DRIVERS_HEADERS+=drivers/ata_driver.h
+DRIVERS_HEADERS+=drivers/serial_driver.h
 HEADERS+=$(DRIVERS_HEADERS)
 
 SOURCES+=C_loader_start.c 
@@ -151,10 +152,13 @@ $(HDD_IMG): build ${BZIMAGE}
 qemu: PORT=9999
 qemu: QEMU_ARGS=-S -gdb tcp::$(PORT) --daemonize
 qemu: GDB_ARGS=--symbols=loader.img.dbg --exec loader.img.elf --eval-command="target remote localhost:$(PORT)"
-
 qemu: ${HDD_IMG}
 	qemu $(QEMU_ARGS) $<
 	gdb $(GDB_ARGS)
+
+qemu_serial: QEMU_ARGS=-serial stdio
+qemu_serial: ${HDD_IMG}
+	qemu $(QEMU_ARGS) $<
 
 bochs: ${HDD_IMG}
 	bochs -f bochsrc -q
