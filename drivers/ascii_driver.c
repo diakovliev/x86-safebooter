@@ -83,7 +83,7 @@ static byte_t kbdus_shifted[128] =
 
 byte_t ascii_upper(byte_t ch) {
 	byte_t res = ch;
-	if (ch >= 'a' && ch <= "z") res += 'A' - 'a';
+	if (ch >= 'a' && ch <= 'z') res += 'A' - 'a';
 	return res;
 }
 	

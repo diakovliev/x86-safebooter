@@ -6,7 +6,7 @@
 #ifndef LOADER_HEADER
 #define LOADER_HEADER
 
-#include "loader.gen.h"
+#include <loader.gen.h>
 
 #define LOADER_MAGIC 0xAA,0x00
 #define VER_MAJ 0x00

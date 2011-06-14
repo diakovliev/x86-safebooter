@@ -3,6 +3,7 @@
 // "x86 ssloader" (c) Dmytro Iakovliev 2010
 //
 
+#include <loader.h>
 #include <common.h>
 #include <drivers/text_display_driver.h>
 #include <drivers/keyboard_driver.h>
@@ -61,17 +62,23 @@ void detect_ata_drive(word_t bus, byte_t drive, void *d) {
 	display_puts(d, ") - ");
 
 	switch (ata_identify_device(bus,drive)) {
-	case 0:
+	case ATADEV_NONE:
 		display_puts(d, "none");
 		break;
-	case 1:
-		display_puts(d, "found");
+	case ATADEV_PATA:
+		display_puts(d, "PATA");
 		break;
-	case 2:
-		display_puts(d, "non ATA");
+	case ATADEV_SATA:
+		display_puts(d, "SATA");
+		break;
+	case ATADEV_PATAPI:
+		display_puts(d, "PATAPI");
+		break;
+	case ATADEV_SATAPI:
+		display_puts(d, "SATAPI");
 		break;
 	default:
-		display_puts(d, "unknown result");
+		display_puts(d, "Unknown");
 	}
 
 	display_puts(d, "\r\n");
@@ -80,20 +87,46 @@ void detect_ata_drive(word_t bus, byte_t drive, void *d) {
 /* 32 bit C code entry point */
 void C_start(void *loader_descriptor_address, void *loader_code_address) 
 {
+	loader_descriptor_p descriptor = (loader_descriptor_p)loader_descriptor_address;
+	
 	byte_t res = 0;
 	display_t d;
 	keyboard_driver_t k;
 	
-	display_init(&d, TXT_VIDEO_MEM, 80, 25);
+	display_init(&d, (void*)TXT_VIDEO_MEM, 80, 25);
 	display_clear(&d);
 
 	/* Detect ATA drives */
-
 	detect_ata_drive(ATA_BUS_PRIMARY, ATA_DRIVE_MASTER, &d);
 	detect_ata_drive(ATA_BUS_PRIMARY, ATA_DRIVE_SLAVE, &d);
 	detect_ata_drive(ATA_BUS_SECONDARY, ATA_DRIVE_MASTER, &d);
 	detect_ata_drive(ATA_BUS_SECONDARY, ATA_DRIVE_SLAVE, &d);
+
+	/* Read */
+	res = ata_read_sectors(ATA_BUS_PRIMARY, 
+		ATA_DRIVE_MASTER, 
+		(void*)KERNEL_CODE_ADDRESS, 
+		(byte_t)descriptor->loader_descriptor_sectors_count, 
+		LOADER_DESCRIPTOR_LBA); 
+
+	loader_descriptor_p loaded_descriptor = (loader_descriptor_p)KERNEL_CODE_ADDRESS;
 	
+	if (res) {
+		display_puts(&d, "Descriptor magic: ");
+		display_puts(&d, itoa(descriptor->magic,16) );
+		display_puts(&d, "\n\r");
+		display_puts(&d, "Loaded descriptor magic: ");
+		display_puts(&d, itoa(loaded_descriptor->magic,16) );
+	} else {
+		display_puts(&d, "ATA read error");
+	}
+	display_puts(&d, "\n\r");
+
+	display_puts(&d, LOADER_ENV(loaded_descriptor));
+	display_puts(&d, "\n\r");
+
+
+	/* Initialize keyboard */	
 	display_puts(&d, "Initialize keyboard...\r\n");
 
 	res = keyboard_init(&k,&d);

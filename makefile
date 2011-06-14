@@ -33,6 +33,7 @@ SOURCES+=C_loader_start.c
 DRIVERS_SOURCES+=drivers/text_display_driver.c
 DRIVERS_SOURCES+=drivers/keyboard_driver.c
 DRIVERS_SOURCES+=drivers/ascii_driver.c
+DRIVERS_SOURCES+=drivers/ata_driver.c
 SOURCES+=$(DRIVERS_SOURCES)
 
 BASE_OBJECTS+=loader_start.o 
@@ -42,6 +43,7 @@ OBJECTS+=C_loader_start.o
 DRIVERS_OBJECTS+=text_display_driver.o
 DRIVERS_OBJECTS+=keyboard_driver.o
 DRIVERS_OBJECTS+=ascii_driver.o
+DRIVERS_OBJECTS+=ata_driver.o
 OBJECTS+=$(DRIVERS_OBJECTS)
 
 default: qemu
