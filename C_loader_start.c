@@ -7,6 +7,7 @@
 #include <drivers/text_display_driver.h>
 #include <drivers/keyboard_driver.h>
 #include <drivers/ascii_driver.h>
+#include <drivers/ata_driver.h>
 #include <string.h>
 
 byte_t key_handler(byte_t scancode, word_t mod, void *d)
@@ -50,6 +51,32 @@ byte_t key_handler(byte_t scancode, word_t mod, void *d)
 	display_puts(d, "\r\n");
 }
 
+/* Detect ATA */
+void detect_ata_drive(word_t bus, byte_t drive, void *d) {
+
+	display_puts(d, "ATA(");
+	display_puts(d, itoa(bus,16));
+	display_puts(d, ":");
+	display_puts(d, itoa(drive,16));
+	display_puts(d, ") - ");
+
+	switch (ata_identify_device(bus,drive)) {
+	case 0:
+		display_puts(d, "none");
+		break;
+	case 1:
+		display_puts(d, "found");
+		break;
+	case 2:
+		display_puts(d, "non ATA");
+		break;
+	default:
+		display_puts(d, "unknown result");
+	}
+
+	display_puts(d, "\r\n");
+}
+
 /* 32 bit C code entry point */
 void C_start(void *loader_descriptor_address, void *loader_code_address) 
 {
@@ -59,6 +86,13 @@ void C_start(void *loader_descriptor_address, void *loader_code_address)
 	
 	display_init(&d, TXT_VIDEO_MEM, 80, 25);
 	display_clear(&d);
+
+	/* Detect ATA drives */
+
+	detect_ata_drive(ATA_BUS_PRIMARY, ATA_DRIVE_MASTER, &d);
+	detect_ata_drive(ATA_BUS_PRIMARY, ATA_DRIVE_SLAVE, &d);
+	detect_ata_drive(ATA_BUS_SECONDARY, ATA_DRIVE_MASTER, &d);
+	detect_ata_drive(ATA_BUS_SECONDARY, ATA_DRIVE_SLAVE, &d);
 	
 	display_puts(&d, "Initialize keyboard...\r\n");
 

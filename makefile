@@ -26,6 +26,7 @@ HEADERS+=lbp.h
 DRIVERS_HEADERS+=drivers/text_display_driver.h
 DRIVERS_HEADERS+=drivers/keyboard_driver.h
 DRIVERS_HEADERS+=drivers/ascii_driver.h
+DRIVERS_HEADERS+=drivers/ata_driver.h
 HEADERS+=$(DRIVERS_HEADERS)
 
 SOURCES+=C_loader_start.c 
