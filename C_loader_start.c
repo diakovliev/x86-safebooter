@@ -6,6 +6,8 @@
 #include <loader.h>
 #include <common.h>
 #include <string.h>
+
+#include <drivers/console_iface.h>
 #include <drivers/text_display_driver.h>
 #include <drivers/keyboard_driver.h>
 #include <drivers/ascii_driver.h>
@@ -90,15 +92,13 @@ void C_start(void *loader_descriptor_address, void *loader_code_address)
 {
 	loader_descriptor_p descriptor = (loader_descriptor_p)loader_descriptor_address;
 	
+	word_t serial_port = COM1;
 	byte_t res = 0;
 	display_t d;
 	keyboard_driver_t k;
 	
 	display_init(&d, (void*)TXT_VIDEO_MEM, 80, 25);
 	display_clear(&d);
-
-	ser_init(COM1);
-	ser_write_string(COM1, "This is the first serial communication\r\n");
 
 	/* Detect ATA drives */
 	detect_ata_drive(ATA_BUS_PRIMARY, ATA_DRIVE_MASTER, &d);
@@ -129,13 +129,29 @@ void C_start(void *loader_descriptor_address, void *loader_code_address)
 	display_puts(&d, LOADER_ENV(loaded_descriptor));
 	display_puts(&d, "\n\r");
 
-
 	/* Initialize keyboard */	
-	display_puts(&d, "Initialize keyboard...\r\n");
-
+/*	display_puts(&d, "Initialize keyboard...\r\n");
 	res = keyboard_init(&k,&d);
 	if (KEYBOARD_OK == res) {
 		keyboard_run_input_loop(&k,key_handler,0,0);	
+	}*/
+
+	ser_init(serial_port);
+	ser_write_string(serial_port, "This is the first serial communication\r\n");
+	console_init(ser_get_console(serial_port));
+
+	puts(">> ");
+	byte_t c;
+	while (1) {
+		c = getc();
+		if (c != '\r') {
+			putc(c);
+			display_putc(&d, c);
+		} else {
+			puts("\n\r");
+			display_puts(&d, "\n\r");
+		}
 	}
+
 }
 

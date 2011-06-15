@@ -5,7 +5,7 @@ INCLUDES		:= -I./
 
 CONFIG-DBG-y	:= -ggdb3 -O0 -D__DEBUG__
 CONFIG-DBG-n	:= 
-GCCARGS			:= -c $(CONFIG-DBG-$(CONFIG_DBG)) -m32 -march=i386 -nostdlib $(DEFINES) $(INCLUDES)
+GCCARGS			:= -c $(CONFIG-DBG-$(CONFIG_DBG)) -m32 -march=i386 -nostdlib -fno-builtin $(DEFINES) $(INCLUDES)
 GCC				:= gcc
 
 GCC_CMD	= $(GCC) $(GCCARGS)
@@ -23,6 +23,7 @@ HEADERS+=common.h
 HEADERS+=loader_types.h 
 HEADERS+=string.h 
 HEADERS+=lbp.h
+DRIVERS_HEADERS+=drivers/console_iface.h
 DRIVERS_HEADERS+=drivers/text_display_driver.h
 DRIVERS_HEADERS+=drivers/keyboard_driver.h
 DRIVERS_HEADERS+=drivers/ascii_driver.h
@@ -31,20 +32,24 @@ DRIVERS_HEADERS+=drivers/serial_driver.h
 HEADERS+=$(DRIVERS_HEADERS)
 
 SOURCES+=C_loader_start.c 
+DRIVERS_SOURCES+=drivers/console_iface.c
 DRIVERS_SOURCES+=drivers/text_display_driver.c
 DRIVERS_SOURCES+=drivers/keyboard_driver.c
 DRIVERS_SOURCES+=drivers/ascii_driver.c
 DRIVERS_SOURCES+=drivers/ata_driver.c
+DRIVERS_SOURCES+=drivers/serial_driver.c
 SOURCES+=$(DRIVERS_SOURCES)
 
 BASE_OBJECTS+=loader_start.o 
 BASE_OBJECTS+=gdt_table.o
 
 OBJECTS+=C_loader_start.o 
+DRIVERS_OBJECTS+=console_iface.o
 DRIVERS_OBJECTS+=text_display_driver.o
 DRIVERS_OBJECTS+=keyboard_driver.o
 DRIVERS_OBJECTS+=ascii_driver.o
 DRIVERS_OBJECTS+=ata_driver.o
+DRIVERS_OBJECTS+=serial_driver.o
 OBJECTS+=$(DRIVERS_OBJECTS)
 
 default: qemu
@@ -150,7 +155,7 @@ $(HDD_IMG): build ${BZIMAGE}
 	dd if=${BZIMAGE}				of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc seek=${KERNEL_CODE_LBA}
 
 qemu: PORT=9999
-qemu: QEMU_ARGS=-S -gdb tcp::$(PORT) --daemonize
+qemu: QEMU_ARGS=-S -gdb tcp::$(PORT) --daemonize -serial pty
 qemu: GDB_ARGS=--symbols=loader.img.dbg --exec loader.img.elf --eval-command="target remote localhost:$(PORT)"
 qemu: ${HDD_IMG}
 	qemu $(QEMU_ARGS) $<

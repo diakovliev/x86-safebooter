@@ -1,8 +1,8 @@
 #ifndef SERIAL_DRIVER_HEADER
 #define SERIAL_DRIVER_HEADER
 
-#include <common.h>
 #include <loader_types.h>
+#include "console_iface.h"
 
 /* Ports */
 #define COM1	0x3F8
@@ -41,50 +41,15 @@
 #define SER_PARITY_SPACE	56
 
 /* Routes */
-static inline void ser_set_divisor(word_t port, word_t div) {
-	byte_t lcr = inb(SER_LCR_PORT(port));
-	outb(SER_LCR_PORT(port), SER_DLAB|lcr);
-	outb(port+0, div);
-	outb(port+1, div>>8);
-	lcr &= ~SER_DLAB; 
-	outb(SER_LCR_PORT(port), lcr);
-}
+extern void ser_set_divisor(word_t port, word_t div);
+extern void ser_init(word_t port);
+extern byte_t ser_received(word_t port);
+extern byte_t ser_read(word_t port);
+extern byte_t ser_is_transmit_empty(word_t port);
+extern void ser_write(word_t port, byte_t byte);
+extern void ser_write_string(word_t port, const byte_t *str);
 
-static inline void ser_init(word_t port) {
-	/* Disable interrupts */
-	outb(SER_INT_ID_PORT(port), 0);
-	/* Set communication speed to 115200 */
-	ser_set_divisor(port, 1);
-	/* Data bits | Stop bits | Parity */
-	outb(SER_LCR_PORT(port), SER_DATA_BITS_8|SER_STOP_BITS_1|SER_PARITY_NONE);
-}
-
-static inline byte_t ser_received(word_t port) {
-	return inb(SER_LSR_PORT(port));
-}
-
-static inline byte_t ser_read(word_t port) {
-	while (!ser_received(port)) idle();
-
-	return inb(SER_DATA_PORT(port));
-}
-
-static inline byte_t ser_is_transmit_empty(word_t port) {
-	return inb(SER_LSR_PORT(port)) & 0x20;
-}
-
-static inline void ser_write(word_t port, byte_t byte) {
-	while (!ser_is_transmit_empty(port)) idle();
-
-	outb(SER_DATA_PORT(port), byte);
-}
-
-static inline void ser_write_string(word_t port, const char *str) {
-	while ( *str ) {
-		ser_write(port,*str);
-		++str;
-	}
-}
+extern console_base_p ser_get_console(word_t port);
 
 #endif//SERIAL_DRIVER_HEADER
 
