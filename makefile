@@ -23,6 +23,7 @@ HEADERS+=common.h
 HEADERS+=loader_types.h 
 HEADERS+=string.h 
 HEADERS+=lbp.h
+HEADERS+=jump_to_kernel.h
 DRIVERS_HEADERS+=drivers/console_iface.h
 DRIVERS_HEADERS+=drivers/text_display_driver.h
 DRIVERS_HEADERS+=drivers/text_display_console.h
@@ -33,6 +34,7 @@ DRIVERS_HEADERS+=drivers/serial_driver.h
 HEADERS+=$(DRIVERS_HEADERS)
 
 SOURCES+=C_loader_start.c 
+SOURCES+=jump_to_kernel.S
 DRIVERS_SOURCES+=drivers/console_iface.c
 DRIVERS_SOURCES+=drivers/text_display_driver.c
 DRIVERS_SOURCES+=drivers/text_display_console.c
@@ -46,6 +48,7 @@ BASE_OBJECTS+=loader_start.o
 BASE_OBJECTS+=gdt_table.o
 
 OBJECTS+=C_loader_start.o 
+OBJECTS+=jump_to_kernel.o
 DRIVERS_OBJECTS+=console_iface.o
 DRIVERS_OBJECTS+=text_display_driver.o
 DRIVERS_OBJECTS+=text_display_console.o
@@ -111,11 +114,6 @@ gdt_table.gen.h: gdt_table.o
 	echo -n > $@
 	$(call define_gdt_entry,GDT_CODE_SEGMENT,__code) >> $@
 	$(call define_gdt_entry,GDT_DATA_SEGMENT,__data) >> $@
-	$(call define_gdt_entry,GDT_STACK_SEGMENT,__stack) >> $@
-	$(call define_gdt_entry,GDT_VIDEO_GRAPHICS_SEGMENT,__video_graphics) >> $@
-	$(call define_gdt_entry,GDT_VIDEO_TEXT_SEGMENT,__video_text) >> $@
-	$(call define_gdt_entry,GDT_R_CODE_SEGMENT,__r_code) >> $@
-	$(call define_gdt_entry,GDT_R_DATA_SEGMENT,__r_data) >> $@
 
 # Images
 mbr.img: mbr.o

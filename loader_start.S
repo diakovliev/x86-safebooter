@@ -51,10 +51,13 @@ _32entry:
 	/* set selectors */
 	mov $GDT_DATA_SEGMENT,%ax
 	mov %ax,%ds
-
-	mov $GDT_STACK_SEGMENT,%ax
-	mov %ax,%ss
 	
+#	mov $GDT_STACK_SEGMENT,%ax
+#	mov %ax,%ss
+	
+	mov $GDT_DATA_SEGMENT,%ax
+	mov %ax,%ss
+
 	mov $GDT_DATA_SEGMENT,%ax
 	mov %ax,%es
 	mov %ax,%fs

@@ -7,6 +7,7 @@
 
 __gdt_table:
 		.space 8,0
+		.space 8,0
 
 /**************************************************************/
 
@@ -34,66 +35,6 @@ __data:
 //                EWA    B
 .byte 0x00,0b10010010,0b11001111,0x00
 
-// Stack descriptor 
-//	base: 0x00000000 
-//	limit: 0xFFFFF 
-//	granumarity: 1
-//
-//              LIMI   CODE
-__stack:	
-		.word 0xFFFF,0x0000
-//           P  STYPE   GD0 LIMI
-//                EWA    B
-#.byte 0x00,0b10010110,0b11001111,0x00
-.byte 0x00,0b10010010,0b11001111,0x00
-
-// Video memory descriptor 
-//	base: 0x000A0000 
-//	limit: 0xFFFFF 
-//	granumarity: 1
-//
-//              LIMI   CODE
-__video_graphics:	
-		.word 0xFFFF,0x0000
-//           P  STYPE   GD0 LIMI
-//                EWA    B
-.byte 0x0A,0b10010010,0b01000000,0x00
-
-// Video memory descriptor 
-//	base: 0x000A0000 
-//	limit: 0xFFFFF 
-//	granumarity: 1
-//
-//              LIMI   CODE
-__video_text:	
-		.word 0xFFFF,0x8000
-//           P  STYPE   GD0 LIMI
-//                EWA    B
-.byte 0x0B,0b10010010,0b01000000,0x00
-
-// Real mode code descriptor 
-//	base: 0x00000000 
-//	limit: 0xFFFF 
-//	granumarity: 0
-//
-//              LIMI   CODE
-__r_code:	
-		.word 0xFFFF,0x0000
-//           P  STYPE   GD0 LIMI
-//                EWA    B
-.byte 0x00,0b10011010,0b00001111,0x00
-
-// Real mode data descriptor 
-//	base: 0x00000000 
-//	limit: 0xFFFF 
-//	granumarity: 0
-//
-//              LIMI   CODE
-__r_data:	
-		.word 0xFFFF,0x0000
-//           P  STYPE   GD0 LIMI
-//                EWA    B
-.byte 0x00,0b10010010,0b00001111,0x00
 
 /**************************************************************/
 gdtr:		.word	.-__gdt_table-1

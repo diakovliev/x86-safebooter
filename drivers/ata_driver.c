@@ -2,6 +2,8 @@
 #include <loader.h>
 #include <common.h>
 
+#include "console_iface.h"
+
 byte_t ata_identify_device(word_t bus, byte_t drive) {
 
 	byte_t devtype = ATADEV_NONE;
@@ -57,7 +59,7 @@ byte_t ata_identify_device(word_t bus, byte_t drive) {
 }
 
 /* 28 bit PIO IO */
-byte_t ata_read_sectors(word_t bus, byte_t drive, void *buffer, byte_t sectors, dword_t addr) {
+static byte_t ata_read_sectors_internal(word_t bus, byte_t drive, void *buffer, byte_t sectors, dword_t addr) {
 
 	/* Select device */
 	byte_t slavebit = drive==ATA_DRIVE_SLAVE?1:0;
@@ -109,10 +111,27 @@ byte_t ata_read_sectors(word_t bus, byte_t drive, void *buffer, byte_t sectors, 
 			status = inb(ATA_COMMAND_PORT(bus));
 		} while ( !(status & ATA_DRQ) && (status & ATA_BSY) );
 		if ( status & ATA_ERR ) {
+			puts("ATA_ERR\n\r");
 			// Error 
-			return i+1;
+			return i;
 		}
 	}
 
 	return sectors;
+}
+
+word_t ata_read_sectors(word_t bus, byte_t drive, void *buffer, word_t sectors, dword_t addr) {
+	word_t i;
+	byte_t count = sectors / 0xff;
+	byte_t finish = sectors % 0xff;
+
+	for ( i = 0; i < count * 0xff; i += 0xff ) {		
+		if ( !ata_read_sectors_internal(bus,drive,buffer+(DISK_SECTOR_SIZE*i),0xff,addr+i) )
+			break;
+	}
+	if (!count || i == count * 0xff) {
+		i += ata_read_sectors_internal(bus,drive,buffer+(DISK_SECTOR_SIZE*i),finish,addr+i);
+	}
+
+	return i;
 }

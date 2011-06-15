@@ -51,7 +51,7 @@
 #define ATA_CMD_READ_SECTORS	0x20
 
 extern byte_t ata_identify_device(word_t bus, byte_t drive);
-extern byte_t ata_read_sectors(word_t bus, byte_t drive, void *buffer, byte_t sectors, dword_t addr);
+extern word_t ata_read_sectors(word_t bus, byte_t drive, void *buffer, word_t sectors, dword_t addr);
 
 #endif//ATA_DRIVER_HEADER
 
