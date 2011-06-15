@@ -335,7 +335,7 @@ void C_start(void *loader_descriptor_address, void *loader_code_address)
 	loader_descriptor = desc;
 	
 	/* Out information and command promt */
-	puts("SS loader v");
+	puts("32bit SS loader v");
 	puts(itoa(desc->version[0],10));
 	putc('.');
 	puts(itoa(desc->version[1],10));
