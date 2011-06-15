@@ -9,11 +9,13 @@
 
 #include <drivers/console_iface.h>
 #include <drivers/text_display_driver.h>
+#include <drivers/text_display_console.h>
 #include <drivers/keyboard_driver.h>
 #include <drivers/ascii_driver.h>
 #include <drivers/ata_driver.h>
 #include <drivers/serial_driver.h>
 
+#if 0
 byte_t key_handler(byte_t scancode, word_t mod, void *d)
 {
 	byte_t ascii = ascii_2ascii(scancode,mod);
@@ -54,37 +56,38 @@ byte_t key_handler(byte_t scancode, word_t mod, void *d)
 
 	display_puts(d, "\r\n");
 }
+#endif
 
 /* Detect ATA */
-void detect_ata_drive(word_t bus, byte_t drive, void *d) {
+void detect_ata_drive(word_t bus, byte_t drive) {
 
-	display_puts(d, "ATA(");
-	display_puts(d, itoa(bus,16));
-	display_puts(d, ":");
-	display_puts(d, itoa(drive,16));
-	display_puts(d, ") - ");
+	puts("ATA(");
+	puts(itoa(bus,16));
+	puts(":");
+	puts(itoa(drive,16));
+	puts(") - ");
 
 	switch (ata_identify_device(bus,drive)) {
 	case ATADEV_NONE:
-		display_puts(d, "none");
+		puts("none");
 		break;
 	case ATADEV_PATA:
-		display_puts(d, "PATA");
+		puts("PATA");
 		break;
 	case ATADEV_SATA:
-		display_puts(d, "SATA");
+		puts("SATA");
 		break;
 	case ATADEV_PATAPI:
-		display_puts(d, "PATAPI");
+		puts("PATAPI");
 		break;
 	case ATADEV_SATAPI:
-		display_puts(d, "SATAPI");
+		puts("SATAPI");
 		break;
 	default:
-		display_puts(d, "Unknown");
+		puts("Unknown");
 	}
 
-	display_puts(d, "\r\n");
+	puts("\r\n");
 }
 
 /* 32 bit C code entry point */
@@ -92,19 +95,26 @@ void C_start(void *loader_descriptor_address, void *loader_code_address)
 {
 	loader_descriptor_p descriptor = (loader_descriptor_p)loader_descriptor_address;
 	
-	word_t serial_port = COM1;
 	byte_t res = 0;
 	display_t d;
 	keyboard_driver_t k;
 	
 	display_init(&d, (void*)TXT_VIDEO_MEM, 80, 25);
+	keyboard_init(&k);
 	display_clear(&d);
+	
+	//word_t serial_port = COM1;
+	//ser_init(serial_port);
+	//ser_write_string(serial_port, "This is the first serial communication\r\n");
+	//console_init(ser_get_console(serial_port));
+	
+	console_init(display_get_console(&d,&k));
 
 	/* Detect ATA drives */
-	detect_ata_drive(ATA_BUS_PRIMARY, ATA_DRIVE_MASTER, &d);
-	detect_ata_drive(ATA_BUS_PRIMARY, ATA_DRIVE_SLAVE, &d);
-	detect_ata_drive(ATA_BUS_SECONDARY, ATA_DRIVE_MASTER, &d);
-	detect_ata_drive(ATA_BUS_SECONDARY, ATA_DRIVE_SLAVE, &d);
+	detect_ata_drive(ATA_BUS_PRIMARY, ATA_DRIVE_MASTER);
+	detect_ata_drive(ATA_BUS_PRIMARY, ATA_DRIVE_SLAVE);
+	detect_ata_drive(ATA_BUS_SECONDARY, ATA_DRIVE_MASTER);
+	detect_ata_drive(ATA_BUS_SECONDARY, ATA_DRIVE_SLAVE);
 
 	/* Read */
 	res = ata_read_sectors(ATA_BUS_PRIMARY, 
@@ -116,29 +126,18 @@ void C_start(void *loader_descriptor_address, void *loader_code_address)
 	loader_descriptor_p loaded_descriptor = (loader_descriptor_p)KERNEL_CODE_ADDRESS;
 	
 	if (res) {
-		display_puts(&d, "Descriptor magic: ");
-		display_puts(&d, itoa(descriptor->magic,16) );
-		display_puts(&d, "\n\r");
-		display_puts(&d, "Loaded descriptor magic: ");
-		display_puts(&d, itoa(loaded_descriptor->magic,16) );
+		puts("Descriptor magic: ");
+		puts(itoa(descriptor->magic,16) );
+		puts("\n\r");
+		puts("Loaded descriptor magic: ");
+		puts(itoa(loaded_descriptor->magic,16) );
 	} else {
-		display_puts(&d, "ATA read error");
+		puts("ATA read error");
 	}
-	display_puts(&d, "\n\r");
+	puts("\n\r");
 
-	display_puts(&d, LOADER_ENV(loaded_descriptor));
-	display_puts(&d, "\n\r");
-
-	/* Initialize keyboard */	
-/*	display_puts(&d, "Initialize keyboard...\r\n");
-	res = keyboard_init(&k,&d);
-	if (KEYBOARD_OK == res) {
-		keyboard_run_input_loop(&k,key_handler,0,0);	
-	}*/
-
-	ser_init(serial_port);
-	ser_write_string(serial_port, "This is the first serial communication\r\n");
-	console_init(ser_get_console(serial_port));
+	puts(LOADER_ENV(loaded_descriptor));
+	puts("\n\r");
 
 	puts(">> ");
 	byte_t c;
@@ -146,10 +145,8 @@ void C_start(void *loader_descriptor_address, void *loader_code_address)
 		c = getc();
 		if (c != '\r') {
 			putc(c);
-			display_putc(&d, c);
 		} else {
-			puts("\n\r");
-			display_puts(&d, "\n\r");
+			puts("\n\r>> ");
 		}
 	}
 

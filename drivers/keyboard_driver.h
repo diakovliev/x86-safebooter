@@ -29,7 +29,7 @@ typedef struct keyboard_driver_s {
 } keyboard_driver_t;
 typedef keyboard_driver_t *keyboard_driver_p;
 
-extern byte_t keyboard_init(keyboard_driver_p thiz, void *context);
+extern byte_t keyboard_init(keyboard_driver_p thiz);
 extern byte_t keyboard_run_input_loop(keyboard_driver_p thiz, 
 	key_handler_t key_handler, 
 	mice_handler_t mice_handler, 

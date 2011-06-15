@@ -1,9 +1,9 @@
 #include "keyboard_driver.h"
 #include <common.h>
 
-byte_t keyboard_init(keyboard_driver_p thiz, void *context)
+byte_t keyboard_init(keyboard_driver_p thiz)
 {
-	thiz->context = context;
+	thiz->context = 0;
 	thiz->mod = 0;
 	return KEYBOARD_OK;	
 }

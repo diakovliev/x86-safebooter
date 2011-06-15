@@ -13,6 +13,8 @@ void putc(byte_t c) {
 }
 
 void puts(const byte_t *s) {
+	if (!p) return;
+
 	byte_t c;
 	while (c = *s++) {
 		putc(c);

@@ -53,7 +53,7 @@ struct ser_console_context_s {
 	word_t port;
 };
 
-void ser_console_put(void *ctx, byte_t byte) {
+static void ser_console_put(void *ctx, byte_t byte) {
 	if (!ctx) return;
 	
 	struct ser_console_context_s *sctx = (struct ser_console_context_s *)ctx;
@@ -61,7 +61,7 @@ void ser_console_put(void *ctx, byte_t byte) {
 	ser_write(sctx->port,byte);	
 }
 
-byte_t ser_console_get(void *ctx) {
+static byte_t ser_console_get(void *ctx) {
 	if (!ctx) return 0;
 	
 	struct ser_console_context_s *sctx = (struct ser_console_context_s *)ctx;
