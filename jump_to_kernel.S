@@ -27,7 +27,7 @@ jump_to_kernel_asm:
 change_segment:
 
 /* set 16 bit data segment */
-	mov $GDT_R_DATA_SEGMENT,%eax
+	mov $GDT_R_DATA_SEGMENT,%ax
 	mov %ax,%ss
 	mov %ax,%ds
 	mov %ax,%es
