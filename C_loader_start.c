@@ -297,18 +297,20 @@ void detect_ata_drive(word_t bus, byte_t drive) {
 /* 32 bit C code entry point */
 void C_start(void *loader_descriptor_address, void *loader_code_address) 
 {
+#ifdef CONFIG_CONSOLE_ENABLED
+#	ifdef CONFIG_CONSOLE_SERIAL	
+	word_t serial_port = CONFIG_CONSOLE_SERIAL_PORT;
+	ser_init(serial_port);
+	console_init(ser_get_console(serial_port));
+#	else//CONFIG_CONSOLE_SERIAL
 	display_t d;
 	keyboard_driver_t k;
 	display_init(&d, (void*)TXT_VIDEO_MEM, 80, 25);
 	keyboard_init(&k);
 	display_clear(&d);
 	console_init(display_get_console(&d,&k));
-
-	/*
-	word_t serial_port = COM1;
-	ser_init(serial_port);
-	console_init(ser_get_console(serial_port));
-	*/
+#	endif//CONFIG_CONSOLE_SERIAL
+#endif//CONFIG_CONSOLE_ENABLED
 
 	/* Get loader descriptor information */
 	loader_descriptor_p desc = (loader_descriptor_p)loader_descriptor_address;
