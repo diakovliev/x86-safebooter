@@ -23,15 +23,16 @@ jump_to_kernel_asm:
 	.int change_segment
 	.int GDT_R_CODE_SEGMENT
 
+.code16gcc
 change_segment:
 
 /* set 16 bit data segment */
-	movw $GDT_R_DATA_SEGMENT,%ax
-	movw %ax,%ss
-	movw %ax,%ds
-	movw %ax,%es
-	movw %ax,%fs
-	movw %ax,%gs
+	mov $GDT_R_DATA_SEGMENT,%eax
+	mov %ax,%ss
+	mov %ax,%ds
+	mov %ax,%es
+	mov %ax,%fs
+	mov %ax,%gs
 
 /* go to real mode */
 	mov %cr0,%eax
@@ -43,7 +44,6 @@ change_segment:
 r_mode_offset: .int 0
 	.int 0
 
-.code16gcc
 r_mode_entry:
 
 /* -------------------------------------- */	
