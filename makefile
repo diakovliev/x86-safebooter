@@ -14,15 +14,7 @@ DEFINES			+= $(CONFIG-CONSOLE-SERIAL-PORT-$(CONFIG_CONSOLE_SERIAL_PORT))
 
 INCLUDES		:= -I./
 
-GCCARGS			:= -c $(CONFIG-DBG-$(CONFIG_DBG)) -m32 -march=i386 -nostdlib -fno-builtin $(DEFINES) $(INCLUDES)
-GCC				:= gcc
-
-GCC_CMD	= $(GCC) $(GCCARGS)
-LD_CMD	= ld -A i386 -melf_i386 -N -static -Ttext $1 -Map=$@.map $^ -o$@.elf && \
-objcopy --only-keep-debug $@.elf $@.dbg && \
-objcopy --strip-debug $@.elf && \
-objcopy -O binary $@.elf $@
-
+#-----------------------------------------------------------------------------------
 BASE_HEADERS+=loader.h 
 BASE_HEADERS+=loader.gen.h
 BASE_HEADERS+=gdt_table.h 
@@ -66,6 +58,16 @@ DRIVERS_OBJECTS+=ascii_driver.o
 DRIVERS_OBJECTS+=ata_driver.o
 DRIVERS_OBJECTS+=serial_driver.o
 OBJECTS+=$(DRIVERS_OBJECTS)
+
+#-----------------------------------------------------------------------------------
+GCCARGS			:= -c $(CONFIG-DBG-$(CONFIG_DBG)) -m32 -march=i386 -nostdlib -fno-builtin $(DEFINES) $(INCLUDES)
+GCC				:= gcc
+
+GCC_CMD	= $(GCC) $(GCCARGS)
+LD_CMD	= ld -A i386 -melf_i386 -N -static -Ttext $1 -Map=$@.map $^ -o$@.elf && \
+objcopy --only-keep-debug $@.elf $@.dbg && \
+objcopy --strip-debug $@.elf && \
+objcopy -O binary $@.elf $@
 
 default: qemu
 .PHONY: loader_gen.h qemu bochs clean
