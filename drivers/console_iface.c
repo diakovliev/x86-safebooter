@@ -13,7 +13,7 @@ void console_init(console_base_p provider) {
 
 /* Out */
 void putc(byte_t c) {
-	if (p) (*p->put)(p->ctx,c);
+	if (p && p->put) (*p->put)(p->ctx,c);
 }
 
 void puts(const byte_t *s) {
@@ -27,7 +27,7 @@ void puts(const byte_t *s) {
 
 /* In */
 byte_t getc(void) {
-	if (!p) return 0;
+	if (!p || !p->get) return 0;
 
 	return (*p->get)(p->ctx);
 }
@@ -54,7 +54,7 @@ void printf(const byte_t *fmt, ...)
 			break;
 			case 'c':
 			{
-				c = va_arg(ap, byte_t);
+				c = va_arg(ap, int);
 				putc(c);
 			}
 			break;

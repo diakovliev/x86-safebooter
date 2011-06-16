@@ -19,7 +19,10 @@ static struct text_display_console_context_s text_display_console_context = {
 static void text_diaplay_console_put(void *ctx, byte_t byte) {
 	if (!ctx) return;
 
-	display_putc(text_display_console_context.display, byte);
+	struct text_display_console_context_s *context = 
+		(struct text_display_console_context_s *)ctx;
+
+	display_putc(context->display, byte);
 }
 
 static byte_t key_handler(byte_t scancode, word_t mod, void *ctx)
@@ -34,12 +37,15 @@ static byte_t key_handler(byte_t scancode, word_t mod, void *ctx)
 
 static byte_t text_display_console_get(void *ctx) {
 	if (!ctx) return 0;
+	
+	struct text_display_console_context_s *context = 
+		(struct text_display_console_context_s *)ctx;
 
 	do {
-		keyboard_run_input_loop(text_display_console_context.keyboard, key_handler, 0, 0);
-	} while (!text_display_console_context.skip);
+		keyboard_run_input_loop(context->keyboard, key_handler, 0, 0);
+	} while (!context->skip);
 	
-	return text_display_console_context.c;
+	return context->c;
 }
 
 static console_base_t text_display_console = {
