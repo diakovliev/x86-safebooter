@@ -59,26 +59,6 @@ static cmd_command_t commands[] = {
 	{0,0,0,0},
 };
 
-static inline void tools_memory_dump(void *addr, word_t size)
-{
-	word_t i;
-	for (i=0; i < size; ++i) {
-		if (i != 0) 
-			puts(" ");		
-
-		puts("0x");
-		if (((byte_t*)addr)[i] < 0x10)
-			puts("0");
-
-		puts(itoa(((byte_t*)addr)[i],16));	
-	}
-}
-
-static void tools_jump_to_kernel() 
-{
-	jump_to_kernel_asm();
-}
-
 byte_t IMAGE_load_kernel_to_memory(byte_t *cmd_buffer)
 {
 	cmd_buffer = cmd_buffer;
@@ -112,9 +92,7 @@ byte_t IMAGE_load_kernel_to_memory(byte_t *cmd_buffer)
 		kernel_header->setup_sects = 4;
 	}
 	
-	puts("Supported LBP: 0x");
-	puts(itoa(kernel_header->version,16));
-	puts("\r\n");
+	printf("Supported LBP: 0x%x\r\n", kernel_header->version);
 
 	/* 3. Load realmode kernel */
 	puts("Loading real mode kernel ");
@@ -143,11 +121,7 @@ byte_t IMAGE_load_kernel_to_memory(byte_t *cmd_buffer)
 
 	if ( res != sectors_count ) {
 		/* IO error */
-		puts(" ");
-		puts(itoa(sectors_count,10));
-		puts(" ");
-		puts(itoa(res,10));
-		puts(" FAIL\r\n");
+		printf("FAIL (sectors_count: %d, res: %d)\r\n", sectors_count, res);
 		return ERR_CMD_FAIL;
 	}
 	puts(" DONE\r\n");
@@ -161,7 +135,7 @@ byte_t IMAGE_boot(byte_t *cmd_buffer) {
 
 	puts("Boot...\r\n");
 	
-	tools_jump_to_kernel();
+	jump_to_kernel_asm();
 
 	return ERR_CMD_OK;
 }
@@ -170,19 +144,39 @@ byte_t IMAGE_boot(byte_t *cmd_buffer) {
 byte_t TOOLS_help(byte_t *cmd_buffer) {
 
 	cmd_command_t *command = commands;
-	puts("command(alias) - help\r\n");
-	puts("---------------------\r\n");
+	puts("command (alias) - help\r\n---------------------\r\n");
 	while (command->name) {
-		puts(command->name);
-		puts("(");
-		puts(command->alias);
-		puts(") - ");
-		puts(command->help);
-		puts("\r\n");
+		printf("%s (%s) - %s\r\n", command->name, command->alias, command->help);
 		++command;
 	}
 
 	return ERR_CMD_OK;
+}
+
+static inline void tools_memory_dump(void *addr, word_t size)
+{
+	word_t i, j;
+	byte_t b;
+
+#define DUMP_WIDTH 8
+	word_t count = size / DUMP_WIDTH;
+	word_t finish = size % DUMP_WIDTH;
+
+	for (i = 0; i < count * DUMP_WIDTH; i+= DUMP_WIDTH) {
+		puts("\t");
+		for (j = 0; j < DUMP_WIDTH; ++j) {
+			b = ((byte_t*)addr)[i+j];
+			printf(b < 0x10 ? "0x0%x " : "0x%x ", b);
+		}
+		puts("\n\r");
+	}
+	if (finish) puts("\t");
+	for ( ;i < size; ++i) {
+		b = ((byte_t*)addr)[i];
+		printf(b < 0x10 ? "0x0%x " : "0x%x ", b);
+	}
+	if (finish) puts("\n\r");
+#undef DUMP_WIDTH
 }
 
 /* Display memory */
@@ -204,13 +198,8 @@ byte_t TOOLS_display_memory(byte_t *cmd_buffer) {
 	
 	word_t sz = atol(sz_s, 10);	
 	
-	puts("address: 0x");
-	puts(itoa(addr,16));
-	puts("\r\nsize: ");
-	puts(itoa(sz,10));
-	puts("\r\n");
+	printf("Address: %p\r\nSize: %d\r\n", addr, sz);
 	tools_memory_dump((void*)addr, sz);
-	puts("\r\n");
 	
 	/* restore old strtok buffer */
 	strtok(CMD_CMD_SEP,buf);
@@ -255,10 +244,7 @@ byte_t C_input(byte_t ascii) {
 			byte_t res = C_process_command(cmd_buffer);
 			if (res) {
 				// TODO: Out symbolic error code 
-				puts("command error: ");
-				puts(itoa(res,16));
-				puts("\r\n");
-				puts("Type 'help' for list available commands\r\n");
+				printf("Command error: %x\n\rType 'help' for list available commands\r\n", res);
 			}				
 		}
 		puts(CMD_PROMT_INVITE);
@@ -283,11 +269,7 @@ byte_t C_input(byte_t ascii) {
 /* Detect ATA */
 void detect_ata_drive(word_t bus, byte_t drive) {
 
-	puts("ATA(");
-	puts(itoa(bus,16));
-	puts(":");
-	puts(itoa(drive,16));
-	puts(") - ");
+	printf("ATA(%x:%x) - ", bus, drive);
 
 	switch (ata_identify_device(bus,drive)) {
 	case ATADEV_NONE:
@@ -333,29 +315,20 @@ void C_start(void *loader_descriptor_address, void *loader_code_address)
 	loader_descriptor = desc;
 	
 	/* Out information and command promt */
-	puts("32bit SS loader v");
-	puts(itoa(desc->version[0],10));
-	putc('.');
-	puts(itoa(desc->version[1],10));
-	putc('.');
-	puts(itoa(desc->version[2],10));
-	puts(" (c)daemondzk@gmail.com");
+	printf("32bit SS loader v%d.%d.%d (c)daemondzk@gmail.com\r\n", 
+		desc->version[0], 
+		desc->version[1],
+		desc->version[2]);
 	
 	/* Memory map */
-	puts("\r\nDescriptor: 0x");
-	puts(itoa(loader_descriptor_address,16));
-	puts("\r\nCode: 0x");
-	puts(itoa(loader_code_address,16));
-	puts("\r\nStack: 0x");
-	puts(itoa(LOADER_STACK_ADDRESS,16));
-	puts("\r\nLoader sectors: ");
-	puts(itoa(desc->loader_sectors_count,10));
-	puts("\r\nKernel sectors: ");
-	puts(itoa(desc->kernel_sectors_count,10));	
-	puts("\r\n");
+	printf("Descriptor: %p\r\n", loader_descriptor_address);
+	printf("Code: %p\r\n", loader_code_address);
+	printf("Stack: %p\r\n", LOADER_STACK_ADDRESS);
+	printf("Loader sectors: %d\r\n", desc->loader_sectors_count);
+	printf("Kernel sectors: %d\r\n", desc->kernel_sectors_count);	
 
 	/* Detect ATA drives */
-	puts("Detect ATA devices: \r\n");
+	printf("Detect ATA devices:\r\n");
 	detect_ata_drive(ATA_BUS_PRIMARY, ATA_DRIVE_MASTER);
 	detect_ata_drive(ATA_BUS_PRIMARY, ATA_DRIVE_SLAVE);
 	detect_ata_drive(ATA_BUS_SECONDARY, ATA_DRIVE_MASTER);
