@@ -12,19 +12,19 @@ DEFINES			+= $(CONFIG-CONSOLE-ENABLED-$(CONFIG_CONSOLE_ENABLED))
 DEFINES			+= $(CONFIG-CONSOLE-SERIAL-$(CONFIG_CONSOLE_SERIAL))
 DEFINES			+= $(CONFIG-CONSOLE-SERIAL-PORT-$(CONFIG_CONSOLE_SERIAL_PORT))
 
-INCLUDES		:= -I./
+INCLUDES		:= -I./ -I./core -I./linux
 
 #-----------------------------------------------------------------------------------
-BASE_HEADERS+=loader.h 
+BASE_HEADERS+=core/loader.h 
 BASE_HEADERS+=loader.gen.h
-BASE_HEADERS+=gdt_table.h 
+BASE_HEADERS+=core/gdt_table.h 
 BASE_HEADERS+=gdt_table.gen.h 
 
-HEADERS+=common.h
-HEADERS+=loader_types.h 
-HEADERS+=string.h 
-HEADERS+=lbp.h
-HEADERS+=jump_to_kernel.h
+HEADERS+=core/common.h
+HEADERS+=core/loader_types.h 
+HEADERS+=core/string.h 
+HEADERS+=linux/lbp.h
+HEADERS+=linux/jump_to_kernel.h
 DRIVERS_HEADERS+=drivers/console_iface.h
 DRIVERS_HEADERS+=drivers/text_display_driver.h
 DRIVERS_HEADERS+=drivers/text_display_console.h
@@ -34,8 +34,8 @@ DRIVERS_HEADERS+=drivers/ata_driver.h
 DRIVERS_HEADERS+=drivers/serial_driver.h
 HEADERS+=$(DRIVERS_HEADERS)
 
-SOURCES+=C_loader_start.c 
-SOURCES+=jump_to_kernel.S
+SOURCES+=main/main.c 
+SOURCES+=linux/jump_to_kernel.S
 DRIVERS_SOURCES+=drivers/console_iface.c
 DRIVERS_SOURCES+=drivers/text_display_driver.c
 DRIVERS_SOURCES+=drivers/text_display_console.c
@@ -48,7 +48,7 @@ SOURCES+=$(DRIVERS_SOURCES)
 BASE_OBJECTS+=loader_start.o 
 BASE_OBJECTS+=gdt_table.o
 
-OBJECTS+=C_loader_start.o 
+OBJECTS+=main.o 
 OBJECTS+=jump_to_kernel.o
 DRIVERS_OBJECTS+=console_iface.o
 DRIVERS_OBJECTS+=text_display_driver.o
@@ -83,16 +83,16 @@ loader_descriptor.img.size: loader_env
 	echo ".word `du --apparent-size -B512 $^ | cut -f 1`+1" > $@
 
 # Base objects
-mbr.o: mbr.S $(BASE_HEADERS)
+mbr.o: core/mbr.S $(BASE_HEADERS)
 	$(GCC_CMD) $<
 
-loader_start.o: loader_start.S $(BASE_HEADERS)
+loader_start.o: core/loader_start.S $(BASE_HEADERS)
 	$(GCC_CMD) $<
 
-gdt_table.o : gdt_table.S
+gdt_table.o : core/gdt_table.S
 	$(GCC_CMD) $<
 
-loader_descriptor.o: loader_descriptor.S loader.img.size kernel.img.size loader_descriptor.img.size 
+loader_descriptor.o: core/loader_descriptor.S loader.img.size kernel.img.size loader_descriptor.img.size 
 	$(GCC_CMD) $<
 
 # Objects
