@@ -315,8 +315,6 @@ void detect_ata_drive(word_t bus, byte_t drive) {
 /* 32 bit C code entry point */
 void C_start(void *loader_descriptor_address, void *loader_code_address) 
 {
-
-
 	display_t d;
 	keyboard_driver_t k;
 	display_init(&d, (void*)TXT_VIDEO_MEM, 80, 25);

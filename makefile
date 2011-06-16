@@ -114,6 +114,8 @@ gdt_table.gen.h: gdt_table.o
 	echo -n > $@
 	$(call define_gdt_entry,GDT_CODE_SEGMENT,__code) >> $@
 	$(call define_gdt_entry,GDT_DATA_SEGMENT,__data) >> $@
+	$(call define_gdt_entry,GDT_R_CODE_SEGMENT,__r_code) >> $@
+	$(call define_gdt_entry,GDT_R_DATA_SEGMENT,__r_data) >> $@
 
 # Images
 mbr.img: mbr.o

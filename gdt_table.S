@@ -35,6 +35,29 @@ __data:
 //                EWA    B
 .byte 0x00,0b10010010,0b11001111,0x00
 
+// Real mode code descriptor 
+//	base: 0x00000000 
+//	limit: 0xFFFF 
+//	granumarity: 0
+//
+//              LIMI   CODE
+__r_code:	
+		.word 0xFFFF,0x0000
+//           P  STYPE   GD0 LIMI
+//                EWA    B
+.byte 0x00,0b10011010,0b00001111,0x00
+
+// Real mode data descriptor 
+//	base: 0x00000000 
+//	limit: 0xFFFF 
+//	granumarity: 0
+//
+//              LIMI   CODE
+__r_data:	
+		.word 0xFFFF,0x0000
+//           P  STYPE   GD0 LIMI
+//                EWA    B
+.byte 0x00,0b10010010,0b00001111,0x00
 
 /**************************************************************/
 gdtr:		.word	.-__gdt_table-1

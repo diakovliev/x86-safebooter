@@ -1,5 +1,5 @@
-#ifndef JUMP_TO_KERNEL_HEADER
-#define JUMP_TO_KERNEL_HEADER
+#ifndef REAL_MODE_ENTRY_HEADER
+#define REAL_MODE_ENTRY_HEADER
 
 extern void jump_to_kernel_asm(void);
 
