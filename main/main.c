@@ -72,7 +72,7 @@ byte_t IMAGE_load_kernel_to_memory(byte_t *cmd_buffer)
 	/* 1. Load first KERNEL_SETUP_SECTORS sectors */
 	puts("Loading kernel header ");
 	res = ata_read_sectors(ata_bus, ata_drive, 
-		(void*)KERNEL_SETUP_ADDRESS, KERNEL_SETUP_SECTORS, KERNEL_CODE_LBA);
+		(void*)KERNEL_REAL_CODE_ADDRESS, KERNEL_SETUP_SECTORS, KERNEL_CODE_LBA);
 	if ( res != KERNEL_SETUP_SECTORS ) {
 		/* IO error */
 		puts(" FAIL\r\n");
@@ -81,7 +81,7 @@ byte_t IMAGE_load_kernel_to_memory(byte_t *cmd_buffer)
 	puts(" DONE\r\n");
 
 	/* 2. Check kernel signature */
-	kernel_header_p kernel_header = (kernel_header_p)GET_KERNEL_HEADER_ADDRESS(KERNEL_SETUP_ADDRESS);
+	kernel_header_p kernel_header = (kernel_header_p)GET_KERNEL_HEADER_ADDRESS(KERNEL_REAL_CODE_ADDRESS);
 	if ( kernel_header->header != KERNEL_HDRS ) {
 		puts("Wrong kernel signature\r\n");
 		return ERR_CMD_FAIL;

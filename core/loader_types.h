@@ -1,14 +1,16 @@
 #ifndef LOADER_TYPES_HEADER
 #define LOADER_TYPES_HEADER
 
+#include <stdint.h> /* uintXX_t */
+
 /* Common types */
-typedef unsigned char byte_t;
+typedef uint8_t byte_t;
 typedef byte_t *byte_p;
-typedef unsigned short word_t;
+typedef uint16_t word_t;
 typedef word_t *word_p;
-typedef unsigned int dword_t;
+typedef uint32_t dword_t;
 typedef dword_t *dword_p;
-typedef unsigned long long quad_t;
+typedef uint64_t quad_t;
 typedef quad_t *quad_p;
 
 /* Loader descriptor */

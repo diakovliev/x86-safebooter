@@ -26,6 +26,7 @@ HEADERS+=core/string.h
 HEADERS+=linux/lbp.h
 HEADERS+=linux/jump_to_kernel.h
 HEADERS+=crypt/blowfish.h
+HEADERS+=crypt/sha2.h
 HEADERS+=crypt/crypt.h
 DRIVERS_HEADERS+=drivers/console_iface.h
 DRIVERS_HEADERS+=drivers/text_display_driver.h
@@ -40,6 +41,7 @@ SOURCES+=main/main.c
 SOURCES+=linux/jump_to_kernel.S
 SOURCES+=crypt/blowfish.c
 SOURCES+=crypt/blowfish_key.S
+SOURCES+=crypt/sha2.c
 SOURCES+=crypt/crypt.c
 DRIVERS_SOURCES+=drivers/console_iface.c
 DRIVERS_SOURCES+=drivers/text_display_driver.c
@@ -57,6 +59,7 @@ OBJECTS+=main.o
 OBJECTS+=jump_to_kernel.o
 OBJECTS+=blowfish.o
 OBJECTS+=blowfish_key.o
+OBJECTS+=sha2.o
 OBJECTS+=crypt.o
 DRIVERS_OBJECTS+=console_iface.o
 DRIVERS_OBJECTS+=text_display_driver.o
@@ -122,7 +125,6 @@ loader.gen.h: .config makefile
 	$(call define_var,LOADER_CODE_LBA) >> $@
 	$(call define_var,LOADER_DESCRIPTOR_LBA) >> $@
 	$(call define_var,KERNEL_SETUP_SECTORS) >> $@
-	$(call define_var,KERNEL_SETUP_ADDRESS) >> $@
 	$(call define_var,DISK_SECTOR_SIZE) >> $@
 ifeq ($(CONFIG_SUPPORT_CMD_LINE),y) 
 	$(call define_cfg,CONFIG_SUPPORT_CMD_LINE) >> $@
