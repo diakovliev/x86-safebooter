@@ -23,6 +23,7 @@ BASE_HEADERS+=gdt_table.gen.h
 HEADERS+=core/common.h
 HEADERS+=core/loader_types.h 
 HEADERS+=core/string.h 
+HEADERS+=core/heap.h 
 HEADERS+=linux/lbp.h
 HEADERS+=linux/jump_to_kernel.h
 HEADERS+=crypt/blowfish.h
@@ -38,10 +39,12 @@ DRIVERS_HEADERS+=drivers/serial_driver.h
 HEADERS+=$(DRIVERS_HEADERS)
 
 SOURCES+=main/main.c 
+SOURCES+=core/heap.c 
 SOURCES+=linux/jump_to_kernel.S
 SOURCES+=crypt/blowfish.c
 SOURCES+=crypt/blowfish_key.S
 SOURCES+=crypt/sha2.c
+SOURCES+=crypt/gmp.c
 SOURCES+=crypt/crypt.c
 DRIVERS_SOURCES+=drivers/console_iface.c
 DRIVERS_SOURCES+=drivers/text_display_driver.c
@@ -56,10 +59,12 @@ BASE_OBJECTS+=loader_start.o
 BASE_OBJECTS+=gdt_table.o
 
 OBJECTS+=main.o 
+OBJECTS+=heap.o 
 OBJECTS+=jump_to_kernel.o
 OBJECTS+=blowfish.o
 OBJECTS+=blowfish_key.o
 OBJECTS+=sha2.o
+OBJECTS+=gmp.o
 OBJECTS+=crypt.o
 DRIVERS_OBJECTS+=console_iface.o
 DRIVERS_OBJECTS+=text_display_driver.o
@@ -121,6 +126,8 @@ loader.gen.h: .config makefile
 	$(call define_var,KERNEL_REAL_CODE_ADDRESS) >> $@
 	$(call define_var,IO_BUFFER_ADDRESS) >> $@
 	$(call define_var,KERNEL_CODE_ADDRESS) >> $@
+	$(call define_var,LOADER_HEAP_START) >> $@
+	$(call define_var,LOADER_HEAP_SIZE) >> $@
 	$(call define_var,KERNEL_CODE_LBA) >> $@
 	$(call define_var,LOADER_CODE_LBA) >> $@
 	$(call define_var,LOADER_DESCRIPTOR_LBA) >> $@

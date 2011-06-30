@@ -37,30 +37,11 @@
  *
  */
 
-//#include "config.h"
-
-//#include <sys/types.h>
-//#include <sys/time.h>
-//#ifndef __linux__
-//#include <machine/endian.h>
-//#endif
-//#include <crypto/sha2/sha2.h>
-//#include <openssl/evp.h>
-
-/* get openssl/ssleay version number */
-//#include <openssl/opensslv.h>
-
-//#include <err.h>
-
 #include "sha2.h"
 #include <string.h>
 #define bcopy(a, b, c) memcpy((b), (a), (c))
 #define bzero(a, b) memset((a), 0, (b))
 #define panic(a) err(1, (a))
-
-//#if OPENSSL_VERSION_NUMBER >= 0x00907000L
-//#define HAVE_EVP_097
-//#endif
 
 /*
  * ASSERT NOTE:

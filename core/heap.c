@@ -1,6 +1,8 @@
 #include "heap.h"
 #include <loader.h>
 
+#include <drivers/console_iface.h>
+
 /* Simple heap */
 
 /* Heap item */
@@ -85,20 +87,27 @@ void *malloc(size_t size)
 	heap_node_p node = get_free_node(size);
 	if (node) {
 		NODE_CTL(node)->busy = 1;
+
+		printf("+++ Allocated %d bytes at %p\n\r", size, node->start);
+
 		return node->start;	
 	}
+
+	printf("!!! Allocion failed !!!\n\r");
+
 	return 0;
 }
 
 void free(void *ptr)
 {
 	heap_node_p current_node = heap_nodes;
-	while (current_node->start != ptr && current_node < heap_nodes) {
+	while (current_node->start != ptr && current_node < heap_nodes + heap_nodes_count) {
 		++current_node;
 	}
 	if (!current_node)
 		return;
 
+	printf("--- Relesed %d bytes at %p\n\r", NODE_CTL(current_node)->size, current_node->start);
 	NODE_CTL(current_node)->busy = 0;
 }
 

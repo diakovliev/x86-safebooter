@@ -4,6 +4,7 @@
 //
 
 #include <loader.h>
+#include <heap.h>
 #include <common.h>
 #include <string.h>
 #include <lbp.h>
@@ -294,9 +295,13 @@ void detect_ata_drive(word_t bus, byte_t drive) {
 	puts("\r\n");
 }
 
+extern void test_gmp(void);
+
 /* 32 bit C code entry point */
 void C_start(void *loader_descriptor_address, void *loader_code_address) 
 {
+	heap_init();
+	
 #ifdef CONFIG_CONSOLE_ENABLED
 #	ifdef CONFIG_CONSOLE_SERIAL	
 	word_t serial_port = CONFIG_CONSOLE_SERIAL_PORT;
@@ -335,6 +340,8 @@ void C_start(void *loader_descriptor_address, void *loader_code_address)
 	detect_ata_drive(ATA_BUS_PRIMARY, ATA_DRIVE_SLAVE);
 	detect_ata_drive(ATA_BUS_SECONDARY, ATA_DRIVE_MASTER);
 	detect_ata_drive(ATA_BUS_SECONDARY, ATA_DRIVE_SLAVE);
+
+	test_gmp();
 
 	puts(CMD_PROMT_INVITE);
 	while (1) {
