@@ -1,4 +1,4 @@
-include .config
+include makefile.config
 
 CONFIG-DBG-y					:= -ggdb3 -O0 -D__DEBUG__
 CONFIG-CONSOLE-ENABLED-y 		:= -DCONFIG_CONSOLE_ENABLED
@@ -24,8 +24,10 @@ HEADERS+=core/common.h
 HEADERS+=core/loader_types.h 
 HEADERS+=core/string.h 
 HEADERS+=core/heap.h 
+HEADERS+=core/env.h 
 HEADERS+=linux/lbp.h
 HEADERS+=linux/jump_to_kernel.h
+HEADERS+=linux/image.h
 HEADERS+=crypt/blowfish.h
 HEADERS+=crypt/sha2.h
 HEADERS+=crypt/crypt.h
@@ -38,9 +40,12 @@ DRIVERS_HEADERS+=drivers/ata_driver.h
 DRIVERS_HEADERS+=drivers/serial_driver.h
 HEADERS+=$(DRIVERS_HEADERS)
 
-SOURCES+=main/main.c 
+SOURCES+=main/main.c
+SOURCES+=core/string.c  
 SOURCES+=core/heap.c 
+SOURCES+=core/env.c 
 SOURCES+=linux/jump_to_kernel.S
+SOURCES+=linux/image.c
 SOURCES+=crypt/blowfish.c
 SOURCES+=crypt/blowfish_key.S
 SOURCES+=crypt/sha2.c
@@ -59,8 +64,11 @@ BASE_OBJECTS+=loader_start.o
 BASE_OBJECTS+=gdt_table.o
 
 OBJECTS+=main.o 
+OBJECTS+=string.o 
 OBJECTS+=heap.o 
+OBJECTS+=env.o 
 OBJECTS+=jump_to_kernel.o
+OBJECTS+=image.o
 OBJECTS+=blowfish.o
 OBJECTS+=blowfish_key.o
 OBJECTS+=sha2.o
@@ -112,13 +120,13 @@ loader_descriptor.o: core/loader_descriptor.S loader.img.size kernel.img.size lo
 	$(GCC_CMD) $<
 
 # Objects
-$(OBJECTS) : .config $(HEADERS) $(SOURCES)
+$(OBJECTS) : makefile.config $(HEADERS) $(SOURCES)
 	$(GCC_CMD) $(SOURCES)
 
 # Generated headers
 loader.gen.h: define_var = echo '\#define $1 $($1)'
 loader.gen.h: define_cfg = echo '\#define $1'
-loader.gen.h: .config makefile
+loader.gen.h: makefile.config makefile
 	echo -n > $@
 	$(call define_var,LOADER_DESCRIPTOR_ADDRESS) >> $@
 	$(call define_var,LOADER_CODE_ADDRESS) >> $@
@@ -176,7 +184,7 @@ clean:
 
 # Run targets
 
-# See http://jamesmcdonald.id.au/faqs/mine/Running_Bochs.html for geometry details.
+# Look http://jamesmcdonald.id.au/faqs/mine/Running_Bochs.html for geometry details.
 # Currently used 10MB image.
 $(HDD_IMG): build ${BZIMAGE}
 	dd if=/dev/zero 				of=$@ bs=$(DISK_SECTOR_SIZE) count=20808 && \
@@ -186,9 +194,15 @@ $(HDD_IMG): build ${BZIMAGE}
 	dd if=${BZIMAGE}				of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc seek=${KERNEL_CODE_LBA}
 
 qemu: PORT=9999
-qemu: QEMU_ARGS=-S -gdb tcp::$(PORT) --daemonize -serial pty
+qemu: QEMU_ARGS=-S -gdb tcp::$(PORT) --daemonize
 qemu: GDB_ARGS=--symbols=loader.img.dbg --exec loader.img.elf --eval-command="target remote localhost:$(PORT)"
 qemu: ${HDD_IMG}
+	qemu $(QEMU_ARGS) $<
+
+qemu_gdb: PORT=9999
+qemu_gdb: QEMU_ARGS=-S -gdb tcp::$(PORT) --daemonize
+qemu_gdb: GDB_ARGS=--symbols=loader.img.dbg --exec loader.img.elf --eval-command="target remote localhost:$(PORT)"
+qemu_gdb: ${HDD_IMG}
 	qemu $(QEMU_ARGS) $<
 	gdb $(GDB_ARGS)
 

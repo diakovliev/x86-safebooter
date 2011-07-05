@@ -3,6 +3,12 @@
 #include <heap.h>
 #include <drivers/console_iface.h>
 
+/* TODO:
+ *	- gmp_cmp should be rewritten
+ *	- refactoring to replace (dst_op0,op1) code calls model by (dst,op0,op1) used now
+ *	  this should decrease memory usage and make api simplest
+ */
+
 /********************************************************************************************************
  * GMP code
  ********************************************************************************************************/
@@ -635,6 +641,7 @@ uint8_t gmp_inverse(gmp_number_p res, gmp_number_p a, gmp_number_p n, uint16_t b
  * Test code
  ********************************************************************************************************/
 
+#if 0
 void test_gmp(void) {
 
 	uint16_t size = 4;
@@ -688,3 +695,4 @@ void test_gmp(void) {
 
 	return 0;
 }
+#endif

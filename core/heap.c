@@ -5,6 +5,13 @@
 
 /* Simple heap */
 
+#ifndef HEAP_MAX
+#define HEAP_MAX(x,y) (x)>(y)?(x):(y)
+#endif//HEAP_MAX
+#ifndef HEAP_MIN
+#define HEAP_MIN(x,y) (x)<(y)?(x):(y)
+#endif//HEAP_MIN
+
 /* Heap item */
 typedef struct heap_node_s {
 	void 	*start;
@@ -42,6 +49,14 @@ static size_t heap_nodes_count = 0;
 
 /* Pointer to nodes array */
 static heap_node_p heap_nodes = 0;
+
+/* Statistic */
+static size_t max_alloc_size = 0;
+static size_t min_alloc_size = 0;
+static size_t total_allocated = 0;
+static size_t total_released = 0;
+static uint32_t total_allocs = 0;
+static uint32_t total_frees = 0;
 
 #define NODE_CTL(p) ((heap_ctl_p)(p->start - sizeof(heap_ctl_t)))
 
@@ -90,6 +105,12 @@ void *malloc(size_t size)
 
 //		printf("+++ Allocated %d bytes at %p\n\r", size, node->start);
 
+		/* collect stats */
+		max_alloc_size = HEAP_MAX(max_alloc_size,NODE_CTL(node)->size);
+		min_alloc_size = !min_alloc_size ? NODE_CTL(node)->size : HEAP_MIN(min_alloc_size,NODE_CTL(node)->size);
+		total_allocated += NODE_CTL(node)->size;
+		++total_allocs;
+
 		return node->start;	
 	}
 
@@ -110,6 +131,42 @@ void free(void *ptr)
 	}
 
 //	printf("--- Relesed %d bytes at %p\n\r", NODE_CTL(current_node)->size, current_node->start);
+
+	/* collect stats */
+	total_released += NODE_CTL(current_node)->size;
+	++total_frees;
+
 	NODE_CTL(current_node)->busy = 0;
 }
 
+void dump_heap_info(void) {
+	heap_node_p current_node = heap_nodes;
+
+	size_t used_nodes_cnt = 0;
+	size_t used_nodes_size = 0;
+	size_t free_nodes_cnt = 0;
+	size_t free_nodes_size = 0;
+
+	while (current_node < heap_nodes + heap_nodes_count) {
+		heap_ctl_p node_ctl = NODE_CTL(current_node);
+		if (node_ctl->busy) {
+			++used_nodes_cnt;
+			used_nodes_size += node_ctl->size;
+		} else {
+			++free_nodes_cnt;
+			free_nodes_size += node_ctl->size;
+		}
+		++current_node;
+	}
+
+	printf("===================== HEAP INFO =======================\n\r");
+	printf("Start: %p\n\rSize: 0x%X\n\r", LOADER_HEAP_START, LOADER_HEAP_SIZE);
+	printf("Used nodes: 0x%X in %d\n\r", used_nodes_size, used_nodes_cnt);
+	printf("Free nodes: 0x%X in %d\n\r", free_nodes_size, free_nodes_cnt);
+	printf("Unallocated space: 0x%X\n\r", LOADER_HEAP_SIZE - (used_nodes_size + free_nodes_size));
+	printf("Max alloc size: 0x%X\n\r", max_alloc_size);
+	printf("Min alloc size: 0x%X\n\r", min_alloc_size);
+	printf("Total allocated: 0x%X (%d allocs)\n\r", total_allocated, total_allocs);
+	printf("Total released: 0x%X (%d frees)\n\r", total_released, total_frees);
+	printf("=======================================================\n\r");
+}
