@@ -30,6 +30,7 @@ HEADERS+=linux/jump_to_kernel.h
 HEADERS+=linux/image.h
 HEADERS+=crypt/blowfish.h
 HEADERS+=crypt/sha2.h
+HEADERS+=crypt/gmp.h
 HEADERS+=crypt/crypt.h
 DRIVERS_HEADERS+=drivers/console_iface.h
 DRIVERS_HEADERS+=drivers/text_display_driver.h

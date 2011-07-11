@@ -10,6 +10,8 @@
 #include <string.h>
 #include <image.h>
 
+#include <crypt/gmp.h>
+
 #include <drivers/console_iface.h>
 #include <drivers/text_display_driver.h>
 #include <drivers/text_display_console.h>
@@ -340,5 +342,6 @@ void C_start(void *loader_descriptor_address, void *loader_code_address)
 		C_input(getc());
 	}
 #endif//CONFIG_CONSOLE_ENABLED
+
 }
 

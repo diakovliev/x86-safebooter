@@ -1,5 +1,5 @@
+#include "gmp.h"
 #include <string.h>
-#include <stdint.h>
 #include <heap.h>
 #include <drivers/console_iface.h>
 
@@ -20,6 +20,9 @@
 #endif
 #ifndef GMP_ABS
 #define GMP_ABS(x) ((x<0)?(-x):(x))
+#endif
+#ifndef GMP_SWAP
+#define GMP_SWAP(a,b) a^=b, b^=a, a^=b;
 #endif
 
 #define GMP_NORMALIZE(op,i,base) \
@@ -53,15 +56,6 @@
 			} \
 		} while ( m != v ); \
 	}
-
-typedef struct gmp_number_s {
-	uint16_t size;
-	int16_t *data;
-} gmp_number_t, *gmp_number_p;
-
-gmp_number_p gmp_tools_alloc_number(uint16_t size);
-void gmp_get_negate(gmp_number_p res, gmp_number_p op, uint16_t base);
-void gmp_get_abs(gmp_number_p res, gmp_number_p op, uint16_t base);
 
 /********************************************************************************************************
  * Tools
@@ -179,7 +173,6 @@ int16_t gmp_tools_is_zero(gmp_number_p op) {
 	}
 	return !c;
 }
-
 
 /********************************************************************************************************
  * Code
@@ -533,6 +526,112 @@ void gmp_pow_s(gmp_number_p res, gmp_number_p op, uint16_t power, uint16_t base)
 	gmp_tools_free_number(work_op);
 }
 
+void gmp_pow(gmp_number_p res, gmp_number_p a, gmp_number_p power, uint16_t base) {
+/*
+long powmod(long a, long k, long n)
+{
+  long b=1;
+
+  while (k) {
+    if (k%2==0) {
+      k /= 2;
+      a *= a;
+      }
+    else {
+      k--;
+      b *= a;
+      }
+  }
+  return b;
+}
+*/
+	gmp_number_p b		= gmp_tools_alloc_number(res->size);
+	gmp_number_p k		= gmp_tools_clone_number(power);
+	gmp_number_p tmp	= gmp_tools_alloc_number(res->size);
+
+	gmp_tools_create_exp(b,0,1);
+	while (!gmp_tools_is_zero(k)) {
+		if (!gmp_mod_s(k,2,base)) {
+			gmp_div_s(tmp,k,2,base);
+			gmp_tools_copy_number(k,tmp);
+			gmp_mul(tmp,a,a,base);
+			gmp_tools_copy_number(a,tmp);
+		}
+		else {
+			gmp_sub_s(tmp,k,1,base);
+			gmp_tools_copy_number(k,tmp);
+			gmp_mul(tmp,b,a,base);
+			gmp_tools_copy_number(b,tmp);
+		}
+	}
+
+	gmp_tools_free_number(b);
+	gmp_tools_free_number(k);
+	gmp_tools_free_number(tmp);
+}
+
+/* a^n mod b === [(a%b)^n mod b] mod b */
+#define USE_MOD_OPTIMISATION
+
+void gmp_powmod(gmp_number_p res, gmp_number_p a_, gmp_number_p power, gmp_number_p mod, uint16_t base) {
+/*
+long powmod(long a, long k, long n)
+{
+  long b=1;
+
+  while (k) {
+    if (k%2==0) {
+      k /= 2;
+      a = (a*a)%n;
+      }
+    else {
+      k--;
+      b = (b*a)%n;
+      }
+  }
+  return b;
+}
+*/
+	gmp_number_p a		= gmp_tools_clone_number(a_);
+	gmp_number_p b		= gmp_tools_alloc_number(res->size);
+	gmp_number_p k		= gmp_tools_clone_number(power);
+	gmp_number_p tmp	= gmp_tools_alloc_number(res->size);
+
+#ifdef USE_MOD_OPTIMISATION
+	gmp_mod(tmp,a_,mod,base);
+	gmp_tools_copy_number(a,tmp);
+#endif/*USE_MOD_OPTIMISATION*/
+
+	gmp_tools_create_exp(b,0,1);
+	while (!gmp_tools_is_zero(k)) {
+		if (!gmp_mod_s(k,2,base)) {
+			gmp_div_s(tmp,k,2,base);
+			gmp_tools_copy_number(k,tmp);
+			gmp_mul(tmp,a,a,base);
+			gmp_mod(a,tmp,mod,base);
+		}
+		else {
+			gmp_sub_s(tmp,k,1,base);
+			gmp_tools_copy_number(k,tmp);
+			gmp_mul(tmp,b,a,base);
+			gmp_mod(b,tmp,mod,base);
+		}
+	}
+
+#ifdef USE_MOD_OPTIMISATION
+	gmp_mod(tmp,b,mod,base);
+	gmp_tools_copy_number(b,tmp);
+#endif/*USE_MOD_OPTIMISATION*/
+
+	gmp_tools_copy_number(res,b);
+
+	gmp_tools_free_number(a);
+	gmp_tools_free_number(b);
+	gmp_tools_free_number(k);
+	gmp_tools_free_number(tmp);
+}
+
+
 void gmp_gcd(gmp_number_p res, gmp_number_p a_, gmp_number_p b_, uint16_t base) {
 	gmp_tools_create_zero(res);
 
@@ -637,6 +736,23 @@ uint8_t gmp_inverse(gmp_number_p res, gmp_number_p a, gmp_number_p n, uint16_t b
 	return result;
 }
 
+inline uint64_t gmp_tools_rdtsc() {
+	uint64_t x,y;
+	asm volatile(
+		"rdtsc\n"
+		"movl %%eax,%0\n"
+		"movl %%edx,%1\n"
+		: "=r" (y), "=r" (x)
+		:
+		: "eax", "edx"
+	);
+	return (x << 32) | y;
+}
+
+uint32_t gmp_tools_random(uint32_t N) {
+	return  (uint32_t)gmp_tools_rdtsc() % N+1;
+}
+
 /********************************************************************************************************
  * Test code
  ********************************************************************************************************/
@@ -657,35 +773,17 @@ void test_gmp(void) {
 
 	op0->data[0] = 5;
 	op1->data[0] = 3;
+	mod->data[0] = 3;
 
-	printf("op0:");
+	gmp_powmod(res, op0, op1, mod, base);
 	gmp_tools_dump_number("%X", op0, base);
-	printf("\n\rop1:");
+	printf("^");
 	gmp_tools_dump_number("%X", op1, base);
-	printf("\n\r");
-
-	printf("Calculation...\n\r");
-
-	gmp_div_f(div, mod, op0, op1, base);
-	gmp_tools_dump_number("%X", op0, base);
-	printf(" / ");
-	gmp_tools_dump_number("%X", op1, base);
-	printf(" = ");
-	gmp_tools_dump_number("%X", div, base);
-	printf(" | ");
+	printf(" mod ");
 	gmp_tools_dump_number("%X", mod, base);
-	printf("\n\r");
-
-	gmp_gcd(res,op0,op1,base);
-	printf("gcd: ");
+	printf(" === ");
 	gmp_tools_dump_number("%X", res, base);
 	printf("\n\r");
-
-	if (gmp_inverse(res,op0,op1,base)) {
-		printf("op0 ^ (-1) mod op1: ");
-		gmp_tools_dump_number("%X", res, base);
-		printf("\n\r");
-	}
 
 	gmp_tools_free_number(op0);
 	gmp_tools_free_number(op1);
