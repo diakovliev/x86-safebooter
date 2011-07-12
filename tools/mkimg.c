@@ -173,12 +173,12 @@ int main(int argc, char **argv) {
 		}
 	}
 
-	if (!input_file) {
+	if (!res && !input_file) {
 		printf("Unknown input file\n\r");
 		print_help();
 		res = 2;
 	}
-	if (!output_file) {
+	if (!res && !output_file) {
 		printf("Unknown output file\n\r");
 		print_help();
 		res = 3;

@@ -31,6 +31,7 @@ HEADERS+=linux/image.h
 HEADERS+=crypt/blowfish.h
 HEADERS+=crypt/sha2.h
 HEADERS+=crypt/gmp.h
+HEADERS+=crypt/dsa.h
 HEADERS+=crypt/crypt.h
 DRIVERS_HEADERS+=drivers/console_iface.h
 DRIVERS_HEADERS+=drivers/text_display_driver.h
@@ -51,6 +52,7 @@ SOURCES+=crypt/blowfish.c
 SOURCES+=crypt/blowfish_key.S
 SOURCES+=crypt/sha2.c
 SOURCES+=crypt/gmp.c
+SOURCES+=crypt/dsa.c
 SOURCES+=crypt/crypt.c
 DRIVERS_SOURCES+=drivers/console_iface.c
 DRIVERS_SOURCES+=drivers/text_display_driver.c
@@ -74,6 +76,7 @@ OBJECTS+=blowfish.o
 OBJECTS+=blowfish_key.o
 OBJECTS+=sha2.o
 OBJECTS+=gmp.o
+OBJECTS+=dsa.o
 OBJECTS+=crypt.o
 DRIVERS_OBJECTS+=console_iface.o
 DRIVERS_OBJECTS+=text_display_driver.o
@@ -96,6 +99,10 @@ objcopy -O binary $@.elf $@
 
 default: qemu
 .PHONY: loader_gen.h qemu bochs clean
+
+# Tools
+mkimg:
+	make -C ./tools -f mkimg.mk
 
 # Geometry
 loader.img.size: loader.img
@@ -165,23 +172,24 @@ loader.img: $(BASE_OBJECTS) $(OBJECTS)
 	$(call LD_CMD,$(LOADER_CODE_ADDRESS))
 
 # Build
-build: mbr.img loader_descriptor.img loader.img
+build: mkimg mbr.img loader_descriptor.img loader.img
 
 # Clean
 clean:
+	make -C ./tools -f mkimg.mk clean
 	rm -f ${HDD_IMG}
 	rm -f ./drivers/*.gch
 	rm -f *.gch
 	rm -f *.gen.h
-	rm -f *.img
-	rm -f *.img.dbg
-	rm -f *.img.elf
-	rm -f *.img.size
-	rm -f *.map
 	rm -f *.o.S
 	rm -f *.out
 	rm -f *.txt
 	rm -f *.o
+	rm -f *.img.dbg
+	rm -f *.img.elf
+	rm -f *.img.size
+	rm -f *.map
+#	rm -f *.img
 
 # Run targets
 
