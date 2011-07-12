@@ -293,6 +293,7 @@ void console_initialize(void) {
 }
 
 /* 32 bit C code entry point */
+void C_start(void *, void *) __attribute__((noreturn));
 void C_start(void *loader_descriptor_address, void *loader_code_address)
 {
 	/* Get loader descriptor information */

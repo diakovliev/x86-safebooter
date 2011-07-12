@@ -39,8 +39,8 @@
 
 #include "sha2.h"
 #include <string.h>
-#define bcopy(a, b, c) memcpy((b), (a), (c))
-#define bzero(a, b) memset((a), 0, (b))
+#define bcopy(a, b, c) memcpy((void*)(b), (void*)(a), (c))
+#define bzero(a, b) memset((void*)(a), 0, (b))
 #define panic(a) err(1, (a))
 
 /*
