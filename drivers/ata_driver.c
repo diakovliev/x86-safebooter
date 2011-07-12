@@ -95,7 +95,7 @@ static byte_t ata_read_sectors_internal(word_t bus, byte_t drive, void *buffer, 
 		*/
 
 		/* input data */
-		asm(
+		__asm__ __volatile__(
 			"movl %0,%%ecx\n"
 			"movl %1,%%edi\n"
 			"movl %2,%%edx\n"

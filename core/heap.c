@@ -87,7 +87,7 @@ static heap_node_p get_free_node(size_t size)
 		}
 		++current_node;
 	}
-	if (address + size + sizeof(heap_ctl_t) < heap_nodes) {
+	if ((heap_node_p)(address + size + sizeof(heap_ctl_t)) < heap_nodes) {
 		current_node = heap_nodes + heap_nodes_count;
 		++heap_nodes_count;
 		current_node->start = address + sizeof(heap_ctl_t);

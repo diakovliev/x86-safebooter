@@ -738,7 +738,7 @@ uint8_t gmp_inverse(gmp_number_p res, gmp_number_p a, gmp_number_p n, uint16_t b
 
 inline uint64_t gmp_tools_rdtsc() {
 	uint64_t x,y;
-	asm volatile(
+	__asm__ __volatile__ (
 		"rdtsc\n"
 		"movl %%eax,%0\n"
 		"movl %%edx,%1\n"
