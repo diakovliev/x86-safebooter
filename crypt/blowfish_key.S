@@ -1,5 +1,3 @@
-#include "loader.h"
-
 .file "key.S"
 
 .global blowfish_key

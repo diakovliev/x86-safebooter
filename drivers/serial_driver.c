@@ -1,6 +1,6 @@
-#include "serial_driver.h"
-#include <loader_types.h>
 #include <common.h>
+#include <loader_types.h>
+#include "serial_driver.h"
 
 /* Routes */
 void ser_set_divisor(word_t port, word_t div) {

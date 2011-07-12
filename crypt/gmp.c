@@ -1,7 +1,12 @@
 #include "gmp.h"
 #include <string.h>
+#ifndef __HOST_COMPILE__
 #include <heap.h>
 #include <drivers/console_iface.h>
+#else
+#include <stdio.h>
+#include <stdlib.h>
+#endif/*__HOST_COMPILE__*/
 
 /* TODO:
  *	- gmp_cmp should be rewritten

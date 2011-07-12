@@ -38,7 +38,7 @@
  */
 
 #include "sha2.h"
-#include <string.h>
+
 #define bcopy(a, b, c) memcpy((void*)(b), (void*)(a), (c))
 #define bzero(a, b) memset((void*)(a), 0, (b))
 #define panic(a) err(1, (a))
@@ -112,20 +112,9 @@
  * Thank you, Jun-ichiro itojun Hagino, for suggesting using u_intXX_t
  * types and pointing out recent ANSI C support for uintXX_t in inttypes.h.
  */
-#if 0 /*def SHA2_USE_INTTYPES_H*/
-
-typedef uint8_t  sha2_byte;	/* Exactly 1 byte */
-typedef uint32_t sha2_word32;	/* Exactly 4 bytes */
-typedef uint64_t sha2_word64;	/* Exactly 8 bytes */
-
-#else /* SHA2_USE_INTTYPES_H */
-
-typedef u_int8_t  sha2_byte;	/* Exactly 1 byte */
-typedef u_int32_t sha2_word32;	/* Exactly 4 bytes */
-typedef u_int64_t sha2_word64;	/* Exactly 8 bytes */
-
-#endif /* SHA2_USE_INTTYPES_H */
-
+#define sha2_byte uint8_t	/* Exactly 1 byte */
+#define sha2_word32 uint32_t	/* Exactly 4 bytes */
+#define sha2_word64 uint64_t	/* Exactly 8 bytes */
 
 /*** SHA-256/384/512 Various Length Definitions ***********************/
 /* NOTE: Most of these are in sha2.h */

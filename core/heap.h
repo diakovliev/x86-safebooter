@@ -2,8 +2,7 @@
 #define HEAP_HEADER
 
 #include <stdint.h>
-
-#define size_t uint32_t
+#include <loader_types.h>
 
 extern void heap_init(void);
 extern void *malloc(size_t size);

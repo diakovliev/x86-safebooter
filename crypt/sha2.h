@@ -40,6 +40,7 @@
 #ifndef __SHA2_H__
 #define __SHA2_H__
 
+#include <string.h>
 #include <stdint.h>
 #define SHA2_USE_INTTYPES_H
 #define BYTE_ORDER LIITLE_ENDIAN
@@ -64,10 +65,6 @@ extern "C" {
  * uintXX_t (from inttypes.h), you may need to define things by hand
  * for your system:
  */
-typedef uint8_t u_int8_t;		/* 1-byte  (8-bits)  */
-typedef uint32_t u_int32_t;		/* 4-bytes (32-bits) */
-typedef uint64_t u_int64_t;	/* 8-bytes (64-bits) */
-typedef uint64_t size_t; 	/* 8-bytes (64-bits) */
 
 /*
  * Most BSD systems already define u_intXX_t types, as does Linux.
@@ -85,8 +82,6 @@ typedef uint64_t size_t; 	/* 8-bytes (64-bits) */
  *
  *   cc -DSHA2_USE_INTTYPES_H ...
  */
-#ifdef SHA2_USE_INTTYPES_H
-
 typedef struct _SHA256_CTX {
 	uint32_t	state[8];
 	uint64_t	bitcount;
@@ -98,33 +93,18 @@ typedef struct _SHA512_CTX {
 	uint8_t	buffer[SHA512_BLOCK_LENGTH];
 } SHA512_CTX;
 
-#else /* SHA2_USE_INTTYPES_H */
-
-typedef struct _SHA256_CTX {
-	u_int32_t	state[8];
-	u_int64_t	bitcount;
-	u_int8_t	buffer[SHA256_BLOCK_LENGTH];
-} SHA256_CTX;
-typedef struct _SHA512_CTX {
-	u_int64_t	state[8];
-	u_int64_t	bitcount[2];
-	u_int8_t	buffer[SHA512_BLOCK_LENGTH];
-} SHA512_CTX;
-
-#endif /* SHA2_USE_INTTYPES_H */
-
 /*** SHA-256/512 Function Prototypes ******************************/
 void SHA256_Init(SHA256_CTX *);
-void SHA256_Update(SHA256_CTX*, const u_int8_t*, size_t);
-void SHA256_Final(u_int8_t[SHA256_DIGEST_LENGTH], SHA256_CTX*);
+void SHA256_Update(SHA256_CTX*, const uint8_t*, size_t);
+void SHA256_Final(uint8_t[SHA256_DIGEST_LENGTH], SHA256_CTX*);
 char* SHA256_End(SHA256_CTX*, char[SHA256_DIGEST_STRING_LENGTH]);
-char* SHA256_Data(const u_int8_t*, size_t, char[SHA256_DIGEST_STRING_LENGTH]);
+char* SHA256_Data(const uint8_t*, size_t, char[SHA256_DIGEST_STRING_LENGTH]);
 
 void SHA512_Init(SHA512_CTX*);
-void SHA512_Update(SHA512_CTX*, const u_int8_t*, size_t);
-void SHA512_Final(u_int8_t[SHA512_DIGEST_LENGTH], SHA512_CTX*);
+void SHA512_Update(SHA512_CTX*, const uint8_t*, size_t);
+void SHA512_Final(uint8_t[SHA512_DIGEST_LENGTH], SHA512_CTX*);
 char* SHA512_End(SHA512_CTX*, char[SHA512_DIGEST_STRING_LENGTH]);
-char* SHA512_Data(const u_int8_t*, size_t, char[SHA512_DIGEST_STRING_LENGTH]);
+char* SHA512_Data(const uint8_t*, size_t, char[SHA512_DIGEST_STRING_LENGTH]);
 
 #ifdef	__cplusplus
 }
