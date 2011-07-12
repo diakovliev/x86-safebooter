@@ -13,14 +13,14 @@ void blowfish_init(void) {
 
 void blowfish_encrypt_memory(void* buffer, uint32_t size) {
 	unsigned long *array = (unsigned long *)buffer;	
-	for ( ; array+1 < (unsigned long *)(buffer + size); array += 2) {
+	for ( ; array+1 < (unsigned long *)(buffer+size+size%2); array += 2) {
 		Blowfish_Encrypt(&context, array, (array+1));
 	}
 }
 
 void blowfish_decrypt_memory(void* buffer, uint32_t size) {
 	unsigned long *array = (unsigned long *)buffer;	
-	for ( ; array+1 < (unsigned long *)(buffer + size); array += 2) {
+	for ( ; array+1 < (unsigned long *)(buffer+size+size%2); array += 2) {
 		Blowfish_Decrypt(&context, array, (array+1));
 	}
 }
