@@ -20,7 +20,20 @@ static inline word_t inw(word_t port) {
 }
 
 static inline void idle(void) {
-	__asm__ __volatile__ ("nop;pause");
+	__asm__ __volatile__ ("pause");
+}
+
+static inline quad_t rdtsc() {
+	quad_t x,y;
+	__asm__ __volatile__ (
+		"rdtsc\n"
+		"movl %%eax,%0\n"
+		"movl %%edx,%1\n"
+		: "=r" (y), "=r" (x)
+		:
+		: "eax", "edx"
+	);
+	return (x << 32) | y;
 }
 
 #endif

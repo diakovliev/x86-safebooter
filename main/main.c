@@ -8,6 +8,7 @@
 #include <env.h>
 #include <common.h>
 #include <string.h>
+#include <time.h>
 #include <image.h>
 
 #include <crypt/gmp.h>
@@ -226,6 +227,8 @@ byte_t C_input(byte_t ascii) {
 				printf("Command error: %x\n\rType 'help' for list available commands\r\n", res);
 			}				
 		}
+
+		print_current_time();
 		puts(CMD_PROMT_INVITE);
 
 		/* Reset buffer */
@@ -301,6 +304,7 @@ void C_start(void *loader_descriptor_address, void *loader_code_address)
 	loader_descriptor = desc;
 
 	/* Init subsystems */
+	rtc_init();
 	heap_init();
 	env_init(desc);
 	console_initialize();
@@ -325,10 +329,12 @@ void C_start(void *loader_descriptor_address, void *loader_code_address)
 	detect_ata_drive(ATA_BUS_SECONDARY, ATA_DRIVE_MASTER);
 	detect_ata_drive(ATA_BUS_SECONDARY, ATA_DRIVE_SLAVE);
 
+	byte_t ctrl_break = 0;
+	ssleep(10);
 	/* Run environment STARTUP commands */
+
 	byte_t *startup = env_get("STARTUP");
-	if (startup) {
-		/* TODO: Timeout + break */
+	if (!ctrl_break && startup) {
 		printf("Process STARTUP commands...\n\r");
 		byte_t res = C_process_command(startup);
 		if (res) {

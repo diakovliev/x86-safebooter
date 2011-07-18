@@ -25,6 +25,7 @@ HEADERS+=core/loader_types.h
 HEADERS+=core/string.h 
 HEADERS+=core/heap.h 
 HEADERS+=core/env.h 
+HEADERS+=core/time.h 
 HEADERS+=linux/lbp.h
 HEADERS+=linux/jump_to_kernel.h
 HEADERS+=linux/image.h
@@ -40,6 +41,7 @@ DRIVERS_HEADERS+=drivers/keyboard_driver.h
 DRIVERS_HEADERS+=drivers/ascii_driver.h
 DRIVERS_HEADERS+=drivers/ata_driver.h
 DRIVERS_HEADERS+=drivers/serial_driver.h
+DRIVERS_HEADERS+=drivers/rtc_driver.h
 HEADERS+=$(DRIVERS_HEADERS)
 
 SOURCES+=main/main.c
@@ -61,6 +63,7 @@ DRIVERS_SOURCES+=drivers/keyboard_driver.c
 DRIVERS_SOURCES+=drivers/ascii_driver.c
 DRIVERS_SOURCES+=drivers/ata_driver.c
 DRIVERS_SOURCES+=drivers/serial_driver.c
+DRIVERS_SOURCES+=drivers/rtc_driver.c
 SOURCES+=$(DRIVERS_SOURCES)
 
 BASE_OBJECTS+=loader_start.o 
@@ -85,6 +88,7 @@ DRIVERS_OBJECTS+=keyboard_driver.o
 DRIVERS_OBJECTS+=ascii_driver.o
 DRIVERS_OBJECTS+=ata_driver.o
 DRIVERS_OBJECTS+=serial_driver.o
+DRIVERS_OBJECTS+=rtc_driver.o
 OBJECTS+=$(DRIVERS_OBJECTS)
 
 #-----------------------------------------------------------------------------------

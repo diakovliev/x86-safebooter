@@ -32,51 +32,87 @@ byte_t getc(void) {
 	return (*p->get)(p->ctx);
 }
 
+inline byte_t strilen(long value, byte_t base) {
+	return strlen(itoa(value,base));
+}
+
+#define OUT_NUMERIC(type,base) \
+	d = va_arg(ap, type); \
+	if (fill_flag) { \
+		wc = 0; \
+		while (wc+strilen(d,base) < width) { \
+			putc(fill); \
+			++wc; \
+		} \
+	} \
+	puts(itoa(d,base));
+
 void printf(const byte_t *fmt, ...) 
 {
-	/* Supported %s, %c, %d, %x, %p without fill and width */
+	/* Supported %s, %c, %d, %x, %p with fill and width */
 	va_list ap;
 	va_start(ap,fmt);
 
 	const byte_t *s = 0;
 	int d = 0;
 
+	byte_t fill = ' ';
+	byte_t width = 0;
+	byte_t fill_flag = 0;
+	byte_t wc;
+
 	byte_t c;
 	while (c = *fmt++) {
-		if (c == '%') {
+		if (c == '%' || fill_flag) {
 			switch (c = *fmt++)
 			{
 			case 's':
-			{
-				s = va_arg(ap, const byte_t *);
-				if (s) puts(s);
-			}
+				{
+					s = va_arg(ap, const byte_t *);
+					if (s) puts(s);
+					fill_flag	= 0;
+				}
 			break;
 			case 'c':
-			{
-				c = va_arg(ap, int);
-				putc(c);
-			}
+				{
+					c = va_arg(ap, int);
+					putc(c);
+					fill_flag	= 0;
+				}
 			break;
-			case 'd':
-			{
-				d = va_arg(ap, int);
-				puts(itoa(d,10));	
-			}
-			break;
+			/* Fill + Width */
 			case 'p':
-			{
-				puts("0x");
-			}
+				{
+					if (!fill_flag) {
+						fill_flag	= 1;
+						fill		= '0';
+						width		= 8;
+					}
+					puts("0x");
+				}
 			case 'X':
 			case 'x':
-			{
-				d = va_arg(ap, int);
-				puts(itoa(d,16));	
-			}
+				{
+					OUT_NUMERIC(int,16)
+					fill_flag	= 0;
+				}
+			break;
+			case 'd':
+				{
+					OUT_NUMERIC(int,10)
+					fill_flag	= 0;
+				}
 			break;
 			default:
-				putc(c);
+				if (!fill_flag) {
+					fill		= c;
+					width		= xnumber(*fmt, 16);
+					fill_flag	= 1;
+				}
+				else {
+					putc(c);
+					fill_flag	= 0;
+				}
 			}
 		}
 		else {

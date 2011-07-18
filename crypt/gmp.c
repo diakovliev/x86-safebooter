@@ -741,22 +741,9 @@ uint8_t gmp_inverse(gmp_number_p res, gmp_number_p a, gmp_number_p n, uint16_t b
 	return result;
 }
 
-inline uint64_t gmp_tools_rdtsc() {
-	uint64_t x,y;
-	__asm__ __volatile__ (
-		"rdtsc\n"
-		"movl %%eax,%0\n"
-		"movl %%edx,%1\n"
-		: "=r" (y), "=r" (x)
-		:
-		: "eax", "edx"
-	);
-	return (x << 32) | y;
-}
-
-uint32_t gmp_tools_random(uint32_t N) {
-	return  (uint32_t)gmp_tools_rdtsc() % N+1;
-}
+//uint32_t gmp_tools_random(uint32_t N) {
+//	return  (uint32_t)rdtsc() % N+1;
+//}
 
 /********************************************************************************************************
  * Test code
