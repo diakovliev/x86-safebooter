@@ -6,52 +6,96 @@
 
 static console_base_p p = 0;
 
+/* ----------------------------------------------------------- */
 /* Service */
 void console_init(console_base_p provider) {
 	p = provider;
 }
 
+inline void console_putc(console_base_p console, const byte_t c) {
+	if (!console->put) return;
+
+	(*console->put)(console->ctx, c);
+}
+
+inline void console_puts(console_base_p console, const byte_t *s) {
+	byte_t c;
+	while (c = *s++) {
+		console_putc(console, c);
+	}
+}
+
+inline byte_t console_getc(console_base_p console) {
+	if (!console->get) return 0;
+
+	return (*console->get)(console->ctx);
+}
+
+/* ----------------------------------------------------------- */
 /* Out */
 void putc(byte_t c) {
-	if (p && p->put) (*p->put)(p->ctx,c);
+	if (!p) return;
+
+	console_putc(p, c);
 }
 
 void puts(const byte_t *s) {
 	if (!p) return;
 
-	byte_t c;
-	while (c = *s++) {
-		putc(c);
-	}
+	console_puts(p, s);
 }
 
 /* In */
 byte_t getc(void) {
-	if (!p || !p->get) return 0;
+	if (!p) return 0;
 
-	return (*p->get)(p->ctx);
+	return console_getc(p);
 }
 
+/* ----------------------------------------------------------- */
+/* Memory */
+struct mem_context_s {
+	byte_p base_ptr;
+	byte_p current_ptr;
+};
+
+inline void mem_putc(void *ctx, byte_t c) {
+	struct mem_context_s *mem_ctx = (struct mem_context_s *)ctx;
+	*mem_ctx->current_ptr = c;
+	++mem_ctx->current_ptr;
+}
+
+console_base_p mem_init(const byte_p ptr) {
+	static console_base_t console;
+	static struct mem_context_s mem_ctx;
+	mem_ctx.base_ptr = ptr;
+	mem_ctx.current_ptr = ptr;
+	console.ctx = &mem_ctx;
+	console.put = mem_putc;
+	return &console;
+}
+
+/* ----------------------------------------------------------- */
 inline byte_t strilen(long value, byte_t base) {
 	return strlen(itoa(value,base));
 }
+
+
+void va_printf(console_base_p console, const byte_t *fmt, va_list ap)
+{
+	/* Supported %s, %c, %o, %i, %d, %l, %x, %X, %p with fill and width */
 
 #define OUT_NUMERIC(type,base) \
 	d = va_arg(ap, type); \
 	if (fill_flag) { \
 		wc = 0; \
-		while (wc+strilen(d,base) < width) { \
-			putc(fill); \
+		ilen = strilen(d,base); \
+		while (wc+ilen < width) { \
+			console_putc(console,fill); \
 			++wc; \
 		} \
 	} \
-	puts(itoa(d,base));
-
-void printf(const byte_t *fmt, ...) 
-{
-	/* Supported %s, %c, %d, %x, %p with fill and width */
-	va_list ap;
-	va_start(ap,fmt);
+	console_puts(console,itoa(d,base));
 
 	const byte_t *s = 0;
 	int d = 0;
@@ -59,7 +103,7 @@ void printf(const byte_t *fmt, ...)
 	byte_t fill = ' ';
 	byte_t width = 0;
 	byte_t fill_flag = 0;
-	byte_t wc;
+	byte_t wc, ilen;
 
 	byte_t c;
 	while (c = *fmt++) {
@@ -69,14 +113,14 @@ void printf(const byte_t *fmt, ...)
 			case 's':
 				{
 					s = va_arg(ap, const byte_t *);
-					if (s) puts(s);
+					if (s) console_puts(console,s);
 					fill_flag	= 0;
 				}
 			break;
 			case 'c':
 				{
 					c = va_arg(ap, int);
-					putc(c);
+					console_putc(console,c);
 					fill_flag	= 0;
 				}
 			break;
@@ -88,8 +132,14 @@ void printf(const byte_t *fmt, ...)
 						fill		= '0';
 						width		= 8;
 					}
-					puts("0x");
+					console_puts(console,"0x");
 				}
+			case 'o':
+				{
+					OUT_NUMERIC(int,8)
+					fill_flag	= 0;
+				}
+			break;
 			case 'X':
 			case 'x':
 				{
@@ -97,9 +147,16 @@ void printf(const byte_t *fmt, ...)
 					fill_flag	= 0;
 				}
 			break;
+			case 'i':
 			case 'd':
 				{
 					OUT_NUMERIC(int,10)
+					fill_flag	= 0;
+				}
+			break;
+			case 'l':
+				{
+					OUT_NUMERIC(long,10)
 					fill_flag	= 0;
 				}
 			break;
@@ -110,16 +167,27 @@ void printf(const byte_t *fmt, ...)
 					fill_flag	= 1;
 				}
 				else {
-					putc(c);
+					console_putc(console,c);
 					fill_flag	= 0;
 				}
 			}
 		}
 		else {
-			putc(c);
+			console_putc(console,c);
 		}
 	}
+}
 
+void printf(const byte_t *fmt, ...) {
+	va_list ap;
+	va_start(ap,fmt);
+	va_printf(p,fmt,ap);
 	va_end(ap);
 }
 
+void sprintf(const byte_t *dst, const byte_t *fmt, ...) {
+	va_list ap;
+	va_start(ap,fmt);
+	va_printf(mem_init(dst),fmt,ap);
+	va_end(ap);
+}

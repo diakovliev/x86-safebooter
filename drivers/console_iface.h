@@ -16,10 +16,12 @@ extern void console_init(console_base_p provider);
 extern void putc(byte_t c);
 extern void puts(const byte_t *s);
 
-/* Supported %s, %c, %d, %x, %p without fill and width */
-extern void printf(const byte_t *fmt, ...); 
-
 /* In */
 extern byte_t getc(void);
+
+/* Supported %s, %c, %d, %x, %p without fill and width */
+extern void printf(const byte_t *fmt, ...);
+extern void sprintf(const byte_t *dst, const byte_t *fmt, ...);
+
 
 #endif//CONSOLE_IFACE_HEADER
