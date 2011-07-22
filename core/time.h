@@ -20,7 +20,7 @@ static inline void print_tm(tm_p tm) {
 
 static inline void print_current_time(void) {
 	print_tm(rtc_current());
-	printf("\n\r");
+	//printf("\n\r");
 }
 
 static inline void ssleep(quad_t timeout) {

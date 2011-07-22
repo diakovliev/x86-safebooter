@@ -2,9 +2,10 @@
 
 /* Base string utils */
 
-word_t STRING_H(strlen) (byte_t *s) {
+word_t STRING_H(strlen) (const byte_p s) {
 	word_t r = 0;
-	while( *s++ ) ++r;
+	byte_p w = (byte_p)s;
+	while( *w++ ) ++r;
 	return r;
 }
 

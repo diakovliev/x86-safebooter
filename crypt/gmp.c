@@ -1,5 +1,7 @@
 #include "gmp.h"
+
 #include <string.h>
+
 #ifndef __HOST_COMPILE__
 #include <heap.h>
 #include <drivers/console_iface.h>
@@ -178,6 +180,85 @@ int16_t gmp_tools_is_zero(gmp_number_p op) {
 	}
 	return !c;
 }
+
+gmp_number_p gmp_tools_number_from_string(const char *str, uint16_t base)
+{
+	uint16_t i = strlen(str)-1;
+	uint16_t j = 0;
+
+	gmp_number_p res = gmp_tools_alloc_number(i+1);
+
+	do {
+#ifndef __HOST_COMPILE__
+		res->data[j++] = xnumber(str[i],base);
+#else
+		char buf[2];
+		memset(buf,0,sizeof(buf));
+		res->data[j++] = strtol(buf,0,base);
+#endif
+	} while (i-- > 0);
+	return res;
+}
+
+#ifdef __HOST_COMPILE__
+/* core/string.h */
+inline void strrev(char *s, unsigned short ln) {
+	unsigned short i;
+	char c;
+	for (i = 0; i < ln/2; i++) {
+		c = s[ln-1-i];
+		s[ln-1-i] = s[i];
+		s[i] = c;
+	}
+}
+
+inline char *itoa(long value, unsigned base) {
+	static char res[129];
+	char *buf = res;
+	long v = value>=0?value:-value;
+	char ch = '0';
+	char n;
+	do {
+		n = v % base;
+		v /= base;
+		if (n < 10)
+			ch = n + 0x30;
+		else
+			ch = n + 0x37;
+		*buf++ = ch;
+	} while (v);
+	*buf++ = 0;
+	strrev(res, buf-res-1);
+	return res;
+}
+#endif
+
+void gmp_tools_number_to_string(char *str, gmp_number_p src, uint16_t base)
+{
+	uint16_t i = src->size-1;
+	uint16_t j = 0;
+	do {
+		char *s = itoa(src->data[j++],base);
+		str[i] = s[0];
+	} while (i-- > 0);
+}
+
+/* Allocate & create number from/to byte array */
+gmp_number_p gmp_tools_number_from_ba(const char *str, uint16_t size, uint16_t base) {
+	uint16_t i = size-1;
+	uint16_t j = 0;
+
+	/* Unused now */
+	base = base;
+
+	gmp_number_p res = gmp_tools_alloc_number(i+1);
+	do {
+		res->data[j++] = str[i] & 0xFF;
+	} while (i-- > 0);
+	return res;
+}
+
+//void gmp_tools_number_to_ba(char *str, gmp_number_p src, uint16_t base);
 
 /********************************************************************************************************
  * Code

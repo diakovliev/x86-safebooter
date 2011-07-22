@@ -31,7 +31,7 @@
 #define CMD_BUFFER_MAX 0x20
 
 /* Command promt */
-#define CMD_PROMT_INVITE	">> "
+#define CMD_PROMT_INVITE	" >> "
 #define CMD_PARAM_SEP		" "
 #define CMD_CMD_SEP			";"
 
@@ -330,7 +330,7 @@ void C_start(void *loader_descriptor_address, void *loader_code_address)
 	detect_ata_drive(ATA_BUS_SECONDARY, ATA_DRIVE_SLAVE);
 
 	byte_t ctrl_break = 0;
-	ssleep(10);
+	//ssleep(10);
 	/* Run environment STARTUP commands */
 
 	byte_t *startup = env_get("STARTUP");
@@ -344,6 +344,7 @@ void C_start(void *loader_descriptor_address, void *loader_code_address)
 	}
 
 #ifdef CONFIG_CONSOLE_ENABLED
+	print_current_time();
 	puts(CMD_PROMT_INVITE);
 	while (1) {
 		C_input(getc());

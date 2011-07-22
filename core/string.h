@@ -10,7 +10,7 @@
 #endif
 
 /* Base string utils */
-extern word_t STRING_H(strlen) (byte_t *s);
+extern word_t STRING_H(strlen) (const byte_p s);
 extern byte_t STRING_H(strncmp) (byte_t *s0, byte_t *s1, word_t n);
 extern byte_t STRING_H(strcmp) (byte_t *s0, byte_t *s1);
 extern byte_t STRING_H(starts_from) (byte_t *s0, byte_t *s1);

@@ -14,6 +14,15 @@ typedef struct gmp_number_s {
 
 GMP_FUNC gmp_number_p gmp_tools_clone_number(gmp_number_p src);
 GMP_FUNC gmp_number_p gmp_tools_alloc_number(uint16_t size);
+
+/* Allocate & create number from/to string */
+GMP_FUNC gmp_number_p gmp_tools_number_from_string(const char *str, uint16_t base);
+GMP_FUNC void gmp_tools_number_to_string(char *str, gmp_number_p src, uint16_t base);
+
+/* Allocate & create number from/to byte array */
+GMP_FUNC gmp_number_p gmp_tools_number_from_ba(const char *str, uint16_t size, uint16_t base);
+//GMP_FUNC void gmp_tools_number_to_ba(char *str, gmp_number_p src, uint16_t base);
+
 GMP_FUNC void gmp_tools_free_number(gmp_number_p ptr);
 GMP_FUNC void gmp_tools_dump_number(const char *fmt, gmp_number_p op, uint16_t base);
 GMP_FUNC void gmp_tools_copy_number(gmp_number_p dst, gmp_number_p src);
@@ -27,6 +36,7 @@ GMP_FUNC uint64_t gmp_tools_get_small(gmp_number_p op, uint16_t base);
 GMP_FUNC void gmp_tools_reverse(gmp_number_p op, uint16_t size);
 GMP_FUNC int16_t gmp_tools_is_zero(gmp_number_p op);
 GMP_FUNC uint32_t gmp_tools_random(uint32_t N);
+
 
 GMP_FUNC int8_t gmp_cmp(gmp_number_p op0_, gmp_number_p op1_, uint16_t base);
 GMP_FUNC void gmp_add(gmp_number_p res, gmp_number_p left, gmp_number_p right, uint16_t base);

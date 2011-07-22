@@ -18,7 +18,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 See blowfish.c for more information about this file.
 */
-
+#ifndef BLOWFISH_HEADER
+#define BLOWFISH_HEADER
   
 typedef struct {
   unsigned long P[16 + 2];
@@ -29,3 +30,4 @@ void Blowfish_Init(BLOWFISH_CTX *ctx, unsigned char *key, int keyLen);
 void Blowfish_Encrypt(BLOWFISH_CTX *ctx, unsigned long *xl, unsigned long *xr);
 void Blowfish_Decrypt(BLOWFISH_CTX *ctx, unsigned long *xl, unsigned long *xr);
 
+#endif/*BLOWFISH_HEADER*/
