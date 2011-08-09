@@ -50,3 +50,11 @@ void sha2_512(uint8_t *digest, void *buffer, uint32_t size) {
 	SHA512_Final(digest, &ctx);
 }
 
+#include "sha1.h"
+
+void sha1(uint8_t *digest, void *buffer, uint32_t size) {
+	SHA_CTX ctx;
+	SHAInit(&ctx);
+	SHAUpdate(&ctx, buffer, size);
+	SHAFinal(digest, &ctx);
+}

@@ -1,6 +1,7 @@
 # Mkimg tool makefile
 
 HEADERS += ../crypt/blowfish.h
+HEADERS += ../crypt/sha1.h
 HEADERS += ../crypt/sha2.h
 HEADERS += ../crypt/bch.h
 HEADERS += ../crypt/dsa.h
@@ -8,6 +9,7 @@ HEADERS += ../crypt/crypt.h
 
 SOURCES += ../crypt/blowfish_key.S
 SOURCES += ../crypt/blowfish.c
+SOURCES += ../crypt/sha1.c
 SOURCES += ../crypt/sha2.c
 SOURCES += ../crypt/bch.c
 SOURCES += ../crypt/dsa.c
@@ -18,6 +20,7 @@ SOURCES += mkimg.c
 
 OBJECTS += blowfish_key.o
 OBJECTS += blowfish.o
+OBJECTS += sha1.o
 OBJECTS += sha2.o
 OBJECTS += bch.o
 OBJECTS += crypt.o

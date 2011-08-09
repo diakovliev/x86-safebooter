@@ -8,7 +8,7 @@
 rm ./dsa_*
 
 # Generate dsa_*.pem
-openssl dsaparam 512 < /dev/urandom > dsa_param.pem
+openssl dsaparam 1024 < /dev/urandom > dsa_param.pem
 openssl gendsa dsa_param.pem -out dsa_priv.pem
 #openssl dsa -in dsa_priv.pem -pubout -out dsa_pub.pem
 
