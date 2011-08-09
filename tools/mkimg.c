@@ -12,7 +12,9 @@
 #include <getopt.h>
 
 #include <crypt.h>
-#include <gmp.h>
+#include <bch.h>
+#include <dsa.h>
+#include <assert.h>
 
 static int verbose = 0;
 static int decrypt = 0;
@@ -27,6 +29,23 @@ static void *start_block = 0;
 #define SHA2_SIZE 256
 #define SHA2_func sha2_256
 
+#include <time.h>
+
+void custom_random_init(void) {
+	srand(time(NULL));
+}
+
+bch_data custom_random(bch_data max) {
+	return rand() % max;
+}
+
+//----------------------------------------------------------------------
+//- DSA ----------------------------------------------------------------
+//----------------------------------------------------------------------
+
+//----------------------------------------------------------------------
+//----------------------------------------------------------------------
+//----------------------------------------------------------------------
 void print_sha2(uint8_t *sha2) {
 	int i = 0;
 	for (i = 0; i < SHA2_SIZE/8; ++i) {
@@ -55,16 +74,77 @@ void process_buffer(void *buffer, long size) {
     	printf("\n\r");
     }
 
-    gmp_number_p gmp_sha2 = gmp_tools_number_from_ba(original_sha2, SHA2_SIZE/8, 16);
+    bch_p bch_sha2 = bch_rev(bch_from_ba(DSA_SIZE, (bch_data_p)original_sha2, SHA2_SIZE/8));
     if (verbose) {
-    	printf("Original gmp SHA2: ");
-    	gmp_tools_dump_number("%X", gmp_sha2, 16);
-    	printf("\n\r");
+    	bch_hprint("Original bch SHA2", bch_sha2);
     }
-    gmp_tools_free_number(gmp_sha2);
 
     memcpy(start_block_ptr, original_sha2, SHA2_SIZE/8);
     start_block_ptr += SHA2_SIZE/8;
+
+    /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
+	/* Random generator */
+	bch_random randrom_gen = {
+		.init	= custom_random_init,
+		.random	= custom_random,
+	};
+
+	/* Init random generator */
+	(*randrom_gen.init)();
+
+	bch_p r =		bch_alloc(DSA_SIZE);
+	bch_p s =		bch_alloc(DSA_SIZE);
+	bch_p priv =	bch_rev(bch_from_ba(DSA_SIZE, (bch_data_p)dsa_priv, dsa_priv_size));
+	bch_p sha2_w =	bch_clone(bch_sha2);
+
+	/* Get part of sha2 */
+	int32_t priv_hexp = bch_hexp(priv);
+	int32_t sha2_hexp = bch_hexp(sha2_w);
+	if (sha2_hexp != priv_hexp) {
+		if (sha2_hexp > priv_hexp) {
+			bch_byte_shr(sha2_w,sha2_hexp - priv_hexp);
+		}
+		else {
+			bch_byte_shl(sha2_w,priv_hexp - sha2_hexp);
+		}
+	}
+
+	if (verbose) {
+		bch_p G =		bch_rev(bch_from_ba(DSA_SIZE, (bch_data_p)dsa_G, dsa_G_size));
+		bch_p P =		bch_rev(bch_from_ba(DSA_SIZE, (bch_data_p)dsa_P, dsa_P_size));
+		bch_p Q =		bch_rev(bch_from_ba(DSA_SIZE, (bch_data_p)dsa_Q, dsa_Q_size));
+		bch_p pub =		bch_rev(bch_from_ba(DSA_SIZE, (bch_data_p)dsa_pub, dsa_pub_size));
+
+		printf("#----------------- DSA params ---------------\n\r");
+		bch_print("G = ", G);
+		bch_print("P = ", P);
+		bch_print("Q = ", Q);
+		bch_print("pub = ", pub);
+		bch_print("priv = ", priv);
+		bch_print("sha2 = ", sha2_w);
+		printf("#--------------------------------------------\n\r");
+
+		bch_free(G);
+		bch_free(P);
+		bch_free(Q);
+		bch_free(pub);
+	}
+
+    dsa_sign(bch_sha2, r, s, &randrom_gen);
+    if (verbose) {
+    	bch_hprint("r", r);
+    	bch_hprint("s", s);
+    }
+    int32_t check = dsa_check(bch_sha2, r, s);
+    if (verbose) {
+    	printf("dsa_check result: %x\n\r", check);
+    }
+
+	bch_free(priv);
+	bch_free(sha2_w);
+    bch_free(r);
+    bch_free(s);
+    /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 
     /* Encrypt */
 	//if(verbose){

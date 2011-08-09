@@ -2,14 +2,14 @@
 
 HEADERS += ../crypt/blowfish.h
 HEADERS += ../crypt/sha2.h
-HEADERS += ../crypt/gmp.h
+HEADERS += ../crypt/bch.h
 HEADERS += ../crypt/dsa.h
 HEADERS += ../crypt/crypt.h
 
 SOURCES += ../crypt/blowfish_key.S
 SOURCES += ../crypt/blowfish.c
 SOURCES += ../crypt/sha2.c
-SOURCES += ../crypt/gmp.c
+SOURCES += ../crypt/bch.c
 SOURCES += ../crypt/dsa.c
 SOURCES += ../crypt/crypt.c
 SOURCES += dsa_key.c
@@ -19,7 +19,7 @@ SOURCES += mkimg.c
 OBJECTS += blowfish_key.o
 OBJECTS += blowfish.o
 OBJECTS += sha2.o
-OBJECTS += gmp.o
+OBJECTS += bch.o
 OBJECTS += crypt.o
 OBJECTS += dsa.o
 OBJECTS += dsa_key.o

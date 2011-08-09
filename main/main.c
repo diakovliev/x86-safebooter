@@ -11,7 +11,7 @@
 #include <time.h>
 #include <image.h>
 
-#include <crypt/gmp.h>
+#include <crypt/bch.h>
 
 #include <drivers/console_iface.h>
 #include <drivers/text_display_driver.h>
