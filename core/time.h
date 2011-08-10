@@ -3,8 +3,8 @@
 
 #include <common.h>
 #include <loader_types.h>
+#include <stdio.h>
 #include <drivers/rtc_driver.h>
-#include <drivers/console_iface.h>
 
 static inline quad_t ctime(void) {
 	tm_p tm = rtc_current();

@@ -1,8 +1,7 @@
 #include "ata_driver.h"
 #include <loader.h>
 #include <common.h>
-
-#include "console_iface.h"
+#include <stdio.h>
 
 byte_t ata_identify_device(word_t bus, byte_t drive) {
 

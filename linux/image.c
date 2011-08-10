@@ -4,7 +4,7 @@
 #include <loader.h>
 #include <string.h>
 #include <env.h>
-#include <drivers/console_iface.h>
+#include <stdio.h>
 #include <drivers/ata_driver.h>
 
 byte_t image_load(word_t ata_bus, byte_t ata_drive, loader_descriptor_p desc) {

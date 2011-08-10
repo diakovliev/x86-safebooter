@@ -43,7 +43,9 @@
 #include <string.h>
 #include <stdint.h>
 #define SHA2_USE_INTTYPES_H
+#ifndef BYTE_ORDER
 #define BYTE_ORDER LIITLE_ENDIAN
+#endif
 
 #ifdef __cplusplus
 extern "C" {

@@ -7,12 +7,11 @@
 
 #include "bch.h"
 
-#ifdef __HOST_COMPILE__
 #include <stdio.h>
+#ifdef __HOST_COMPILE__
 #include <stdlib.h>
 #include <assert.h>
 #else
-#include <drivers/console_iface.h>
 #define assert(x)
 #endif
 
@@ -104,7 +103,7 @@ bch_p bch_random_gen(bch_p dst, bch_p max, bch_random_p g) {
 
 bch_p bch_alloc(bch_size size) {
 	bch_p res = 0;
-	res = malloc(size * sizeof(bch));
+	res = (bch_p)malloc(size * sizeof(bch));
 	if (res)
 		res->size = size;
 	else
@@ -468,8 +467,10 @@ bch_p bch_bit_shl(bch_p dst, bch_size shift) {
 		bch_byte_shl(dst,byte_shift);
 
 	bch_size i;
+	bch_size size = dst->size;
 	bch_data v, tmp = 0;
-	for (i = 0; i < dst->size; ++i) {
+
+	for (i = 0; i < size; ++i) {
 		v = dst->data[i];
 		v = (v << bit_shift) | (tmp >> (8 - bit_shift));
 		tmp = dst->data[i] & l_mask;

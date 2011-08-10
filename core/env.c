@@ -3,7 +3,7 @@
 #include "heap.h"
 
 #include <loader.h>
-#include <drivers/console_iface.h>
+#include <stdio.h>
 
 #define ENV_MAX_SIZE	0xFF*2
 

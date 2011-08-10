@@ -2,7 +2,7 @@
 #define TEXT_DISPLAY_CONSOLE_HEADER
 
 #include <loader_types.h>
-#include "console_iface.h"
+#include <stdio.h>
 #include "text_display_driver.h"
 #include "keyboard_driver.h"
 

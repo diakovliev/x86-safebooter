@@ -8,12 +8,12 @@
 #include <env.h>
 #include <common.h>
 #include <string.h>
+#include <stdio.h>
 #include <time.h>
 #include <image.h>
 
 #include <crypt/bch.h>
 
-#include <drivers/console_iface.h>
 #include <drivers/text_display_driver.h>
 #include <drivers/text_display_console.h>
 #include <drivers/keyboard_driver.h>

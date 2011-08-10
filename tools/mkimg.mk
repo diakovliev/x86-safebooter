@@ -14,8 +14,8 @@ SOURCES += ../crypt/sha2.c
 SOURCES += ../crypt/bch.c
 SOURCES += ../crypt/dsa.c
 SOURCES += ../crypt/crypt.c
-SOURCES += dsa_key.c
-SOURCES += dsa_pkey.c
+SOURCES += ../crypt/dsa_key.c
+SOURCES += ../crypt/dsa_pkey.c
 SOURCES += mkimg.c
 
 OBJECTS += blowfish_key.o
@@ -31,16 +31,29 @@ OBJECTS += mkimg.o
 
 .PHONY: clean prepare
 
+CONFIG-DEBUG=y
+CONFIG-GPROF-SUPPORT=y
+
+CONFIG-GPROF-SUPPORT-y=-pg
+CONFIG-GPROF-SUPPORT-n=
+
+CONFIG-DEBUG-y=-g -O0
+CONFIG-DEBUG-n=-O2
+
+GCC_CMD=gcc $(CONFIG-GPROF-SUPPORT-$(CONFIG-GPROF-SUPPORT))
+
+compile: GCC_ARGS:=
 mkimg: compile
-	gcc $(OBJECTS) -o mkimg 
+	$(GCC_CMD) $(GCC_ARGS) $(OBJECTS) -o mkimg 
 
 prepare:
 #	rm -rf ./dsa_*
 	if [ ! -f dsa_pkey.c ]; then ./gendsa.sh; fi
 
+compile: GCC_ARGS:=$(CONFIG-DEBUG-$(CONFIG-DEBUG)) -c -I./../crypt -D__HOST_COMPILE__
 compile: prepare $(HEADERS) $(SOURCES)
 	cp -f ../blowfish_key ./blowfish_key
-	gcc -g -O0 -c -I./../crypt -D__HOST_COMPILE__ $(SOURCES)
+	$(GCC_CMD) $(GCC_ARGS) $(SOURCES)
 	rm -f ./blowfish_key	
 
 clean:

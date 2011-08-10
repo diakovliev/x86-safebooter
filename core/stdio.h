@@ -1,5 +1,5 @@
-#ifndef CONSOLE_IFACE_HEADER
-#define CONSOLE_IFACE_HEADER
+#ifndef STDIO_HEADER
+#define STDIO_HEADER
 
 #include <loader_types.h>
 
@@ -21,7 +21,7 @@ extern byte_t getc(void);
 
 /* Supported %s, %c, %d, %x, %p without fill and width */
 extern void printf(const byte_t *fmt, ...);
-extern void sprintf(const byte_t *dst, const byte_t *fmt, ...);
+extern void sprintf(const byte_p dst, const byte_t *fmt, ...);
 
 
-#endif//CONSOLE_IFACE_HEADER
+#endif//STDIO_HEADER

@@ -56,6 +56,7 @@ void process_buffer(void *buffer, long size) {
     /* Fill start block */
     memcpy(start_block_ptr, START_BLOCK_HEAD, strlen(START_BLOCK_HEAD));
     start_block_ptr += strlen(START_BLOCK_HEAD);
+
     memcpy(start_block_ptr, &size, sizeof(size));
     start_block_ptr += sizeof(size);
 
@@ -67,77 +68,8 @@ void process_buffer(void *buffer, long size) {
     	printf("\n\r");
     }
 
-    bch_p bch_sha2 = bch_rev(bch_from_ba(DSA_SIZE, (bch_data_p)original_sha2, SHA2_SIZE/8));
-    if (verbose) {
-    	bch_hprint("Original bch SHA2", bch_sha2);
-    }
-
-    memcpy(start_block_ptr, original_sha2, SHA2_SIZE/8);
-    start_block_ptr += SHA2_SIZE/8;
-
-    /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
-	/* Random generator */
-	bch_random randrom_gen = {
-		.init	= custom_random_init,
-		.random	= custom_random,
-	};
-
-	/* Init random generator */
-	(*randrom_gen.init)();
-
-	bch_p r =		bch_alloc(DSA_SIZE);
-	bch_p s =		bch_alloc(DSA_SIZE);
-	bch_p priv =	bch_rev(bch_from_ba(DSA_SIZE, (bch_data_p)dsa_priv, dsa_priv_size));
-	bch_p sha2_w =	bch_clone(bch_sha2);
-
-	/* Get part of sha2 */
-	int32_t priv_hexp = bch_hexp(priv);
-	int32_t sha2_hexp = bch_hexp(sha2_w);
-	if (sha2_hexp != priv_hexp) {
-		if (sha2_hexp > priv_hexp) {
-			bch_byte_shr(sha2_w,sha2_hexp - priv_hexp);
-		}
-		else {
-			bch_byte_shl(sha2_w,priv_hexp - sha2_hexp);
-		}
-	}
-
-	if (verbose) {
-		bch_p G =		bch_rev(bch_from_ba(DSA_SIZE, (bch_data_p)dsa_G, dsa_G_size));
-		bch_p P =		bch_rev(bch_from_ba(DSA_SIZE, (bch_data_p)dsa_P, dsa_P_size));
-		bch_p Q =		bch_rev(bch_from_ba(DSA_SIZE, (bch_data_p)dsa_Q, dsa_Q_size));
-		bch_p pub =		bch_rev(bch_from_ba(DSA_SIZE, (bch_data_p)dsa_pub, dsa_pub_size));
-
-		printf("#----------------- DSA params ---------------\n\r");
-		bch_print("G = ", G);
-		bch_print("P = ", P);
-		bch_print("Q = ", Q);
-		bch_print("pub = ", pub);
-		bch_print("priv = ", priv);
-		bch_print("sha2 = ", sha2_w);
-		printf("#--------------------------------------------\n\r");
-
-		bch_free(G);
-		bch_free(P);
-		bch_free(Q);
-		bch_free(pub);
-	}
-
-    dsa_sign(bch_sha2, r, s, &randrom_gen);
-    if (verbose) {
-    	bch_hprint("r", r);
-    	bch_hprint("s", s);
-    }
-    int32_t check = dsa_check(bch_sha2, r, s);
-    if (verbose) {
-    	printf("dsa_check result: %x\n\r", check);
-    }
-
-	bch_free(priv);
-	bch_free(sha2_w);
-    bch_free(r);
-    bch_free(s);
-    /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
+    //memcpy(start_block_ptr, original_sha2, SHA2_SIZE/8);
+    //start_block_ptr += SHA2_SIZE/8;
 
     /* Encrypt */
 	//if(verbose){
@@ -163,29 +95,90 @@ void process_buffer(void *buffer, long size) {
     	print_sha2(processed_sha2);
     	printf("\n\r");
     }
-    memcpy(start_block_ptr, processed_sha2, SHA2_SIZE/8);
+
+    /* To file */
+    //memcpy(start_block_ptr, processed_sha2, SHA2_SIZE/8);
+    //start_block_ptr += SHA2_SIZE/8;
+
+	/* Random generator */
+	bch_random randrom_gen = {
+		.init	= custom_random_init,
+		.random	= custom_random,
+	};
+
+	/* Init random generator */
+	(*randrom_gen.init)();
+
+    /*bch_p bch_sha2 = dsa_from_ba((bch_data_p)original_sha2, SHA2_SIZE/8);*/
+    bch_p bch_sha2 = dsa_from_ba((bch_data_p)processed_sha2, SHA2_SIZE/8);
+	bch_p r =		dsa_alloc();
+	bch_p s =		dsa_alloc();
+
+	if (verbose) {
+		bch_p G =		dsa_from_ba((bch_data_p)dsa_G, dsa_G_size);
+		bch_p P =		dsa_from_ba((bch_data_p)dsa_P, dsa_P_size);
+		bch_p Q =		dsa_from_ba((bch_data_p)dsa_Q, dsa_Q_size);
+		bch_p pub =		dsa_from_ba((bch_data_p)dsa_pub, dsa_pub_size);
+		bch_p priv =	dsa_from_ba((bch_data_p)dsa_priv, dsa_priv_size);
+
+		printf("#----------------- DSA params ---------------\n\r");
+		bch_print("G = ", G);
+		bch_print("P = ", P);
+		bch_print("Q = ", Q);
+		bch_print("pub = ", pub);
+		//bch_print("priv = ", priv);
+		bch_print("sha2 = ", bch_sha2);
+		printf("#--------------------------------------------\n\r");
+
+		dsa_free(G);
+		dsa_free(P);
+		dsa_free(Q);
+		dsa_free(pub);
+		dsa_free(priv);
+	}
+
+    dsa_sign(bch_sha2, r, s, &randrom_gen);
+    if (verbose) {
+    	bch_hprint("r", r);
+    	bch_hprint("s", s);
+    }
+    int32_t check = dsa_check(bch_sha2, r, s);
+    if (verbose) {
+		bch_print("sha2 = ", bch_sha2);
+    	printf("dsa_check result: %x\n\r", check);
+    }
+
+    memcpy(start_block_ptr, r->data, SHA2_SIZE/8);
     start_block_ptr += SHA2_SIZE/8;
+
+    memcpy(start_block_ptr, s->data, SHA2_SIZE/8);
+    start_block_ptr += SHA2_SIZE/8;
+
+    dsa_free(r);
+    dsa_free(s);
+    dsa_free(bch_sha2);
 }
 
 int process_file(void) {
 	int res = -3;
 	long size = 0;
+	long alloc_size = 0;
 	long readed = 0;
 
 	FILE *input = fopen(input_file, "r");
 	/* load file to memory */
 	if (input) {
-
 		fseek(input, 0, SEEK_END);
 		size = ftell(input);
+		alloc_size = ((size/4)+(size%4?1:0))*4;
 		if (verbose) {
 			printf("Input size: %ld bytes\n\r", size);
-			printf("Allocated size: %ld bytes\n\r", size+size%2);
+			printf("Allocated size: %ld bytes\n\r", alloc_size);
 		}
 		fseek(input, 0, SEEK_SET);
 
-		buffer = malloc(size+size%2);
-		memset(buffer,0,size+size%2);
+		buffer = malloc(alloc_size);
+		memset(buffer,0,alloc_size);
 
 		if (buffer && verbose) {
 			printf("Allocated buffer at %p\n\r", buffer);

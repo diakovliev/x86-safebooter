@@ -1,4 +1,4 @@
-#include "console_iface.h"
+#include "stdio.h"
 #include <string.h>
 
 /* compiler built-in for va_args */
@@ -185,7 +185,7 @@ void printf(const byte_t *fmt, ...) {
 	va_end(ap);
 }
 
-void sprintf(const byte_t *dst, const byte_t *fmt, ...) {
+void sprintf(const byte_p dst, const byte_t *fmt, ...) {
 	va_list ap;
 	va_start(ap,fmt);
 	va_printf(mem_init(dst),fmt,ap);

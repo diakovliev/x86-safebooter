@@ -1,7 +1,7 @@
 #include "heap.h"
 #include <loader.h>
 
-#include <drivers/console_iface.h>
+#include <stdio.h>
 
 /* Simple heap */
 

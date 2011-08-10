@@ -2,7 +2,7 @@
 #define SERIAL_DRIVER_HEADER
 
 #include <loader_types.h>
-#include "console_iface.h"
+#include <stdio.h>
 
 /* Ports */
 #define COM1	0x3F8
