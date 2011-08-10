@@ -2,6 +2,7 @@
 #include <loader.h>
 #include <common.h>
 #include <stdio.h>
+#include <heap.h>
 
 byte_t ata_identify_device(word_t bus, byte_t drive) {
 
@@ -33,7 +34,7 @@ byte_t ata_identify_device(word_t bus, byte_t drive) {
 	byte_t ch = inb(ATA_ADDRESS3_PORT(bus));
 	if (cl==0 && ch == 0) 	  		devtype = ATADEV_PATA;
 	else if (cl==0x3c && ch==0xc3)	devtype = ATADEV_SATA;
-	else if (cl==0x14 && ch==0xEB)	devtype = ATADEV_PATAPI;
+	else if (cl==0x14 && ch==0xeb)	devtype = ATADEV_PATAPI;
 	else if (cl==0x69 && ch==0x96)	devtype = ATADEV_SATAPI;
 	else 							devtype = ATADEV_UNKNOWN;
 	if (devtype != ATADEV_PATA) {
@@ -133,4 +134,65 @@ word_t ata_read_sectors(word_t bus, byte_t drive, void *buffer, word_t sectors, 
 	}
 
 	return i;
+}
+
+/*---------------------------------------------------------------------------------------*/
+typedef struct input_stream_context_s   {
+	/* Drive */
+	word_t bus;
+	byte_t drive;
+
+	/* Address */
+	dword_t caddr;
+
+} input_stream_context, *input_stream_context_p;
+
+#ifdef CTX
+#error "CTX already defined"
+#endif
+
+#define CTX ((input_stream_context_p)ctx)
+
+word_t ata_read(byte_p dst, word_t size, void *ctx) {
+
+	word_t res = ata_read_sectors(CTX->bus,CTX->drive,(void*)dst,size,CTX->caddr);
+	CTX->caddr += res;
+
+	return res;
+}
+
+dword_t ata_seek(dword_t addr, void *ctx) {
+
+	dword_t res = CTX->caddr;
+
+	CTX->caddr = addr;
+
+	return res;
+}
+
+dword_t ata_addr(void *ctx) {
+
+	return CTX->caddr;
+}
+
+#undef CTX
+
+/*---------------------------------------------------------------------------------------*/
+static input_stream_context context;
+static blk_istream_t input_stream = {
+	.ctx = &context,
+	.read = ata_read,
+	.seek = ata_seek,
+	.addr = ata_addr,
+};
+
+blk_istream_p ata_blk_istream(word_t bus, byte_t drive, dword_t addr) {
+
+	memset(&context, 0, sizeof(context));
+
+	context.bus = bus;
+	context.drive = drive;
+	context.caddr = addr;
+
+	return &input_stream;
 }

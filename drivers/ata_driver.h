@@ -2,6 +2,7 @@
 #define ATA_DRIVER_HEADER
 
 #include <loader_types.h>
+#include <stdio.h>
 
 /* ATA bus */
 #define ATA_BUS_PRIMARY				0x1F0
@@ -50,8 +51,11 @@
 #define ATA_CMD_IDENTIFY		0xEC
 #define ATA_CMD_READ_SECTORS	0x20
 
-extern byte_t ata_identify_device(word_t bus, byte_t drive);
-extern word_t ata_read_sectors(word_t bus, byte_t drive, void *buffer, word_t sectors, dword_t addr);
+byte_t ata_identify_device(word_t bus, byte_t drive);
+word_t ata_read_sectors(word_t bus, byte_t drive, void *buffer, word_t sectors, dword_t addr);
+
+/* stdio interface */
+blk_istream_p ata_blk_istream(word_t bus, byte_t drive, dword_t addr);
 
 #endif//ATA_DRIVER_HEADER
 
