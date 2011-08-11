@@ -496,11 +496,20 @@ bch_p bch_bit_shr(bch_p dst, bch_size shift) {
 	bch_data v, tmp = 0;
 	for (i = dst->size - 1; i >= 0; --i) {
 		v = dst->data[i];
-		v = (v >> bit_shift) | (tmp << (8 - bit_shift));
+		v = (v >>  bit_shift) | (tmp << (8-bit_shift));
 		tmp = dst->data[i] & r_mask;
 		dst->data[i] = v;
 		if (i == 0) break;
 	}
+
+	return dst;
+}
+
+bch_p bch_set_bit(bch_p dst, uint32_t exp) {
+
+	assert(dst);
+
+	dst->data[exp/8] |= (1 << (exp % 8));
 
 	return dst;
 }
@@ -631,24 +640,22 @@ void bch_div_mod(bch_p r, bch_p m, bch_p divided, bch_p divider) {
 	bch_p sub = bch_alloc(divided_->size);
 	bch_p add = bch_alloc(divided_->size);
 
-	while(bch_cmp(m_, divider_) >= 0) {
+	bch_copy(sub, divider_);
+	bch_bit_shl(sub, exp);
+
+	while(1) {
 
 		if (exp < 0)
 			break;
 
-		bch_copy(sub, divider_);
-
-		if (exp) bch_bit_shl(sub, exp);
-
 		if (bch_cmp(sub,m_) <= 0) {
 			bch_sub(m_,sub);
 			if (r) {
-				bch_zero(add);
-				bch_add_s(add,1);
-				if (exp) bch_bit_shl(add,exp);
-				bch_add(r,add);
+				bch_set_bit(r,exp);
 			}
 		}
+
+		bch_bit_shr(sub, 1);
 
 		--exp;
 	}

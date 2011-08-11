@@ -86,6 +86,7 @@ bch_p bch_byte_shl(bch_p dst, bch_size shift);
 bch_p bch_byte_shr(bch_p dst, bch_size shift);
 bch_p bch_bit_shl(bch_p dst, bch_size shift);
 bch_p bch_bit_shr(bch_p dst, bch_size shift);
+bch_p bch_set_bit(bch_p dst, uint32_t exp);
 
 bch_p bch_add_s(bch_p dst, bch_data add);
 bch_p bch_mul_s(bch_p dst, bch_data mul);
