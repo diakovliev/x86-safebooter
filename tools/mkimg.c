@@ -320,9 +320,11 @@ int main(int argc, char **argv) {
 	if (input_file) free(input_file);
 	if (output_file) free(output_file);
 
+#ifdef __DEBUG__
 	if (verbose) {
 		bch__memory_usage();
 	}
+#endif
 
 	return res;
 }
