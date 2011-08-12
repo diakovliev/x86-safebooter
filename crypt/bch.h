@@ -28,13 +28,13 @@
  * BCH code
  ********************************************************************************************************/
 #ifndef BCH_MAX
-#define BCH_MAX(x,y) ((x>=y)?(x):(y))
+#define BCH_MAX(x,y) (x)>=(y)?(x):(y)
 #endif
 #ifndef BCH_MIN
-#define BCH_MIN(x,y) ((x<y)?(x):(y))
+#define BCH_MIN(x,y) (x)<(y)?(x):(y)
 #endif
 #ifndef BCH_ABS
-#define BCH_ABS(x) ((x<0)?(-x):(x))
+#define BCH_ABS(x) (x)<0?(-x):(x)
 #endif
 
 /* Size type */
@@ -60,8 +60,9 @@ typedef struct bch_random_s {
 /********************************************************************************************************
  * Forward
  ********************************************************************************************************/
-
+#ifdef __DEBUG__
 void bch__memory_usage();
+#endif
 
 void bch_hprint(const char *name, bch_p op);
 void bch_print(const char *name, bch_p op);

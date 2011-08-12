@@ -20,23 +20,34 @@
 /********************************************************************************************************
  * Memory trace
  ********************************************************************************************************/
-
+#ifdef __DEBUG__
 static unsigned long allocated = 0;
 static unsigned long released = 0;
+static unsigned long max_usage = 0;
+#endif
 
 static inline void *bch__alloc(size_t size) {
+#ifdef __DEBUG__
 	++allocated;
+	max_usage = BCH_MAX(max_usage, allocated-released);
+#endif
 	return (void*)malloc(size);
 }
 
 static inline void bch__free(void *ptr) {
+#ifdef __DEBUG__
 	++released;
+#endif
 	free(ptr);
 }
 
+#include "dsa.h"
+
+#ifdef __DEBUG__
 void bch__memory_usage() {
-	printf("Was allocated %ld, released %ld objects.\n\r", allocated, released);
+	printf("DEBUG: BCH memory usage %ld (%ld Kb).\n\r", max_usage, (max_usage * DSA_SIZE) / 1024);
 }
+#endif
 
 /********************************************************************************************************
  * Tools
@@ -124,12 +135,12 @@ bch_p bch_random_gen(bch_p dst, bch_p max, bch_random_p g) {
 
 bch_p bch_alloc(bch_size size) {
 	bch_p res = 0;
-	res = (bch_p)bch__alloc(size * sizeof(bch));
+	res = (bch_p)bch__alloc(sizeof(bch));
 	if (res)
 		res->size = size;
 	else
 		DBG_print("Unable to allocate memory for bit chain.\n\r");
-	res->data = (bch_data_p)bch__alloc(size * sizeof(bch_data));
+	res->data = (bch_data_p)bch__alloc(((size/4)+(size%4?1:0))*4*sizeof(bch_data));
 	if (res->data) {
 		bch_zero(res);
 	}
@@ -1116,7 +1127,6 @@ bch_p bch_powmod(bch_p x,bch_p y,bch_p n) {
 
 	return x;
 }
-
 
 /********************************************************************************************************
  * Test code
