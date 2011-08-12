@@ -41,12 +41,14 @@ static inline void bch__free(void *ptr) {
 	free(ptr);
 }
 
+#ifdef __DEBUG__
+
 #include "dsa.h"
 
-#ifdef __DEBUG__
 void bch__memory_usage() {
 	printf("DEBUG: BCH memory usage %ld (%ld Kb).\n\r", max_usage, (max_usage * DSA_SIZE) / 1024);
 }
+
 #endif
 
 /********************************************************************************************************
