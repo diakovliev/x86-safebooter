@@ -305,7 +305,7 @@ void C_start(void *loader_descriptor_address, void *loader_code_address)
 
 	/* Init subsystems */
 	rtc_init();
-	heap_init();
+	heap_init((void*)LOADER_HEAP_START,LOADER_HEAP_SIZE);
 	env_init(desc);
 	console_initialize();
 

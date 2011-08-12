@@ -42,7 +42,7 @@ bch_data custom_random(bch_data max) {
 void print_sha2(uint8_t *sha2) {
 	int i = 0;
 	for (i = 0; i < SHA2_SIZE/8; ++i) {
-		printf("%X", sha2[i]);
+		printf("%02X", sha2[i]);
 	}
 }
 
@@ -126,7 +126,7 @@ void process_buffer(void *buffer, long size) {
 		bch_print("P = ", P);
 		bch_print("Q = ", Q);
 		bch_print("pub = ", pub);
-		//bch_print("priv = ", priv);
+		bch_print("priv = ", priv);
 		bch_print("sha2 = ", bch_sha2);
 		printf("#--------------------------------------------\n\r");
 
@@ -319,6 +319,10 @@ int main(int argc, char **argv) {
 
 	if (input_file) free(input_file);
 	if (output_file) free(output_file);
+
+	if (verbose) {
+		bch__memory_usage();
+	}
 
 	return res;
 }

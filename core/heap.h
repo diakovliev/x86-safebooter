@@ -4,9 +4,19 @@
 #include <stdint.h>
 #include <loader_types.h>
 
-extern void heap_init(void);
-extern void *malloc(size_t size);
-extern void free(void *ptr);
-extern void dump_heap_info(void);
+struct heap_s {
+	void *ctx;
+	void *(*malloc)(void *ctx, size_t size);
+	void (*free)(void *ctx, void *ptr);
+	void (*dump_heap_info)(void *ctx);
+} heap, heap_p;
+
+//heap_p heap_init(void *heap_start, size_t heap_size);
+
+void heap_init(void *heap_start, size_t heap_size);
+
+void *malloc(size_t size);
+void free(void *ptr);
+void dump_heap_info(void);
 
 #endif//HEAP_HEADER

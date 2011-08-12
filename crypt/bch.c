@@ -18,6 +18,27 @@
 #include <string.h>
 
 /********************************************************************************************************
+ * Memory trace
+ ********************************************************************************************************/
+
+static unsigned long allocated = 0;
+static unsigned long released = 0;
+
+static inline void *bch__alloc(size_t size) {
+	++allocated;
+	return (void*)malloc(size);
+}
+
+static inline void bch__free(void *ptr) {
+	++released;
+	free(ptr);
+}
+
+void bch__memory_usage() {
+	printf("Was allocated %ld, released %ld objects.\n\r", allocated, released);
+}
+
+/********************************************************************************************************
  * Tools
  ********************************************************************************************************/
 void bch_hprint(const char *name, bch_p op) {
@@ -103,12 +124,12 @@ bch_p bch_random_gen(bch_p dst, bch_p max, bch_random_p g) {
 
 bch_p bch_alloc(bch_size size) {
 	bch_p res = 0;
-	res = (bch_p)malloc(size * sizeof(bch));
+	res = (bch_p)bch__alloc(size * sizeof(bch));
 	if (res)
 		res->size = size;
 	else
 		DBG_print("Unable to allocate memory for bit chain.\n\r");
-	res->data = (bch_data_p)malloc(size * sizeof(bch_data));
+	res->data = (bch_data_p)bch__alloc(size * sizeof(bch_data));
 	if (res->data) {
 		bch_zero(res);
 	}
@@ -156,10 +177,10 @@ bch_p bch_clone(bch_p src) {
 
 void bch_free(bch_p ptr) {
 	if (ptr && ptr->data) {
-		free(ptr->data);
+		bch__free(ptr->data);
 	}
 	if (ptr) {
-		free(ptr);
+		bch__free(ptr);
 	}
 }
 
@@ -267,6 +288,7 @@ int32_t bch_bexp(bch_p op) {
 }
 
 bch_p bch_add(bch_p dst, bch_p add) {
+	/*
 	bch_size i, loop_cnt;
 	bch_data2x v = 0;
 
@@ -277,21 +299,53 @@ bch_p bch_add(bch_p dst, bch_p add) {
 	for (i = 0; i < loop_cnt; i++) {
 		v += dst->data[i] + add->data[i];
 		dst->data[i] = v & 0xFF;
-		v -= v & 0xFF;
+		v -= dst->data[i];
 		v >>= 8;
 	}
 	if (v && dst->size-1 > i) {
 		do {
 			v += dst->data[i];
 			dst->data[i] = v & 0xFF;
-			v -= v & 0xFF;
+			v -= dst->data[i];
 			v >>= 8;
 		} while (v && i++ < dst->size);
 	}
 	return dst;
+	*/
+
+	bch_size i, loop_cnt;
+	uint32_t v = 0;
+
+	assert(dst != 0);
+	assert(add != 0);
+
+	loop_cnt = ((BCH_MIN(dst->size,add->size)/2)+1)*2;
+	for (i = 0; i < loop_cnt && i < dst->size; i += 2) {
+		v += *(uint16_t*)(dst->data+i) + *(uint16_t*)(add->data+i);
+		*(uint16_t*)(dst->data+i) = v & 0xFFFF;
+		v -= *(uint16_t*)(dst->data+i);
+		v >>= 16;
+	}
+	if (v && dst->size-1 > i) {
+		do {
+			if (i < dst->size) {
+				v += *(uint16_t*)(dst->data+i);
+				*(uint16_t*)(dst->data+i) = v & 0xFFFF;
+				v -= *(uint16_t*)(dst->data+i);
+				v >>= 16;
+			}
+			else break;
+			i+=2;
+		} while (v);
+	}
+
+	return dst;
+
+
 }
 
 bch_p bch_add_s(bch_p dst, bch_data add) {
+	/*
 	bch_data2x v = add;
 
 	assert(dst != 0);
@@ -305,6 +359,22 @@ bch_p bch_add_s(bch_p dst, bch_data add) {
 		v -= v & 0xFF;
 		v >>= 8;
 	} while (v && i++ < dst->size);
+	*/
+	uint32_t v = add;
+
+	assert(dst != 0);
+
+	bch_size i = 0;
+	do {
+		if (i < dst->size) {
+			v += *(uint16_t*)(dst->data+i);
+			*(uint16_t*)(dst->data+i) = v & 0xFFFF;
+			v -= *(uint16_t*)(dst->data+i);
+			v >>= 16;
+		}
+		else break;
+		i += 2;
+	} while (v);
 
 	return dst;
 }
@@ -328,9 +398,13 @@ bch_p bch_negate(bch_p op) {
 
 	assert(op != 0);
 
-	for (i = 0; i < op->size; ++i) {
-		op->data[i] ^= 0xFF;
+//	for (i = 0; i < op->size; ++i) {
+//		op->data[i] ^= 0xFF;
+//	}
+	for (i = 0; i < op->size; i += 4) {
+		*(uint32_t*)(op->data + i) ^= 0xFFFFFFFF;
 	}
+
 	bch_add_s(op,1);
 	return op;
 }
@@ -459,22 +533,34 @@ bch_p bch_bit_shl(bch_p dst, bch_size shift) {
 	assert(dst != 0);
 
 	bch_size byte_shift = shift / 8;
-	bch_size bit_shift = shift % 8;
-
-	bch_data l_mask = 0xFF << (8 - bit_shift);
-
 	if (byte_shift)
 		bch_byte_shl(dst,byte_shift);
 
-	bch_size i;
-	bch_size size = dst->size;
-	bch_data v, tmp = 0;
+	bch_size bit_shift = shift % 8;
+	if (!bit_shift)
+		return dst;
 
-	for (i = 0; i < size; ++i) {
-		v = dst->data[i];
-		v = (v << bit_shift) | (tmp >> (8 - bit_shift));
-		tmp = dst->data[i] & l_mask;
-		dst->data[i] = v;
+//	bch_data l_mask = 0xFF << (8 - bit_shift);
+//	bch_size i;
+//	bch_size size = dst->size;
+//	bch_data v, tmp = 0;
+//
+//	for (i = 0; i < size; ++i) {
+//		v = dst->data[i];
+//		v = (v << bit_shift) | (tmp >> (8 - bit_shift));
+//		tmp = dst->data[i] & l_mask;
+//		dst->data[i] = v;
+//	}
+
+	uint32_t l_mask = 0xFFFFFFFF << (32-bit_shift);
+	bch_size i;
+	uint32_t v, tmp = 0;
+
+	for (i = 0; i < dst->size; i += 4) {
+		v = *((uint32_t*)(dst->data + i));
+		v = (v << bit_shift) | (tmp >> (32-bit_shift));
+		tmp = *((uint32_t*)(dst->data + i)) & l_mask;
+		*((uint32_t*)(dst->data + i)) = v;
 	}
 
 	return dst;
@@ -485,20 +571,81 @@ bch_p bch_bit_shr(bch_p dst, bch_size shift) {
 	assert(dst != 0);
 
 	bch_size byte_shift = shift / 8;
-	bch_size bit_shift = shift % 8;
-
-	bch_data r_mask = 0xFF >> bit_shift;
-
 	if (byte_shift)
 		bch_byte_shr(dst,byte_shift);
 
+	bch_size bit_shift = shift % 8;
+	if (!bit_shift)
+		return dst;
+
+//	bch_data r_mask = 0xFF >> bit_shift;
+//	bch_size i;
+//	bch_data v, tmp = 0;
+//
+//	for (i = dst->size - 1; i >= 0; --i) {
+//		v = dst->data[i];
+//		v = (v >>  bit_shift) | (tmp << (8-bit_shift));
+//		tmp = dst->data[i] & r_mask;
+//		dst->data[i] = v;
+//		if (i == 0) break;
+//	}
+
+	uint32_t r_mask = 0xFFFFFFFF >> bit_shift;
 	bch_size i;
+	uint32_t v, tmp = 0;
+
+	for (i = dst->size - 4; i >= 0; i -= 4) {
+		v = *((uint32_t*)(dst->data + i));
+		v = (v >> bit_shift) | (tmp << (32-bit_shift));
+		tmp = *((uint32_t*)(dst->data + i)) & r_mask;
+		*((uint32_t*)(dst->data + i)) = v;
+		if (i == 0) break;
+	}
+
+	return dst;
+}
+
+bch_p bch_keep_sign_shift_right(bch_p dst) {
+
+	const shift = 1;
+
+	/*
+	const bch_size bit_shift = shift % 8;
+	const bch_data r_mask = 0xFF >> bit_shift;
+
+	assert(dst != 0);
+
+	bch_size i;
+	bch_size size = dst->size;
 	bch_data v, tmp = 0;
+
+	uint8_t is_negative = bch_is_negative(dst) ? 0x80 : 0x00;
+
 	for (i = dst->size - 1; i >= 0; --i) {
 		v = dst->data[i];
-		v = (v >>  bit_shift) | (tmp << (8-bit_shift));
+		v = (v >> bit_shift) | (tmp << 7);
 		tmp = dst->data[i] & r_mask;
+		if (i == dst->size - 1)
+			v |= is_negative;
 		dst->data[i] = v;
+		if (i == 0) break;
+	}
+	*/
+
+	const bch_size bit_shift = shift % 8;
+
+	uint32_t r_mask = 0xFFFFFFFF >> bit_shift;
+	bch_size i;
+	uint32_t v, tmp = 0;
+	uint32_t is_negative = bch_is_negative(dst) ? 0x80000000 : 0x0;
+
+	for (i = dst->size - 4; i >= 0; i -= 4) {
+		v = *((uint32_t*)(dst->data + i));
+		v = (v >> bit_shift) | (tmp << (32-bit_shift));
+		tmp = *((uint32_t*)(dst->data + i)) & r_mask;
+		if (i == dst->size - 4)
+			v |= is_negative;
+		*((uint32_t*)(dst->data + i)) = v;
 		if (i == 0) break;
 	}
 
@@ -643,10 +790,7 @@ void bch_div_mod(bch_p r, bch_p m, bch_p divided, bch_p divider) {
 	bch_copy(sub, divider_);
 	bch_bit_shl(sub, exp);
 
-	while(1) {
-
-		if (exp < 0)
-			break;
+	while(exp >= 0) {
 
 		if (bch_cmp(sub,m_) <= 0) {
 			bch_sub(m_,sub);
@@ -726,13 +870,121 @@ bch_p bch_gcd(bch_p dst, bch_p a, bch_p b) {
 	return dst;
 }
 
+bch_p bch_gcdex_bin(bch_p dst, bch_p x, bch_p y, bch_p a, bch_p b) {
+
+	bch_p g = bch_alloc(dst->size);
+	bch_p u = bch_alloc(dst->size);
+	bch_p v = bch_alloc(dst->size);
+	bch_p A = bch_alloc(dst->size);
+	bch_p B = bch_alloc(dst->size);
+	bch_p C = bch_alloc(dst->size);
+	bch_p D = bch_alloc(dst->size);
+
+	/* 1 */
+	bch_set_bit(g,0);
+
+	/* 2 */
+	while ( !(x->data[0] & 1) && !(y->data[0] & 1) ) {
+		bch_keep_sign_shift_right(x);
+		bch_keep_sign_shift_right(y);
+		bch_bit_shl(g,1);
+	}
+
+	/* 3 */
+	bch_copy(u,x);
+	bch_copy(v,y);
+	bch_set_bit(A,0);
+	bch_set_bit(D,0);
+
+	while (!bch_is_zero(u)) {
+		/* 4 */
+		while ( !(u->data[0] & 1) ) {
+			bch_bit_shr(u,1);
+			if ( !(A->data[0] & 1) && !(B->data[0] & 1) ) {
+				bch_keep_sign_shift_right(A);
+				bch_keep_sign_shift_right(B);
+			}
+			else {
+				bch_add(A,y);
+				bch_keep_sign_shift_right(A);
+				bch_sub(B,x);
+				bch_keep_sign_shift_right(B);
+			}
+		}
+		/* 5 */
+		while ( !(v->data[0] & 1) ) {
+			bch_bit_shr(v,1);
+			if ( !(C->data[0] & 1) && !(D->data[0] & 1) ) {
+				bch_keep_sign_shift_right(C);
+				bch_keep_sign_shift_right(D);
+			}
+			else {
+				bch_add(C,y);
+				bch_keep_sign_shift_right(C);
+				bch_sub(D,x);
+				bch_keep_sign_shift_right(D);
+			}
+		}
+		/* 6 */
+		if ( bch_cmp(u,v) >= 0) {
+			bch_sub(u,v);
+			bch_sub(A,C);
+			bch_sub(B,D);
+		} else {
+			bch_sub(v,u);
+			bch_sub(C,A);
+			bch_sub(D,B);
+		}
+	}
+
+	bch_copy(a,C);
+	bch_copy(b,D);
+	bch_copy(dst,g);
+	bch_mul(dst,v);
+
+	bch_free(g);
+	bch_free(u);
+	bch_free(v);
+	bch_free(A);
+	bch_free(B);
+	bch_free(C);
+	bch_free(D);
+
+	return dst;
+}
+
+bch_p bch_inverse_bin(bch_p dst, bch_p a, bch_p n) {
+	bch_p result = 0;
+	bch_p tmp = bch_alloc(dst->size);
+	bch_p x = bch_alloc(dst->size);
+	bch_p y = bch_alloc(dst->size);
+
+	bch_set_bit(tmp,0);
+
+	bch_gcdex_bin(dst, a, n, x, y);
+	if (bch_cmp(dst,tmp) == 0) {
+		if (bch_is_negative(x)) {
+			bch_add(x,n);
+		}
+		bch_copy(dst,x);
+		result = dst;
+	}
+
+	bch_free(x);
+	bch_free(y);
+	bch_free(tmp);
+
+	return result;
+}
+
+#if 0
 bch_p bch_gcdex(bch_p dst, bch_p a, bch_p b, bch_p x, bch_p y) {
 
 	if (bch_is_zero(b)) {
 		bch_copy(dst,a);
 		bch_zero(y);
 		bch_zero(x);
-		bch_add_s(x,1);
+		bch_set_bit(x,0);
 		return dst;
 	}
 
@@ -747,8 +999,8 @@ bch_p bch_gcdex(bch_p dst, bch_p a, bch_p b, bch_p x, bch_p y) {
 			b_	= bch_clone(b);
 
 
-	bch_add_s(x2,1);
-	bch_add_s(y1,1);
+	bch_set_bit(x2,0);
+	bch_set_bit(y1,0);
 
 	while (!bch_is_zero(b_)) {
 		bch_div_mod(q,r,a_,b_);
@@ -764,7 +1016,6 @@ bch_p bch_gcdex(bch_p dst, bch_p a, bch_p b, bch_p x, bch_p y) {
 		bch_sub(y,t);
 
 		bch_copy(a_,b_);
-		bch_copy(b_,r);
 		bch_copy(b_,r);
 
 		bch_copy(x2,x1);
@@ -796,9 +1047,10 @@ bch_p bch_inverse(bch_p dst, bch_p a, bch_p n) {
 	bch_p x = bch_alloc(dst->size);
 	bch_p y = bch_alloc(dst->size);
 
-	bch_add_s(tmp,1);
+	bch_set_bit(tmp,0);
 
 	bch_gcdex(dst, a, n, x, y);
+	//bch_gcdex_bin(dst, a, n, x, y);
 	if (bch_cmp(dst,tmp) == 0) {
 		if (bch_is_negative(x)) {
 			bch_add(x,n);
@@ -813,13 +1065,14 @@ bch_p bch_inverse(bch_p dst, bch_p a, bch_p n) {
 
 	return result;
 }
+#endif
 
 bch_p bch_pow(bch_p x,bch_p y) {
 
 	bch_p x_ = bch_clone(x);
 	bch_p y_ = bch_clone(y);
 	bch_p s = bch_alloc(x->size);
-	bch_add_s(s,1);
+	bch_set_bit(s,0);
 
 	while(!bch_is_zero(y_)) {
 		if (y_->data[0] & 1) {
@@ -843,7 +1096,7 @@ bch_p bch_powmod(bch_p x,bch_p y,bch_p n) {
 	bch_p x_ = bch_clone(x);
 	bch_p y_ = bch_clone(y);
 	bch_p s = bch_alloc(x->size);
-	bch_add_s(s,1);
+	bch_set_bit(s,0);
 
 	while(!bch_is_zero(y_)) {
 		if (y_->data[0] & 1) {

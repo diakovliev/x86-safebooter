@@ -61,9 +61,10 @@ static uint32_t total_frees = 0;
 #define NODE_CTL(p) ((heap_ctl_p)(p->start - sizeof(heap_ctl_t)))
 
 /* Initialize heap */
-void heap_init() 
+void heap_init(void *heap_start, size_t heap_size)
 {
-	heap_nodes			= (heap_node_p)(LOADER_HEAP_START + LOADER_HEAP_SIZE);
+	//heap_nodes			= (heap_node_p)(LOADER_HEAP_START + LOADER_HEAP_SIZE);
+	heap_nodes			= (heap_node_p)(heap_start + heap_size);
 	heap_nodes_count	= 0;
 }
 

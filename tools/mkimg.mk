@@ -47,8 +47,8 @@ mkimg: compile
 	$(GCC_CMD) $(GCC_ARGS) $(OBJECTS) -o mkimg 
 
 prepare:
-#	rm -rf ./dsa_*
-	if [ ! -f dsa_pkey.c ]; then ./gendsa.sh; fi
+#	rm -rf ../crypt/dsa_*
+	if [ ! -f ../crypt/dsa_pkey.c ]; then ./gendsa.sh; fi
 
 compile: GCC_ARGS:=$(CONFIG-DEBUG-$(CONFIG-DEBUG)) -c -I./../crypt -D__HOST_COMPILE__
 compile: prepare $(HEADERS) $(SOURCES)
