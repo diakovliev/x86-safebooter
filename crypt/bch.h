@@ -69,7 +69,9 @@ void bch_print(const char *name, bch_p op);
 bch_p bch_random_gen(bch_p dst, bch_p max, bch_random_p g);
 
 bch_p bch_alloc(bch_size size);
-void bch_free(bch_p ptr);
+void bch_va_free(bch_p ptr,...);
+#define bch_free(...) bch_va_free(__VA_ARGS__,0)
+
 bch_p bch_copy(bch_p dst, bch_p src);
 bch_p bch_from_ba(bch_size dst_size, bch_data_p src, bch_size src_size);
 bch_p bch_clone(bch_p src);
@@ -111,5 +113,6 @@ bch_p bch_inverse_bin(bch_p dst, bch_p a, bch_p n);
 
 bch_p bch_pow(bch_p x,bch_p y);
 bch_p bch_powmod(bch_p x,bch_p y,bch_p n);
+bch_p bch_mulmod(bch_p x, bch_p y, bch_p n);
 
 #endif /* BCH_H_ */

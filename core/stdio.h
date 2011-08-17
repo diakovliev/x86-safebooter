@@ -26,7 +26,7 @@ void sprintf(const byte_p dst, const byte_t *fmt, ...);
 
 /* Block input stream */
 
-/* Simple abstract interface for working with raw data storages */
+/* Simple abstract interface for working with raw data storages at block level */
 typedef struct blk_istream_s {
 	void *ctx;
 	word_t (*read)(byte_p dst, word_t size, void *ctx);
@@ -35,13 +35,13 @@ typedef struct blk_istream_s {
 } blk_istream_t, *blk_istream_p;
 
 /* Input stream utilites */
-static inline word_t bs_read(byte_p dst, word_t count, blk_istream_p s) {
+static inline word_t blk_read(byte_p dst, word_t count, blk_istream_p s) {
 	return (*s->read)(dst,count,s->ctx);
 }
-static inline dword_t bs_seek(dword_t pos, blk_istream_p s) {
+static inline dword_t blk_seek(dword_t pos, blk_istream_p s) {
 	return (*s->seek)(pos,s->ctx);
 }
-static inline dword_t bs_addr(blk_istream_p s) {
+static inline dword_t blk_addr(blk_istream_p s) {
 	return (*s->addr)(s->ctx);
 }
 

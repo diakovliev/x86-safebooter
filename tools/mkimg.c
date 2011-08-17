@@ -130,6 +130,8 @@ void process_buffer(void *buffer, long size) {
 		bch_print("sha2 = ", bch_sha2);
 		printf("#--------------------------------------------\n\r");
 
+		bch_mul_kar(priv,Q);
+
 		dsa_free(G);
 		dsa_free(P);
 		dsa_free(Q);

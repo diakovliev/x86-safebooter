@@ -18,8 +18,8 @@ extern unsigned int dsa_Q_size;
 extern unsigned int dsa_G_size;
 
 /* ALU byte length */
+//#define DSA_SIZE	256
 #define DSA_SIZE	256
-//#define DSA_SIZE	192
 
 #ifdef __HOST_COMPILE__
 void dsa_sign(bch_p sha2, bch_p r, bch_p s, bch_random_p random);

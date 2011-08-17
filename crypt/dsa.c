@@ -41,16 +41,14 @@ void dsa_sign(bch_p sha2, bch_p r, bch_p s, bch_random_p random) {
 
 	/* x * r mod Q */
 	bch_copy(s,priv);
-	bch_mul(s,r);
-	bch_mod(s,Q);
+	bch_mulmod(s,r,Q);
 
 	/* H(m) + x*r mod Q */
 	bch_add(s,sha2_w);
 	bch_mod(s,Q);
 
 	/* (k^-1 * (H(m) + x*r)) mod Q */
-	bch_mul(s,k_inv);
-	bch_mod(s,Q);
+	bch_mulmod(s,k_inv,Q);
 
 	bch_free(k);
 	bch_free(k_inv);
@@ -109,8 +107,7 @@ int8_t dsa_check(bch_p sha2, bch_p r, bch_p s) {
 
 		/* u2 = r * w mod Q */
 		bch_copy(u2,w);
-		bch_mul(u2,r);
-		bch_mod(u2,Q);
+		bch_mulmod(u2,r,Q);
 
 		/* G ^ u1 mod p */
 		bch_copy(t0,G);
@@ -120,8 +117,7 @@ int8_t dsa_check(bch_p sha2, bch_p r, bch_p s) {
 		bch_powmod(t1,u2,P);
 
 		bch_copy(v,t0);
-		bch_mul(v,t1);
-		bch_mod(v,P);
+		bch_mulmod(v,t1,P);
 		bch_mod(v,Q);
 
 		res = bch_cmp(r,v);

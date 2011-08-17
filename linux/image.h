@@ -2,6 +2,7 @@
 #define IMAGE_HEADER
 
 #include <loader_types.h>
+#include <stdio.h>
 
 typedef struct image_block_s {
 
@@ -12,7 +13,10 @@ typedef struct image_s {
 } image, *image_p;
 
 /* Load kernel image to memory */
-extern byte_t image_load(word_t bus, byte_t drive, loader_descriptor_p desc);
-extern void image_boot(loader_descriptor_p desc);
+byte_t image_load_raw(blk_istream_p s, dword_t image_start, dword_t whole_image_sectors);
+byte_t image_load_sig(word_t bus, byte_t drive, dword_t lba, loader_descriptor_p desc);
+
+/* Boot */
+void image_boot(loader_descriptor_p desc);
 
 #endif /* IMAGE_HEADER */

@@ -136,6 +136,27 @@ word_t ata_read_sectors(word_t bus, byte_t drive, void *buffer, word_t sectors, 
 	return i;
 }
 
+void ata_enum_devices(ata_enum_callback callback, void *context) {
+
+	byte_t res = 0;
+	byte_t type = ATADEV_NONE;
+
+#define ATA_ENUM(bus,drive) \
+	type = ata_identify_device(bus, drive); \
+	if (type != ATADEV_NONE) { \
+		if (callback) res = (*callback)(bus, drive, type, context); \
+		if (res) return; \
+	}
+
+	ATA_ENUM(ATA_BUS_PRIMARY, ATA_DRIVE_MASTER);
+	ATA_ENUM(ATA_BUS_PRIMARY, ATA_DRIVE_SLAVE);
+	ATA_ENUM(ATA_BUS_SECONDARY, ATA_DRIVE_MASTER);
+	ATA_ENUM(ATA_BUS_SECONDARY, ATA_DRIVE_SLAVE);
+
+#undef ATA_ENUM
+
+}
+
 /*---------------------------------------------------------------------------------------*/
 typedef struct input_stream_context_s   {
 	/* Drive */
@@ -150,7 +171,6 @@ typedef struct input_stream_context_s   {
 #ifdef CTX
 #error "CTX already defined"
 #endif
-
 #define CTX ((input_stream_context_p)ctx)
 
 word_t ata_read(byte_p dst, word_t size, void *ctx) {
@@ -177,22 +197,33 @@ dword_t ata_addr(void *ctx) {
 
 #undef CTX
 
-/*---------------------------------------------------------------------------------------*/
-static input_stream_context context;
-static blk_istream_t input_stream = {
-	.ctx = &context,
-	.read = ata_read,
-	.seek = ata_seek,
-	.addr = ata_addr,
-};
+blk_istream_p ata_blk_stream_open(word_t bus, byte_t drive, dword_t addr) {
 
-blk_istream_p ata_blk_istream(word_t bus, byte_t drive, dword_t addr) {
+	blk_istream_p res = malloc(sizeof(blk_istream_t));
+	if (res) {
+		memset(res, 0, sizeof(blk_istream_p));
+		res->read = ata_read;
+		res->seek = ata_seek;
+		res->addr = ata_addr;
+		input_stream_context_p ctx = malloc(sizeof(input_stream_context));
+		if (!ctx) {
+			free(res);
+			res = 0;
+		} else {
+			memset(ctx, 0, sizeof(input_stream_context));
+			ctx->bus = bus;
+			ctx->drive = drive;
+			ctx->caddr = addr;
+			res->ctx = ctx;
+		}
+	}
 
-	memset(&context, 0, sizeof(context));
+	return res;
+}
 
-	context.bus = bus;
-	context.drive = drive;
-	context.caddr = addr;
-
-	return &input_stream;
+void ata_blk_stream_close(blk_istream_p ptr) {
+	if (ptr && ptr->ctx)
+		free(ptr->ctx);
+	if (ptr)
+		free(ptr);
 }

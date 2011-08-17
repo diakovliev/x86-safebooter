@@ -69,12 +69,81 @@ static cmd_command_t commands[] = {
 
 byte_t IMAGE_load_kernel_to_memory(byte_t *cmd_buffer)
 {
-	cmd_buffer = cmd_buffer;
+	byte_t res = ERR_CMD_FAIL;
 
-	word_t ata_bus		= ATA_BUS_PRIMARY;
-	byte_t ata_drive	= ATA_DRIVE_MASTER;
+	byte_t *buf = strtok(CMD_PARAM_SEP, cmd_buffer);
+	strtok(CMD_PARAM_SEP, 0);
 
-	return image_load(ata_bus, ata_drive, loader_descriptor) == 0 ? ERR_CMD_OK : ERR_CMD_FAIL;
+	byte_t *index_s = strtok(CMD_PARAM_SEP, 0);
+	if (!index_s) {
+		printf("Unknown image index\n\r");
+		return res;
+	}
+
+	word_t index = atol(index_s,16);
+	if (index < 0 || index > 3) {
+		printf("Image index should be in [0..3]\n\r");
+		return res;
+	}
+
+	/* Parse image info */
+	byte_t env_name[32];
+	memset(env_name, 0, sizeof(env_name));
+	sprintf(env_name, "IMAGE_%d", index);
+	byte_t *env_s = env_get(env_name);
+	printf("Image: \"%s\"\n\r", env_s);
+
+	strtok(":", env_s);
+	byte_p type_s = strtok(":", 0);
+	if (!type_s) {
+		printf("Wrong environment variable \"%s\" format\n\r", env_name);
+		return res;
+	}
+	byte_t image_type = *type_s;
+	if (image_type != 'R' && image_type != 'S') {
+		printf("Wrong environment variable \"%s\" format\n\r", env_name);
+		return res;
+	}
+	byte_p bus_s = strtok(":", 0);
+	if (!bus_s) {
+		printf("Wrong environment variable \"%s\" format\n\r", env_name);
+		return res;
+	}
+	word_t bus = atol(bus_s,16);
+	byte_p drive_s = strtok(":", 0);
+	if (!drive_s) {
+		printf("Wrong environment variable \"%s\" format\n\r", env_name);
+		return res;
+	}
+	word_t drive = atol(drive_s,16);
+	byte_p lba_s = strtok(":", 0);
+	if (!lba_s) {
+		printf("Wrong environment variable \"%s\" format\n\r", env_name);
+		return res;
+	}
+	dword_t lba = atol(lba_s,16);
+	byte_p size_s = strtok(":", 0);
+	if (!size_s && *type_s == 'R') {
+		printf("Wrong environment variable \"%s\" format\n\r", env_name);
+		return res;
+	}
+	dword_t size = atol(size_s,16);
+	blk_istream_p s = ata_blk_stream_open(bus,drive,lba);
+	if (!s) {
+		printf("Unable to open input stream\n\r");
+		return res;
+	}
+
+	if (image_type == 'R') {
+		res = image_load_raw(s, lba, size) == 0 ? ERR_CMD_OK : ERR_CMD_FAIL;
+	} else
+	if (image_type == 'S') {
+		printf("Signed images support not implemented yet\n\r");
+		return res;
+	}
+
+	ata_blk_stream_close(s);
+	return res;
 }
 
 byte_t IMAGE_boot(byte_t *cmd_buffer) {

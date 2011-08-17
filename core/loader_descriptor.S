@@ -18,5 +18,5 @@ loader_descriptor_sectors_count:
 . = loader_descriptor_magic + DISK_SECTOR_SIZE
 /* Environment */
 loader_env:
-.incbin "loader_env"
+.incbin "loader_env.gen"
 

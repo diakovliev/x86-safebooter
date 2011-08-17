@@ -51,11 +51,17 @@
 #define ATA_CMD_IDENTIFY		0xEC
 #define ATA_CMD_READ_SECTORS	0x20
 
+/* Base */
 byte_t ata_identify_device(word_t bus, byte_t drive);
 word_t ata_read_sectors(word_t bus, byte_t drive, void *buffer, word_t sectors, dword_t addr);
 
+/* Enumerate drives */
+typedef byte_t (*ata_enum_callback)(word_t bus, byte_t drive, byte_t type, void *ctx);
+void ata_enum_devices(ata_enum_callback callback, void *ctx);
+
 /* stdio interface */
-blk_istream_p ata_blk_istream(word_t bus, byte_t drive, dword_t addr);
+blk_istream_p ata_blk_stream_open(word_t bus, byte_t drive, dword_t addr);
+void ata_blk_stream_close(blk_istream_p ptr);
 
 #endif//ATA_DRIVER_HEADER
 

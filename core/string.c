@@ -31,7 +31,7 @@ byte_t STRING_H(starts_from) (byte_t *s0, byte_t *s1) {
 	while ( *s0 && *s1 && !(r = *s0-*s1) ) {
 		++s0, ++s1;
 	}
-	return !*s1 && r == *s0 ? 1 : 0;
+	return (!*s1 && !r) ? 1 : 0;
 }
 
 word_t STRING_H(memcpy) (void *dst, void *src, word_t sz) {

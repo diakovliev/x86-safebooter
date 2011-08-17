@@ -123,7 +123,10 @@ loader.img.size: loader.img
 kernel.img.size: $(BZIMAGE)
 	echo ".word `du --apparent-size -B512 $^ | cut -f 1`+1" > $@
 
-loader_descriptor.img.size: loader_env
+loader_env.gen:loader_env
+	grep -v "^#" loader_env > $@
+
+loader_descriptor.img.size: loader_env.gen
 	echo ".word `du --apparent-size -B512 $^ | cut -f 1`+1" > $@
 
 # Base objects

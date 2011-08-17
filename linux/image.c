@@ -7,16 +7,16 @@
 #include <stdio.h>
 #include <drivers/ata_driver.h>
 
-byte_t image_load(word_t ata_bus, byte_t ata_drive, loader_descriptor_p desc) {
+byte_t image_load_raw(blk_istream_p s, dword_t image_start, dword_t whole_image_sectors) {
 
 	word_t res = 0;
+	blk_seek(image_start,s);
 
 	/* Load real mode kernel */
 
 	/* 1. Load first KERNEL_SETUP_SECTORS sectors */
 	puts("Loading kernel header ");
-	res = ata_read_sectors(ata_bus, ata_drive,
-		(void*)KERNEL_REAL_CODE_ADDRESS, KERNEL_SETUP_SECTORS, KERNEL_CODE_LBA);
+	res = blk_read((void*)KERNEL_REAL_CODE_ADDRESS,KERNEL_SETUP_SECTORS,s);
 	if ( res != KERNEL_SETUP_SECTORS ) {
 		/* IO error */
 		puts(" FAIL\r\n");
@@ -38,11 +38,11 @@ byte_t image_load(word_t ata_bus, byte_t ata_drive, loader_descriptor_p desc) {
 
 	printf("Supported LBP: 0x%x\r\n", kernel_header->version);
 
+	blk_seek(image_start,s);
+
 	/* 3. Load realmode kernel */
 	puts("Loading real mode kernel ");
-	res = ata_read_sectors(ata_bus, ata_drive,
-		(void*)KERNEL_REAL_CODE_ADDRESS, kernel_header->setup_sects+1, KERNEL_CODE_LBA);
-
+	res = blk_read((void*)KERNEL_REAL_CODE_ADDRESS,kernel_header->setup_sects+1,s);
 	if ( res != kernel_header->setup_sects+1 ) {
 		/* IO error */
 		puts(" FAIL\r\n");
@@ -55,14 +55,10 @@ byte_t image_load(word_t ata_bus, byte_t ata_drive, loader_descriptor_p desc) {
 		kernel_header->setup_sects = 4;
 	}
 
-	word_t sectors_count = desc->kernel_sectors_count - (kernel_header->setup_sects + 1);
+	word_t sectors_count = whole_image_sectors - (kernel_header->setup_sects + 1);
 	/* 4. Load protected mode kernel */
 	puts("Loading protected mode kernel");
-	res = ata_read_sectors(ata_bus, ata_drive
-		, (void*)KERNEL_CODE_ADDRESS
-		, sectors_count
-		, KERNEL_CODE_LBA + kernel_header->setup_sects + 1);
-
+	res = blk_read((void*)KERNEL_CODE_ADDRESS,sectors_count,s);
 	if ( res != sectors_count ) {
 		/* IO error */
 		printf("FAIL (sectors_count: %d, res: %d)\r\n", sectors_count, res);
