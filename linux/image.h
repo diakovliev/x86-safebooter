@@ -14,7 +14,7 @@ typedef struct image_s {
 
 /* Load kernel image to memory */
 byte_t image_load_raw(blk_istream_p s, dword_t image_start, dword_t whole_image_sectors);
-byte_t image_load_sig(word_t bus, byte_t drive, dword_t lba, loader_descriptor_p desc);
+byte_t image_load_sig(blk_istream_p s, dword_t image_start);
 
 /* Boot */
 void image_boot(loader_descriptor_p desc);

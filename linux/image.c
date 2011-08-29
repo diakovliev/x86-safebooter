@@ -1,11 +1,14 @@
 #include "image.h"
-#include "lbp.h"
+#include "../tools/lbp.h"
 #include "jump_to_kernel.h"
 #include <loader.h>
 #include <string.h>
 #include <env.h>
+#include <heap.h>
 #include <stdio.h>
 #include <drivers/ata_driver.h>
+#include <crypt/dsa.h>
+
 
 byte_t image_load_raw(blk_istream_p s, dword_t image_start, dword_t whole_image_sectors) {
 
@@ -69,6 +72,91 @@ byte_t image_load_raw(blk_istream_p s, dword_t image_start, dword_t whole_image_
 	return 0;
 }
 
+byte_t image_load_simg_block(void *address, blk_istream_p s) {
+
+	byte_t res = 0;
+	uint8_t processed_sha2[SHA2_SIZE/8];
+
+	/* Allocate start block */
+	void *start_block = malloc(DISK_SECTOR_SIZE);
+	if (!start_block) {
+		puts("Unable to allocate start block buffer\n\r");
+		return 1;
+	}
+
+	/* Read start block */
+	res = blk_read(start_block,1,s);
+	if (res != 1) {
+		puts("Unable to read start block\n\r");
+		return 2;
+	}
+
+	/* Check SIMG */
+	dword_t simg = 0;
+	memcpy(&simg, start_block, sizeof(simg));
+	start_block += sizeof(simg);
+	if (simg != 0x474D4953) {
+		puts("Wrong SIMG signature\n\r");
+		return 2;
+	}
+
+	/* Image size */
+	dword_t size = 0;
+	memcpy(&size, start_block, sizeof(size));
+	start_block += sizeof(size);
+
+	bch_p dsa_r = dsa_alloc();
+	bch_p dsa_s = dsa_alloc();
+
+	memcpy(dsa_r->data, start_block, SHA2_SIZE/8);
+    start_block += SHA2_SIZE/8;
+	memcpy(dsa_s->data, start_block, SHA2_SIZE/8);
+    start_block += SHA2_SIZE/8;
+
+	/* Size in sectors */
+	dword_t sectors = (size / DISK_SECTOR_SIZE) + (size % DISK_SECTOR_SIZE ? 1 : 0);
+	memset(address,0xFF,size);
+	res = blk_read(address,sectors,s);
+
+	/* Calculate SHA2 */
+	memset(processed_sha2,0,SHA2_SIZE/8);
+    SHA2_func(processed_sha2,address,size);
+
+    /* Check signing */
+   	bch_p bch_sha2 = dsa_from_ba((bch_data_p)processed_sha2, SHA2_SIZE/8);
+   	res = dsa_check(bch_sha2, dsa_r, dsa_s);
+   	if (res) {
+   		puts("Wrong digital signature\n\r");
+   		return 2;
+   	}
+
+   	/* Decrypt buffer */
+   	blowfish_init();
+   	blowfish_decrypt_memory(address,size);
+
+   	dsa_free(bch_sha2);
+	dsa_free(dsa_r);
+	dsa_free(dsa_s);
+
+	return 0;
+}
+
+byte_t image_load_sig(blk_istream_p s, dword_t image_start) {
+
+	byte_t res = 0;
+
+	blk_seek(image_start,s);
+
+	puts("Loading real mode kernel\n\r");
+	res = image_load_simg_block((void*)KERNEL_REAL_CODE_ADDRESS,s);
+	if (res) return res;
+
+	puts("Loading protected mode kernel\n\r");
+	image_load_simg_block((void*)KERNEL_CODE_ADDRESS,s);
+
+	return res;
+}
+
 void image_boot(loader_descriptor_p desc) {
 
 	kernel_header_p kernel_header = (kernel_header_p)GET_KERNEL_HEADER_ADDRESS(KERNEL_REAL_CODE_ADDRESS);
@@ -117,7 +205,10 @@ void image_boot(loader_descriptor_p desc) {
 		/* Boot */
 		jump_to_kernel_asm();
 
-	} else
+	} else {
+
 		printf("Unsupported kernel boot protocol (0x%X). Probably very old kernel.\n\r", kernel_header->version);
+
+	}
 
 }

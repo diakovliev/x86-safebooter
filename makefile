@@ -28,7 +28,7 @@ HEADERS+=core/debug.h
 HEADERS+=core/heap.h 
 HEADERS+=core/env.h 
 HEADERS+=core/time.h 
-HEADERS+=linux/lbp.h
+HEADERS+=tools/lbp.h
 HEADERS+=linux/jump_to_kernel.h
 HEADERS+=linux/image.h
 HEADERS+=crypt/blowfish.h
@@ -195,6 +195,7 @@ clean:
 	rm -f ${HDD_IMG}
 	rm -f ./drivers/*.gch
 	rm -f *.gch
+	rm -f *.gen
 	rm -f *.gen.h
 	rm -f *.o.S
 	rm -f *.out
@@ -205,17 +206,29 @@ clean:
 	rm -f *.img.size
 	rm -f *.map
 #	rm -f *.img
+	rm -f *.simg
 
 # Run targets
 
 # Look http://jamesmcdonald.id.au/faqs/mine/Running_Bochs.html for geometry details.
 # Currently used 10MB image.
-$(HDD_IMG): build ${BZIMAGE}
+#$(HDD_IMG): build ${BZIMAGE}
+#	dd if=/dev/zero 				of=$@ bs=$(DISK_SECTOR_SIZE) count=20808 && \
+#	dd if=mbr.img 					of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc && \
+#	dd if=loader_descriptor.img 	of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc seek=${LOADER_DESCRIPTOR_LBA} && \
+#	dd if=loader.img 				of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc seek=${LOADER_CODE_LBA} && \
+#	dd if=${BZIMAGE}				of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc seek=${KERNEL_CODE_LBA}
+
+kernel.simg: ${BZIMAGE}
+	./tools/mkimg --verbose -i ${BZIMAGE} -o kernel.simg  
+
+#$(HDD_IMG): build kernel.simg
+$(HDD_IMG): build
 	dd if=/dev/zero 				of=$@ bs=$(DISK_SECTOR_SIZE) count=20808 && \
 	dd if=mbr.img 					of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc && \
 	dd if=loader_descriptor.img 	of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc seek=${LOADER_DESCRIPTOR_LBA} && \
 	dd if=loader.img 				of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc seek=${LOADER_CODE_LBA} && \
-	dd if=${BZIMAGE}				of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc seek=${KERNEL_CODE_LBA}
+	dd if=kernel.simg				of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc seek=${KERNEL_CODE_LBA}
 
 qemu: PORT=9999
 qemu: QEMU_ARGS=-S -gdb tcp::$(PORT) --daemonize

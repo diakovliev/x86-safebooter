@@ -67,6 +67,13 @@ static cmd_command_t commands[] = {
 	{0,0,0,0},
 };
 
+byte_t *strdup(byte_t *src) {
+	word_t sz = strlen(src) + 1;
+	byte_t *ptr = malloc(sz);
+	memcpy(ptr,src,sz);
+	return ptr;
+}
+
 byte_t IMAGE_load_kernel_to_memory(byte_t *cmd_buffer)
 {
 	byte_t res = ERR_CMD_FAIL;
@@ -90,7 +97,7 @@ byte_t IMAGE_load_kernel_to_memory(byte_t *cmd_buffer)
 	byte_t env_name[32];
 	memset(env_name, 0, sizeof(env_name));
 	sprintf(env_name, "IMAGE_%d", index);
-	byte_t *env_s = env_get(env_name);
+	byte_t *env_s = strdup(env_get(env_name));
 	printf("Image: \"%s\"\n\r", env_s);
 
 	strtok(":", env_s);
@@ -138,10 +145,11 @@ byte_t IMAGE_load_kernel_to_memory(byte_t *cmd_buffer)
 		res = image_load_raw(s, lba, size) == 0 ? ERR_CMD_OK : ERR_CMD_FAIL;
 	} else
 	if (image_type == 'S') {
-		printf("Signed images support not implemented yet\n\r");
+		res = image_load_sig(s, lba) == 0 ? ERR_CMD_OK : ERR_CMD_FAIL;
 		return res;
 	}
 
+	free(env_s);
 	ata_blk_stream_close(s);
 	return res;
 }

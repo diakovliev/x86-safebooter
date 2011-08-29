@@ -21,6 +21,9 @@ extern unsigned int dsa_G_size;
 //#define DSA_SIZE	256
 #define DSA_SIZE	256
 
+#define SHA2_SIZE 160
+#define SHA2_func sha1
+
 #ifdef __HOST_COMPILE__
 void dsa_sign(bch_p sha2, bch_p r, bch_p s, bch_random_p random);
 #endif/*__HOST_COMPILE__*/

@@ -134,16 +134,16 @@ void va_printf(console_base_p console, const byte_t *fmt, va_list ap)
 					}
 					console_puts(console,"0x");
 				}
-			case 'o':
-				{
-					OUT_NUMERIC(int,8)
-					fill_flag	= 0;
-				}
-			break;
 			case 'X':
 			case 'x':
 				{
 					OUT_NUMERIC(int,16)
+					fill_flag	= 0;
+				}
+			break;
+			case 'o':
+				{
+					OUT_NUMERIC(int,8)
 					fill_flag	= 0;
 				}
 			break;

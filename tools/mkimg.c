@@ -10,35 +10,33 @@
 #include <stdint.h>
 #include <string.h>
 #include <getopt.h>
+#include <time.h>
 
 #include <crypt.h>
 #include <bch.h>
 #include <dsa.h>
 #include <assert.h>
 
+#include "lbp.h"
+
 static int verbose = 0;
-static int decrypt = 0;
-static char *input_file = 0;
-static char *output_file = 0;
-static void *buffer = 0;
-static void *start_block = 0;
 
-#define START_BLOCK_HEAD "KRIM"
+#define START_BLOCK_HEAD "SIMG"
 #define DISK_SECTOR_SIZE 512
+#define KERNEL_SETUP_SECTORS 4
+#define FILL	0xFF
 
-#define SHA2_SIZE 160
-#define SHA2_func sha1
-
-#include <time.h>
-
+/*********************************************************************************/
 void custom_random_init(void) {
 	srand(time(NULL));
 }
 
+/*********************************************************************************/
 bch_data custom_random(bch_data max) {
 	return rand() % max;
 }
 
+/*********************************************************************************/
 void print_sha2(uint8_t *sha2) {
 	int i = 0;
 	for (i = 0; i < SHA2_SIZE/8; ++i) {
@@ -46,59 +44,14 @@ void print_sha2(uint8_t *sha2) {
 	}
 }
 
-void process_buffer(void *buffer, long size) {
+/*********************************************************************************/
+int process_buffer(void *buffer, long size, void *start_block) {
 
+	int res = 0;
 	void *start_block_ptr = start_block;
 
     uint8_t original_sha2[SHA2_SIZE/8];
     uint8_t processed_sha2[SHA2_SIZE/8];
-
-    /* Fill start block */
-    memcpy(start_block_ptr, START_BLOCK_HEAD, strlen(START_BLOCK_HEAD));
-    start_block_ptr += strlen(START_BLOCK_HEAD);
-
-    memcpy(start_block_ptr, &size, sizeof(size));
-    start_block_ptr += sizeof(size);
-
-    /* SHA2 for original buffer */
-    SHA2_func(original_sha2, buffer, size);
-    if (verbose) {
-    	printf("Original SHA2: ");
-    	print_sha2(original_sha2);
-    	printf("\n\r");
-    }
-
-    //memcpy(start_block_ptr, original_sha2, SHA2_SIZE/8);
-    //start_block_ptr += SHA2_SIZE/8;
-
-    /* Encrypt */
-	//if(verbose){
-    //    printf(!decrypt ? "Encryption..." : "Decryption...");
-    //}
-	if(verbose){
-        printf("Encryption...");
-    }
-    blowfish_init();
-    //if(!decrypt){
-        blowfish_encrypt_memory(buffer, size);
-    //}else{
-    //    blowfish_decrypt_memory(buffer, size);
-    //}
-    if(verbose){
-        printf("DONE\n\r");
-    }
-
-    /* SHA2 for processed buffer */
-    SHA2_func(processed_sha2, buffer, size);
-    if (verbose) {
-    	printf("Processed SHA2: ");
-    	print_sha2(processed_sha2);
-    	printf("\n\r");
-    }
-
-    /* To file */
-    //memcpy(start_block_ptr, processed_sha2, SHA2_SIZE/8);
-    //start_block_ptr += SHA2_SIZE/8;
 
 	/* Random generator */
 	bch_random randrom_gen = {
@@ -109,63 +62,93 @@ void process_buffer(void *buffer, long size) {
 	/* Init random generator */
 	(*randrom_gen.init)();
 
-    /*bch_p bch_sha2 = dsa_from_ba((bch_data_p)original_sha2, SHA2_SIZE/8);*/
+    /* Fill start block */
+	uint32_t simg = 0x474D4953;
+    memcpy(start_block_ptr, &simg, sizeof(simg));
+    start_block_ptr += sizeof(simg);
+    memcpy(start_block_ptr, &size, sizeof(size));
+    start_block_ptr += sizeof(size);
+
+    printf("size: %ld\n\r", size);
+
+    blowfish_init();
+
+	if(verbose){
+        printf("Encryption...");
+    }
+    blowfish_encrypt_memory(buffer, size);
+    if(verbose){
+        printf("DONE\n\r");
+    }
+
+    /* SHA2 for processed buffer */
+    SHA2_func(processed_sha2, buffer, size);
+    if (verbose) {
+    	printf("SHA2: ");
+    	print_sha2(processed_sha2);
+    	printf("\n\r");
+    }
+
     bch_p bch_sha2 = dsa_from_ba((bch_data_p)processed_sha2, SHA2_SIZE/8);
 	bch_p r =		dsa_alloc();
 	bch_p s =		dsa_alloc();
 
-	if (verbose) {
-		bch_p G =		dsa_from_ba((bch_data_p)dsa_G, dsa_G_size);
-		bch_p P =		dsa_from_ba((bch_data_p)dsa_P, dsa_P_size);
-		bch_p Q =		dsa_from_ba((bch_data_p)dsa_Q, dsa_Q_size);
-		bch_p pub =		dsa_from_ba((bch_data_p)dsa_pub, dsa_pub_size);
-		bch_p priv =	dsa_from_ba((bch_data_p)dsa_priv, dsa_priv_size);
-
-		printf("#----------------- DSA params ---------------\n\r");
-		bch_print("G = ", G);
-		bch_print("P = ", P);
-		bch_print("Q = ", Q);
-		bch_print("pub = ", pub);
-		bch_print("priv = ", priv);
-		bch_print("sha2 = ", bch_sha2);
-		printf("#--------------------------------------------\n\r");
-
-		bch_mul_kar(priv,Q);
-
-		dsa_free(G);
-		dsa_free(P);
-		dsa_free(Q);
-		dsa_free(pub);
-		dsa_free(priv);
-	}
+//	if (verbose) {
+//		bch_p G =		dsa_from_ba((bch_data_p)dsa_G, dsa_G_size);
+//		bch_p P =		dsa_from_ba((bch_data_p)dsa_P, dsa_P_size);
+//		bch_p Q =		dsa_from_ba((bch_data_p)dsa_Q, dsa_Q_size);
+//		bch_p pub =		dsa_from_ba((bch_data_p)dsa_pub, dsa_pub_size);
+//		bch_p priv =	dsa_from_ba((bch_data_p)dsa_priv, dsa_priv_size);
+//
+//		printf("#----------------- DSA params ---------------\n\r");
+//		bch_print("G = ", G);
+//		bch_print("P = ", P);
+//		bch_print("Q = ", Q);
+//		bch_print("pub = ", pub);
+//		bch_print("priv = ", priv);
+//		bch_print("sha2 = ", bch_sha2);
+//		printf("#--------------------------------------------\n\r");
+//
+//		dsa_free(G);
+//		dsa_free(P);
+//		dsa_free(Q);
+//		dsa_free(pub);
+//		dsa_free(priv);
+//	}
 
     dsa_sign(bch_sha2, r, s, &randrom_gen);
-    if (verbose) {
-    	bch_hprint("r", r);
-    	bch_hprint("s", s);
-    }
-    int32_t check = dsa_check(bch_sha2, r, s);
-    if (verbose) {
-		bch_print("sha2 = ", bch_sha2);
-    	printf("dsa_check result: %x\n\r", check);
-    }
+//    if (verbose) {
+//    	bch_hprint("r", r);
+//    	bch_hprint("s", s);
+//    }
+    res = dsa_check(bch_sha2, r, s);
+//    if (verbose) {
+//		bch_print("SHA2: ", bch_sha2);
+//    	printf("dsa_check result: %x\n\r", res);
+//    }
 
+    /* Fill start block */
     memcpy(start_block_ptr, r->data, SHA2_SIZE/8);
     start_block_ptr += SHA2_SIZE/8;
-
     memcpy(start_block_ptr, s->data, SHA2_SIZE/8);
     start_block_ptr += SHA2_SIZE/8;
 
     dsa_free(r);
     dsa_free(s);
     dsa_free(bch_sha2);
+
+    return res;
 }
 
-int process_file(void) {
+/*********************************************************************************/
+int process_raw_file(char *output_file, char *input_file) {
+
 	int res = -3;
 	long size = 0;
 	long alloc_size = 0;
 	long readed = 0;
+	void *buffer = 0;
+	void *start_block = 0;
 
 	FILE *input = fopen(input_file, "r");
 	/* load file to memory */
@@ -216,11 +199,12 @@ int process_file(void) {
 		fclose(input);
 	}
 
+	/* Write output */
 	if (buffer && start_block) {
 		FILE *output = fopen(output_file, "w+");
 		if (output) {
 
-			process_buffer(buffer, size);
+			process_buffer(buffer, size, start_block);
 
 			readed = 0;
 			do {
@@ -252,18 +236,182 @@ int process_file(void) {
 	return res;
 }
 
+/*********************************************************************************/
+int process_kernel_file(char *output_file, char *input_file) {
+	/* Kernel will be in 2 separated blocks */
+	/* 1. Real mode kernel */
+	/* 2. Protected mode kernel */
+
+	int				res					= 0;
+	uint32_t		whole_image_sectors = 0;
+	uint8_t			setup_sects 		= 0;
+	kernel_header_p	kernel_header 		= NULL;
+	size_t 			size				= 0;
+	void 			*start_block		= NULL;
+	size_t			readed				= 0;
+	size_t			written				= 0;
+
+	/* Open kernel file */
+	FILE *input = fopen(input_file, "r");
+	if (!input) {
+		printf("Unable to open file '%s'\n\r", input_file);
+		res = -1;
+		goto out;
+	}
+
+	/* Open output file */
+	FILE *output = fopen(output_file, "w+");
+	if (!output) {
+		printf("Unable to open file '%s'\n\r", output_file);
+		res = -1;
+		goto out;
+	}
+
+	/* Allocate buffer for kernel header */
+	void *buffer = malloc(DISK_SECTOR_SIZE*KERNEL_SETUP_SECTORS);
+	if (!buffer) {
+		printf("Unable to allocate buffer\n\r");
+		res = -1;
+		goto out;
+	}
+
+	/* Calculate whole image size in sectors count */
+	fseek(input, 0, SEEK_END);
+	whole_image_sectors = ftell(input);
+	whole_image_sectors = (whole_image_sectors / DISK_SECTOR_SIZE)
+			+ (whole_image_sectors % DISK_SECTOR_SIZE ? 1 : 0);
+	fseek(input, 0, SEEK_SET);
+
+	/* Read kernel header */
+	size = DISK_SECTOR_SIZE*KERNEL_SETUP_SECTORS;
+	readed = fread(buffer, size, 1, input);
+	if (readed != 1) {
+		printf("Unable to read kernel header\n\r");
+		res = -1;
+		goto out;
+	}
+	kernel_header = (kernel_header_p)GET_KERNEL_HEADER_ADDRESS(buffer);
+
+	/* Calculate parameters for loading real mode kernel */
+	setup_sects = kernel_header->setup_sects + 1;
+	size = DISK_SECTOR_SIZE*setup_sects;
+
+	/* Realloc buffer for whole real mode kernel */
+	buffer = realloc(buffer, size);
+	if (!buffer) {
+		printf("Unable to reallocate buffer\n\r");
+		res = -1;
+		goto out;
+	}
+
+	/* Seek to begin */
+	fseek(input, 0, SEEK_SET);
+
+	/* Buffer cleanup */
+	memset(buffer,FILL,size);
+
+	/* Read real mode kernel */
+	size = DISK_SECTOR_SIZE * setup_sects;
+	readed = fread(buffer, size, 1, input);
+	if (readed != 1) {
+		printf("Unable to read real mode kernel\n\r");
+		res = -1;
+		goto out;
+	}
+
+	/* Allocate buffer for start block */
+	start_block = malloc(DISK_SECTOR_SIZE);
+	memset(start_block,FILL,DISK_SECTOR_SIZE);
+
+	/* Encrypt & Sign buffer */
+	res = process_buffer(buffer,size,start_block);
+	if (res != 0) {
+		printf("Process buffer error\n\r");
+		res = -1;
+		goto out;
+	}
+
+	/* Write real mode kernel buffer */
+	written = fwrite(start_block, DISK_SECTOR_SIZE, 1, output);
+	written = fwrite(buffer, size, 1, output);
+
+	/* Realloc buffer for whole protected mode kernel */
+	size = (whole_image_sectors - setup_sects) * DISK_SECTOR_SIZE;
+	buffer = realloc(buffer, size);
+	if (!buffer) {
+		printf("Unable to reallocate buffer\n\r");
+		res = -1;
+		goto out;
+	}
+
+	/* Cleanup buffers */
+	memset(start_block,FILL,DISK_SECTOR_SIZE);
+	memset(buffer,FILL,size);
+
+	/* Read protected mode kernel */
+	readed = fread(buffer, 1, size, input);
+
+	/* Encrypt & Sign buffer */
+	res = process_buffer(buffer,size,start_block);
+	if (res != 0) {
+		printf("Process buffer error\n\r");
+		res = -1;
+		goto out;
+	}
+
+	/* Write protected mode kernel buffer */
+	written = fwrite(start_block, DISK_SECTOR_SIZE, 1, output);
+	written = fwrite(buffer, size, 1, output);
+
+out:
+	if (start_block) free(start_block);
+	if (buffer) free(buffer);
+	if (output) fclose(output);
+	if (input) fclose(input);
+
+	return 0;
+}
+
+/*********************************************************************************/
+char file_is_kernel(char *input_file) {
+
+	char res = 0;
+
+	FILE *input = fopen(input_file, "r");
+
+	void *buffer = malloc(DISK_SECTOR_SIZE*KERNEL_SETUP_SECTORS);
+	if (buffer) {
+
+		fread(buffer, DISK_SECTOR_SIZE*KERNEL_SETUP_SECTORS, 1, input);
+
+		kernel_header_p kernel_header = (kernel_header_p)GET_KERNEL_HEADER_ADDRESS(buffer);
+		if ( kernel_header->header == KERNEL_HDRS ) {
+			res = 1;
+		}
+
+		free(buffer);
+	}
+
+	fclose(input);
+
+	return res;
+}
+
+/*********************************************************************************/
 void print_help(void) {
-//	printf("Usage:\tmkimg [--verbose] [-decrypt] -i input_file -o output_file\n\r");
 	printf("Usage:\tmkimg [--verbose] -i input_file -o output_file\n\r");
 }
 
+/*********************************************************************************/
 int main(int argc, char **argv) {
 	int res = 0;
+
+	char *input_file = 0;
+	char *output_file = 0;
 
 	/* process arguments */
 	static const struct option options[] = {
 		{"verbose", no_argument, &verbose, 1},
-/*		{"decrypt", no_argument, &decrypt, 1},*/
 		{"input", required_argument, 0, 'i'},
 		{"output", required_argument, 0, 'o'},
 		{"help", no_argument, 0, 'h'},
@@ -315,8 +463,13 @@ int main(int argc, char **argv) {
 		);
 	}
 
-	if (!res) {
-		res = process_file();
+	/* Detect input type */
+	if (!file_is_kernel(input_file)) {
+		printf("Creating RAW data image\n\r");
+		res = process_raw_file(output_file, input_file);
+	} else {
+		printf("Creating kernel image\n\r");
+		res = process_kernel_file(output_file, input_file);
 	}
 
 	if (input_file) free(input_file);

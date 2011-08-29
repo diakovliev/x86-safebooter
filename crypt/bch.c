@@ -221,7 +221,7 @@ bch_p bch_rev(bch_p s) {
 			s->data[ln-1-i] = s->data[i];
 			s->data[i] = c;
 		}
-		bch_byte_shr(s,s->size - bexp - 1);
+		bch_byte_shr(s,s->size-bexp-1);
 	}
 }
 
@@ -552,7 +552,7 @@ bch_p bch_byte_shr(bch_p dst, bch_size shift) {
 	bch_p tmp = bch_clone(dst);
 	bch_zero(dst);
 	if (dst->size - shift > 0) {
-		memcpy(dst->data, tmp->data + shift, (dst->size - shift) * sizeof(bch_data));
+		memcpy(dst->data, tmp->data + shift, (dst->size-shift) * sizeof(bch_data));
 	}
 	bch_free(tmp);
 	return dst;
@@ -767,33 +767,28 @@ bch_p bch_mul_base(bch_p dst, bch_p mul) {
 	return dst;
 }
 
-uint8_t bch_split_number(bch_p nr, bch_p nl, bch_p n) {
-	uint8_t res = 0;
+//uint8_t bch_split_number(bch_p nr, bch_p nl, bch_p n) {
+//	uint8_t res = 0;
+//
+//	int32_t nhexp = bch_hexp(n) + 1;
+//	int32_t nbexp = bch_bexp(n) + 1;
+//
+//	memcpy(nl->data, n->data + (nhexp/2), n->size - (nhexp/2));
+//	memcpy(nr->data, n->data, (nhexp/2));
+//
+//	return res;
+//}
 
-	int32_t nhexp = bch_hexp(n) + 1;
-	int32_t nbexp = bch_bexp(n) + 1;
-
-	memcpy(nl->data, n->data + (nhexp/2), n->size - (nhexp/2));
-	memcpy(nr->data, n->data, (nhexp/2));
-
-	printf(" (%d) (%d) --------------------------------------------\n\r", nhexp, nbexp);
-	bch_print("n ", n);
-	bch_print("nl ", nl);
-	bch_print("nr ", nr);
-
-	return res;
-}
-
-bch_p bch_mul_kar(bch_p dst, bch_p mul) {
-
-	bch_p x = bch_alloc(dst->size);
-	bch_p y = bch_alloc(dst->size);
-
-	bch_split_number(x,y,dst);
-	bch_split_number(x,y,mul);
-
-	bch_free(x,y);
-}
+//bch_p bch_mul_kar(bch_p dst, bch_p mul) {
+//
+//	bch_p x = bch_alloc(dst->size);
+//	bch_p y = bch_alloc(dst->size);
+//
+//	bch_split_number(x,y,dst);
+//	bch_split_number(x,y,mul);
+//
+//	bch_free(x,y);
+//}
 
 bch_p bch_mul(bch_p dst, bch_p mul) {
 

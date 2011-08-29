@@ -44,7 +44,7 @@ word_t STRING_H(memcpy) (void *dst, void *src, word_t sz) {
 
 word_t STRING_H(memset) (void *dst, byte_t src, word_t sz) {
 	word_t cnt = 0;
-	while(cnt < sz-1) {
+	while(cnt < sz) {
 		((byte_t*)dst)[cnt++] = src;
 	}
 	return cnt;
