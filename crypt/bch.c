@@ -314,13 +314,15 @@ int32_t bch_bexp(bch_p op) {
 	return res + i;
 }
 
-bch_p bch_add(bch_p dst, bch_p add) {
+void
+bch_add_arr(
+	bch_data_p dst, bch_size dst_size,
+	bch_data_p add, bch_size add_size
+	)
+{
 	/*
 	bch_size i, loop_cnt;
 	bch_data2x v = 0;
-
-	assert(dst != 0);
-	assert(add != 0);
 
 	loop_cnt = BCH_MIN(dst->size,add->size);
 	for (i = 0; i < loop_cnt; i++) {
@@ -343,32 +345,33 @@ bch_p bch_add(bch_p dst, bch_p add) {
 	bch_size i, loop_cnt;
 	uint32_t v = 0;
 
+	loop_cnt = ((BCH_MIN(dst_size,add_size)/2)+1)*2;
+	for (i = 0; i < loop_cnt && i < dst_size; i += 2) {
+		v += *(uint16_t*)(dst+i) + *(uint16_t*)(add+i);
+		*(uint16_t*)(dst+i) = v & 0xFFFF;
+		v -= *(uint16_t*)(dst+i);
+		v >>= 16;
+	}
+	while (v && dst_size-1 > i) {
+		if (i < dst_size) {
+			v += *(uint16_t*)(dst+i);
+			*(uint16_t*)(dst+i) = v & 0xFFFF;
+			v -= *(uint16_t*)(dst+i);
+			v >>= 16;
+		}
+		else break;
+		i+=2;
+	}
+}
+
+bch_p bch_add(bch_p dst, bch_p add) {
+
 	assert(dst != 0);
 	assert(add != 0);
 
-	loop_cnt = ((BCH_MIN(dst->size,add->size)/2)+1)*2;
-	for (i = 0; i < loop_cnt && i < dst->size; i += 2) {
-		v += *(uint16_t*)(dst->data+i) + *(uint16_t*)(add->data+i);
-		*(uint16_t*)(dst->data+i) = v & 0xFFFF;
-		v -= *(uint16_t*)(dst->data+i);
-		v >>= 16;
-	}
-	if (v && dst->size-1 > i) {
-		do {
-			if (i < dst->size) {
-				v += *(uint16_t*)(dst->data+i);
-				*(uint16_t*)(dst->data+i) = v & 0xFFFF;
-				v -= *(uint16_t*)(dst->data+i);
-				v >>= 16;
-			}
-			else break;
-			i+=2;
-		} while (v);
-	}
+	bch_add_arr(dst->data,dst->size, add->data, add->size);
 
 	return dst;
-
-
 }
 
 bch_p bch_add_s(bch_p dst, bch_data add) {
@@ -482,14 +485,46 @@ int8_t bch_cmp(bch_p l, bch_p r) {
 	/* Step 3: Digits */
 	int32_t hexp = bch_hexp(l_);
 	if (!res && hexp >= 0) {
+
+		/*
 		int32_t i = hexp;
-		do {
+		while (i >= 0) {
 			if (l_->data[i] != r_->data[i]) {
 				res = (l_->data[i] - r_->data[i]) > 0 ? 1 : -1;
 				break;
 			}
 			--i;
-		} while (i >= 0);
+		}
+		*/
+
+		/* Decrease iterates count using more longer type */
+		/* TODO: !!! Something wrong with this code optimization with type different of uint8_t
+		 * (works OK without optimization) */
+//		typedef uint16_t enum_type;
+		typedef uint8_t enum_type;
+
+		int32_t i = ((hexp / sizeof(enum_type)) + (hexp % sizeof(enum_type) ? 1 : 0)) * sizeof(enum_type);
+
+		enum_type l;
+		enum_type r;
+
+		while (i >= 0) {
+
+#define data_cmp(x)	(*((enum_type*)((x)->data + i)))
+
+			l = data_cmp(l_);
+			r = data_cmp(r_);
+
+			if (l != r) {
+				res = ((l - r) > 0) ? 1 : -1;
+				break;
+			}
+			i -= sizeof(enum_type);
+
+#undef data_cmp
+
+		}
+
 	}
 
 	bch_free(l_,r_);
@@ -536,12 +571,17 @@ bch_p bch_byte_shl(bch_p dst, bch_size shift) {
 
 	assert(dst != 0);
 
-	bch_p tmp = bch_clone(dst);
-	bch_zero(dst);
+	bch_size sz = (dst->size-shift) * sizeof(bch_data);
+	bch_data_p buffer = bch__alloc(sz);
+
 	if (dst->size - shift > 0) {
-		memcpy(dst->data + shift, tmp->data, (dst->size - shift) * sizeof(bch_data));
+		memcpy(buffer, dst->data, sz);
+		bch_zero(dst);
+		memcpy(dst->data + shift, buffer, sz);
 	}
-	bch_free(tmp);
+
+	bch__free(buffer);
+
 	return dst;
 }
 
@@ -549,12 +589,17 @@ bch_p bch_byte_shr(bch_p dst, bch_size shift) {
 
 	assert(dst != 0);
 
-	bch_p tmp = bch_clone(dst);
-	bch_zero(dst);
+	bch_size sz = (dst->size-shift) * sizeof(bch_data);
+	bch_data_p buffer = bch__alloc(sz);
+
 	if (dst->size - shift > 0) {
-		memcpy(dst->data, tmp->data + shift, (dst->size-shift) * sizeof(bch_data));
+		memcpy(buffer, dst->data + shift, sz);
+		bch_zero(dst);
+		memcpy(dst->data, buffer, sz);
 	}
-	bch_free(tmp);
+
+	bch__free(buffer);
+
 	return dst;
 }
 
@@ -600,6 +645,9 @@ bch_p bch_bit_shr(bch_p dst, bch_size shift) {
 
 	assert(dst != 0);
 
+	if (shift == 0)
+		return dst;
+
 	bch_size byte_shift = shift / 8;
 	if (byte_shift)
 		bch_byte_shr(dst,byte_shift);
@@ -625,10 +673,12 @@ bch_p bch_bit_shr(bch_p dst, bch_size shift) {
 	uint32_t v, tmp = 0;
 
 	for (i = dst->size - 4; i >= 0; i -= 4) {
-		v = *((uint32_t*)(dst->data + i));
-		v = (v >> bit_shift) | (tmp << (32-bit_shift));
-		tmp = *((uint32_t*)(dst->data + i)) & r_mask;
-		*((uint32_t*)(dst->data + i)) = v;
+		if (*((uint32_t*)(dst->data + i)) || tmp) {
+			v = *((uint32_t*)(dst->data + i));
+			v = (v >> bit_shift) | (tmp << (32-bit_shift));
+			tmp = *((uint32_t*)(dst->data + i)) & r_mask;
+			*((uint32_t*)(dst->data + i)) = v;
+		}
 		if (i == 0) break;
 	}
 
@@ -691,20 +741,31 @@ bch_p bch_set_bit(bch_p dst, uint32_t exp) {
 	return dst;
 }
 
-bch_p bch_mul_base(bch_p dst, bch_p mul) {
+bch_data bch_get_bit(bch_p src, uint32_t exp) {
 
-	assert(dst != 0);
+	assert(src);
 
-	bch_p dst_ = bch_clone(dst);
-	bch_p mul_ = mul;
+	return (src->data[exp/8]) & (1 << (exp % 8));
+}
 
+bch_p bch_clr_bit(bch_p dst, uint32_t exp) {
+
+	assert(dst);
+
+	dst->data[exp/8] &= ~(1 << (exp % 8));
+
+	return dst;
+}
+
+void
+bch_mul_arr_base(
+	bch_data_p dst, bch_size dst_size,
+	bch_data_p op0, bch_size op0_size,
+	bch_data_p op1, bch_size op1_size
+			)
+{
 	bch_size i,j;
-
-	int32_t mul_hexp = bch_hexp(mul_);
-	int32_t dst_hexp = bch_hexp(dst_);
-
-	bch_p dstmul_ = bch_clone(dst);
-	bch_zero(dst_);
+	uint32_t v,u;
 
 	/*
 	bch_data2x v,u;
@@ -733,32 +794,48 @@ bch_p bch_mul_base(bch_p dst, bch_p mul) {
 	}
 	*/
 
-#define data(val,index) *((uint16_t*)(val->data+(index)))
-	uint32_t v,u;
-	for (i = 0; i < mul_hexp + 1; i += 2) {
+#define data(val,index) *((uint16_t*)(val+(index)))
+	for (i = 0; i < op0_size + 1; i += 2) {
 		v = 0; u = 0;
-		for (j = 0; j < dst_hexp + 1; j += 2) {
-			v = v + u + ( data(mul_,i) * data(dstmul_,j) );
-			if (dst_->size > i+j) {
-				u = data(dst_,i+j) + (v & 0xFFFF);
-				data(dst_,i+j) = u & 0xFFFF;
+		for (j = 0; j < op1_size + 1; j += 2) {
+			v = v + u + ( data(op0,i) * data(op1,j) );
+			if (dst_size > i+j) {
+				u = data(dst,i+j) + (v & 0xFFFF);
+				data(dst,i+j) = u & 0xFFFF;
 			}
 			v -= v & 0xFFFF; u -= u & 0xFFFF;
 			v >>= 16; u >>= 16;
 		}
-		if ((v+u) && dst_->size > i+j) {
-			do {
-				v = v + u;
-				if (dst_->size > i+j) {
-					u = data(dst_,i+j) + (v & 0xFFFF);
-					data(dst_,i+j) = u & 0xFFFF;
-				}
-				v -= v & 0xFFFF; u -= u & 0xFFFF;
-				v >>= 16; u >>= 16;
-			} while (v+u);
+		while ((v+u) && dst_size > i+j) {
+			v = v + u;
+			if (dst_size > i+j) {
+				u = data(dst,i+j) + (v & 0xFFFF);
+				data(dst,i+j) = u & 0xFFFF;
+			}
+			v -= v & 0xFFFF; u -= u & 0xFFFF;
+			v >>= 16; u >>= 16;
 		}
 	}
 #undef data
+}
+
+bch_p bch_mul_base(bch_p dst, bch_p mul) {
+
+	assert(dst != 0);
+	assert(mul != 0);
+
+	bch_p dst_ = bch_clone(dst);
+	bch_p mul_ = mul;
+
+	int32_t mul_hexp = bch_hexp(mul_);
+	int32_t dst_hexp = bch_hexp(dst_);
+
+	bch_p dstmul_ = bch_clone(dst);
+	bch_zero(dst_);
+
+	bch_mul_arr_base(dst_->data, dst_->size,
+			dstmul_->data, dstmul_->size,
+			mul_->data, mul_->size);
 
 	bch_copy(dst, dst_);
 
@@ -766,29 +843,6 @@ bch_p bch_mul_base(bch_p dst, bch_p mul) {
 
 	return dst;
 }
-
-//uint8_t bch_split_number(bch_p nr, bch_p nl, bch_p n) {
-//	uint8_t res = 0;
-//
-//	int32_t nhexp = bch_hexp(n) + 1;
-//	int32_t nbexp = bch_bexp(n) + 1;
-//
-//	memcpy(nl->data, n->data + (nhexp/2), n->size - (nhexp/2));
-//	memcpy(nr->data, n->data, (nhexp/2));
-//
-//	return res;
-//}
-
-//bch_p bch_mul_kar(bch_p dst, bch_p mul) {
-//
-//	bch_p x = bch_alloc(dst->size);
-//	bch_p y = bch_alloc(dst->size);
-//
-//	bch_split_number(x,y,dst);
-//	bch_split_number(x,y,mul);
-//
-//	bch_free(x,y);
-//}
 
 bch_p bch_mul(bch_p dst, bch_p mul) {
 
@@ -811,10 +865,7 @@ bch_p bch_mul(bch_p dst, bch_p mul) {
 		mul_ = bch_abs(bch_clone(mul));
 	}
 
-	/***********************************************/
-	//bch_mul_kar(dst_,mul_);
 	bch_mul_base(dst_,mul_);
-	/***********************************************/
 
 	bch_copy(dst, dst_);
 	bch_free(dst_);
@@ -883,28 +934,41 @@ void bch_div_mod(bch_p r, bch_p m, bch_p divided, bch_p divider) {
 	assert(divider_exp >= 0);
 
 	int32_t exp = (divided_exp-divider_exp);
-
 	bch_p sub = bch_alloc(divided_->size);
-	bch_p add = bch_alloc(divided_->size);
 
 	bch_copy(sub, divider_);
 	bch_bit_shl(sub, exp);
 
+	int32_t m_exp = 0;
+	int32_t sub_exp = 0;
+
 	while(exp >= 0) {
 
 		if (bch_cmp(sub,m_) <= 0) {
+
 			bch_sub(m_,sub);
 			if (r) {
 				bch_set_bit(r,exp);
 			}
+
+			m_exp = bch_bexp(m_);
+			sub_exp = bch_bexp(sub);
 		}
 
-		bch_bit_shr(sub, 1);
+		if (sub_exp >= 0 && m_exp >= 0 && BCH_ABS(sub_exp - m_exp) > 0) {
+			bch_bit_shr(sub, BCH_ABS(sub_exp - m_exp));
+			exp -= BCH_ABS(sub_exp - m_exp);
+			sub_exp = 0;
+			m_exp = 0;
+		}
+		else {
+			bch_bit_shr(sub, 1);
+			exp -= 1;
+		}
 
-		--exp;
 	}
 
-	bch_free(sub,add);
+	bch_free(sub);
 
 exit_func:
 	if (divideds) {
@@ -1156,16 +1220,49 @@ bch_p bch_mulmod(bch_p a, bch_p b, bch_p c) {
 	bch_mod(b_,c);
 	bch_mod(y,c);
 
-	while ( !bch_is_zero(b_) ) {
-		if ( b_->data[0] & 1 ) {
-			bch_add(x,y);
-			bch_mod(x,c);
-		}
-		bch_bit_shl(y,1);
-		bch_mod(y,c);
-		bch_bit_shr(b_,1);
+	int32_t exp = bch_hexp(b_);
+	bch_size i = 0;
+	if (exp < 0) {
+		goto out;
 	}
 
+	while (exp + 1) {
+
+		bch_data b_data = b_->data[i++];
+
+//#define do_mulmod_step(index) \
+//		{ \
+//			if ( b_data & index ) { \
+//				bch_add(x,y); \
+//				bch_mod(x,c); \
+//			} \
+//			bch_bit_shl(y,1); \
+//			bch_mod(y,c); \
+//		}
+
+#define do_mulmod_step(index) \
+		{ \
+			if ( b_data & index ) { \
+				bch_add(x,y); \
+			} \
+			bch_bit_shl(y,1); \
+		}
+
+		do_mulmod_step(0x01);
+		do_mulmod_step(0x02);
+		do_mulmod_step(0x04);
+		do_mulmod_step(0x08);
+		do_mulmod_step(0x10);
+		do_mulmod_step(0x20);
+		do_mulmod_step(0x40);
+		do_mulmod_step(0x80);
+
+#undef do_mulmod_step
+
+		exp--;
+	}
+
+out:
 	bch_copy(a,x);
 	bch_mod(a,c);
 
@@ -1181,14 +1278,39 @@ bch_p bch_pow(bch_p x,bch_p y) {
 	bch_p s = bch_alloc(x->size);
 	bch_set_bit(s,0);
 
-	while(!bch_is_zero(y_)) {
-		if (y_->data[0] & 1) {
-			bch_mul(s,x_);
-		}
-		bch_bit_shr(y_,1);
-		bch_mul(x_,x_);
+	int32_t exp = bch_hexp(y_);
+	bch_size i = 0;
+	if (exp < 0) {
+		goto out;
 	}
 
+	while(exp + 1) {
+
+		bch_data y_data = y_->data[i++];
+
+#define do_pow_step(index) \
+		{ \
+			if (y_data & index) { \
+				bch_mul(s,x_); \
+			} \
+			bch_mul(x_,x_); \
+		}
+
+		do_pow_step(0x01);
+		do_pow_step(0x02);
+		do_pow_step(0x04);
+		do_pow_step(0x08);
+		do_pow_step(0x10);
+		do_pow_step(0x20);
+		do_pow_step(0x40);
+		do_pow_step(0x80);
+
+#undef do_pow_step
+
+		exp--;
+	}
+
+out:
 	bch_copy(x,s);
 
 	bch_free(x_,y_,s);
@@ -1203,18 +1325,49 @@ bch_p bch_powmod(bch_p x,bch_p y,bch_p n) {
 	bch_p s = bch_alloc(x->size);
 	bch_set_bit(s,0);
 
-	while(!bch_is_zero(y_)) {
-		if (y_->data[0] & 1) {
-			bch_mul(s,x_);
-			bch_mod(s,n);
-			//bch_mulmod(s,x_,n);
-		}
-		bch_bit_shr(y_,1);
-		bch_mul(x_,x_);
-		bch_mod(x_,n);
-		//bch_mulmod(x_,x_,n);
+	int32_t exp = bch_hexp(y_);
+	bch_size i = 0;
+	if (exp < 0) {
+		goto out;
 	}
 
+	while (exp + 1) {
+
+		bch_data y_data = y_->data[i++];
+
+#define do_powmod_step(index) \
+		{ \
+			if (y_data & index) { \
+				bch_mul(s,x_); \
+				bch_mod(s,n); \
+			} \
+			bch_mul(x_,x_); \
+			bch_mod(x_,n); \
+		}
+
+//#define do_powmod_step(index) \
+//		{ \
+//			if (y_data & index) { \
+//				bch_mulmod(s,x_,n); \
+//			} \
+//			bch_mulmod(x_,x_,n); \
+//		}
+
+		do_powmod_step(0x01);
+		do_powmod_step(0x02);
+		do_powmod_step(0x04);
+		do_powmod_step(0x08);
+		do_powmod_step(0x10);
+		do_powmod_step(0x20);
+		do_powmod_step(0x40);
+		do_powmod_step(0x80);
+
+#undef do_powmod_step
+
+		exp--;
+	}
+
+out:
 	bch_copy(x,s);
 
 	bch_free(x_,y_,s);
