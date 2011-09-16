@@ -6,6 +6,7 @@
 
 /* Load linux kernel */
 #define KERNEL_HDRS 0x53726448
+#define SIMG_SIGNATURE 0x474D4953
 
 #define LBP_ALL(x) x
 #define LBP_200(x) x

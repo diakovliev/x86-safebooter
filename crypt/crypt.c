@@ -58,3 +58,17 @@ void sha1(uint8_t *digest, void *buffer, uint32_t size) {
 	SHAUpdate(&ctx, buffer, size);
 	SHAFinal(digest, &ctx);
 }
+
+extern uint8_t xor_key[];
+extern uint32_t xor_key_size;
+
+void xor_encrypt_memory(void* buffer, uint32_t size) {
+	uint8_t *key = xor_key;
+	uint8_t *array = (uint8_t*)buffer;
+	for ( ; array < (uint8_t*)(buffer+size); ++array) {
+		*array = *(array) ^ *(key++);
+		if (key > xor_key + xor_key_size - 1)
+			key = xor_key;
+	}
+}
+

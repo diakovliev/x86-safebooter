@@ -9,6 +9,7 @@
 #include <drivers/ata_driver.h>
 #include <crypt/dsa.h>
 
+#ifdef CONFIG_RAW_IMAGES_ENABLED
 
 byte_t image_load_raw(blk_istream_p s, dword_t image_start, dword_t whole_image_sectors) {
 
@@ -72,6 +73,8 @@ byte_t image_load_raw(blk_istream_p s, dword_t image_start, dword_t whole_image_
 	return 0;
 }
 
+#endif//CONFIG_RAW_IMAGES_ENABLED
+
 byte_t image_load_simg_block(void *address, blk_istream_p s) {
 
 	byte_t res = 0;
@@ -92,6 +95,7 @@ byte_t image_load_simg_block(void *address, blk_istream_p s) {
 	}
 
 	/* Check SIMG */
+#ifdef CONFIG_SIMG_SIGNATURE_ENABLED
 	dword_t simg = 0;
 	memcpy(&simg, start_block, sizeof(simg));
 	start_block += sizeof(simg);
@@ -99,6 +103,7 @@ byte_t image_load_simg_block(void *address, blk_istream_p s) {
 		puts("Wrong SIMG signature\n\r");
 		return 2;
 	}
+#endif/*CONFIG_SIMG_SIGNATURE_ENABLED*/
 
 	/* Image size */
 	dword_t size = 0;
@@ -132,7 +137,8 @@ byte_t image_load_simg_block(void *address, blk_istream_p s) {
 
    	/* Decrypt buffer */
    	blowfish_init();
-   	blowfish_decrypt_memory(address,size);
+   	blowfish_decrypt_memory(address+res,size);
+   	xor_encrypt_memory(address+res,size);
 
    	dsa_free(bch_sha2);
 	dsa_free(dsa_r);

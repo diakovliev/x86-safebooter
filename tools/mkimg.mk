@@ -8,6 +8,7 @@ HEADERS += ../crypt/dsa.h
 HEADERS += ../crypt/crypt.h
 
 SOURCES += ../crypt/blowfish_key.S
+SOURCES += ../crypt/xor_key.S
 SOURCES += ../crypt/blowfish.c
 SOURCES += ../crypt/sha1.c
 SOURCES += ../crypt/sha2.c
@@ -19,6 +20,7 @@ SOURCES += ../crypt/dsa_pkey.c
 SOURCES += mkimg.c
 
 OBJECTS += blowfish_key.o
+OBJECTS += xor_key.o
 OBJECTS += blowfish.o
 OBJECTS += sha1.o
 OBJECTS += sha2.o
@@ -33,6 +35,7 @@ OBJECTS += mkimg.o
 
 CONFIG-DEBUG=y
 CONFIG-GPROF-SUPPORT=y
+CONFIG-ENABLE-ASM-OUTPUT=n
 
 CONFIG-GPROF-SUPPORT-y=-pg
 CONFIG-GPROF-SUPPORT-n=
@@ -40,7 +43,10 @@ CONFIG-GPROF-SUPPORT-n=
 CONFIG-DEBUG-y=-g -O0 -D__DEBUG__
 CONFIG-DEBUG-n=-O2
 
-GCC_CMD=gcc $(CONFIG-GPROF-SUPPORT-$(CONFIG-GPROF-SUPPORT))
+CONFIG-ENABLE-ASM-OUTPUT-y=-Wa,-a,-ad,-aln=asm.S
+CONFIG-ENABLE-ASM-OUTPUT-n=
+
+GCC_CMD=gcc $(CONFIG-ENABLE-ASM-OUTPUT-$(CONFIG-ENABLE-ASM-OUTPUT)) $(CONFIG-GPROF-SUPPORT-$(CONFIG-GPROF-SUPPORT))
 
 compile: GCC_ARGS:=
 mkimg: compile
@@ -52,9 +58,7 @@ prepare:
 
 compile: GCC_ARGS:=$(CONFIG-DEBUG-$(CONFIG-DEBUG)) -c -I./../crypt -D__HOST_COMPILE__
 compile: prepare $(HEADERS) $(SOURCES)
-	cp -f ../blowfish_key ./blowfish_key
 	$(GCC_CMD) $(GCC_ARGS) $(SOURCES)
-	rm -f ./blowfish_key	
 
 clean:
 	rm -rf ./*.o

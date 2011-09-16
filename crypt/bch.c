@@ -795,9 +795,9 @@ bch_mul_arr_base(
 	*/
 
 #define data(val,index) *((uint16_t*)(val+(index)))
-	for (i = 0; i < op0_size + 1; i += 2) {
+	for (i = 0; i < op0_size; i += 2) {
 		v = 0; u = 0;
-		for (j = 0; j < op1_size + 1; j += 2) {
+		for (j = 0; j < op1_size; j += 2) {
 			v = v + u + ( data(op0,i) * data(op1,j) );
 			if (dst_size > i+j) {
 				u = data(dst,i+j) + (v & 0xFFFF);
@@ -814,6 +814,37 @@ bch_mul_arr_base(
 			}
 			v -= v & 0xFFFF; u -= u & 0xFFFF;
 			v >>= 16; u >>= 16;
+		}
+	}
+#undef data
+}
+
+void
+bch_sqr_arr_base(
+	bch_data_p dst, bch_size dst_size,
+	bch_data_p op, bch_size op_size
+			)
+{
+	bch_size i = 0,j = 0;
+	uint32_t t = 0,c = 0;
+
+#define data(val,index) *((uint8_t*)(val+(index)))
+	for (i = 0; i < op_size + 1; ++i) {
+		if (2*i < dst_size) {
+			t = data(dst,2*i) + data(op,i) * data(op,i);
+			data(dst,2*i) = t & 0xFF;
+		}
+		c = t >> 8;
+		for (j = i + 1; j < op_size + 1; ++j) {
+
+			if (i+j < dst_size) {
+				t = data(dst,i+j) + (2 * data(op,i) * data(op,j)) + c;
+				data(dst,i+j) = t & 0xFF;
+			}
+			c = t >> 8;
+		}
+		if (i+op_size+1 < dst_size) {
+			data(dst,i+op_size+1) = c;
 		}
 	}
 #undef data
@@ -836,6 +867,25 @@ bch_p bch_mul_base(bch_p dst, bch_p mul) {
 	bch_mul_arr_base(dst_->data, dst_->size,
 			dstmul_->data, dstmul_->size,
 			mul_->data, mul_->size);
+
+	bch_copy(dst, dst_);
+
+	bch_free(dstmul_,dst_);
+
+	return dst;
+}
+
+bch_p bch_sqr_base(bch_p dst) {
+
+	assert(dst != 0);
+
+	bch_p dst_ = bch_abs(bch_clone(dst));
+	int32_t dst_hexp = bch_hexp(dst_);
+	bch_p dstmul_ = bch_clone(dst);
+	bch_zero(dst_);
+
+	bch_sqr_arr_base(dst_->data, dst_->size,
+			dstmul_->data, dst_hexp + 1);
 
 	bch_copy(dst, dst_);
 
@@ -880,6 +930,14 @@ bch_p bch_mul(bch_p dst, bch_p mul) {
 	return dst;
 }
 
+bch_p bch_sqr(bch_p dst) {
+
+	assert(dst != 0);
+
+	bch_sqr_base(dst);
+
+	return dst;
+}
 
 void bch_div_mod(bch_p r, bch_p m, bch_p divided, bch_p divider) {
 
@@ -1230,17 +1288,17 @@ bch_p bch_mulmod(bch_p a, bch_p b, bch_p c) {
 
 		bch_data b_data = b_->data[i++];
 
-//#define do_mulmod_step(index) \
-//		{ \
-//			if ( b_data & index ) { \
-//				bch_add(x,y); \
-//				bch_mod(x,c); \
-//			} \
-//			bch_bit_shl(y,1); \
-//			bch_mod(y,c); \
-//		}
-
 #define do_mulmod_step(index) \
+		{ \
+			if ( b_data & index ) { \
+				bch_add(x,y); \
+				bch_mod(x,c); \
+			} \
+			bch_bit_shl(y,1); \
+			bch_mod(y,c); \
+		}
+
+//#define do_mulmod_step(index) \
 		{ \
 			if ( b_data & index ) { \
 				bch_add(x,y); \
@@ -1264,7 +1322,7 @@ bch_p bch_mulmod(bch_p a, bch_p b, bch_p c) {
 
 out:
 	bch_copy(a,x);
-	bch_mod(a,c);
+	//bch_mod(a,c);
 
 	bch_free(x,y,b_);
 
@@ -1293,7 +1351,8 @@ bch_p bch_pow(bch_p x,bch_p y) {
 			if (y_data & index) { \
 				bch_mul(s,x_); \
 			} \
-			bch_mul(x_,x_); \
+			/*bch_mul(x_,x_);*/ \
+			bch_sqr(x_); \
 		}
 
 		do_pow_step(0x01);
@@ -1341,17 +1400,18 @@ bch_p bch_powmod(bch_p x,bch_p y,bch_p n) {
 				bch_mul(s,x_); \
 				bch_mod(s,n); \
 			} \
-			bch_mul(x_,x_); \
+			/*bch_mul(x_,x_);*/ \
+			bch_sqr(x_); \
 			bch_mod(x_,n); \
 		}
 
 //#define do_powmod_step(index) \
-//		{ \
-//			if (y_data & index) { \
-//				bch_mulmod(s,x_,n); \
-//			} \
-//			bch_mulmod(x_,x_,n); \
-//		}
+		{ \
+			if (y_data & index) { \
+				bch_mulmod(s,x_,n); \
+			} \
+			bch_mulmod(x_,x_,n); \
+		}
 
 		do_powmod_step(0x01);
 		do_powmod_step(0x02);

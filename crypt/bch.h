@@ -100,6 +100,7 @@ bch_p bch_mul_s(bch_p dst, bch_data mul);
 bch_p bch_add(bch_p dst, bch_p add);
 bch_p bch_sub(bch_p dst, bch_p sub);
 bch_p bch_mul(bch_p dst, bch_p mul);
+bch_p bch_sqr(bch_p dst);
 void bch_div_mod(bch_p r, bch_p m, bch_p divided, bch_p divider);
 bch_p bch_div(bch_p dst, bch_p div);
 bch_p bch_mod(bch_p dst, bch_p div);

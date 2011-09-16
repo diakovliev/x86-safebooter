@@ -1,16 +1,22 @@
 include makefile.config
 
+#-----------------------------------------------------------------------------------
 CONFIG-DBG-y					:= -ggdb3 -O0 -D__DEBUG__
+CONFIG-DBG-n					:= -O2
 CONFIG-CONSOLE-ENABLED-y 		:= -DCONFIG_CONSOLE_ENABLED
 CONFIG-CONSOLE-SERIAL-y 		:= -DCONFIG_CONSOLE_SERIAL
 CONFIG-CONSOLE-SERIAL-PORT-COM1 := -DCONFIG_CONSOLE_SERIAL_PORT=COM1
 CONFIG-CONSOLE-SERIAL-PORT-COM2 := -DCONFIG_CONSOLE_SERIAL_PORT=COM2
 CONFIG-CONSOLE-SERIAL-PORT-COM3 := -DCONFIG_CONSOLE_SERIAL_PORT=COM3
 CONFIG-CONSOLE-SERIAL-PORT-COM4 := -DCONFIG_CONSOLE_SERIAL_PORT=COM4
+CONFIG-COMMAND-LINE-ENABLED-y	:= -DCONFIG_COMMAND_LINE_ENABLED
+CONFIG-RAW-IMAGES-ENABLED-y		:= -DCONFIG_RAW_IMAGES_ENABLED
 
 DEFINES			+= $(CONFIG-CONSOLE-ENABLED-$(CONFIG_CONSOLE_ENABLED))
 DEFINES			+= $(CONFIG-CONSOLE-SERIAL-$(CONFIG_CONSOLE_SERIAL))
 DEFINES			+= $(CONFIG-CONSOLE-SERIAL-PORT-$(CONFIG_CONSOLE_SERIAL_PORT))
+DEFINES			+= $(CONFIG-COMMAND-LINE-ENABLED-$(CONFIG_COMMAND_LINE_ENABLED))
+DEFINES			+= $(CONFIG-RAW-IMAGES-ENABLED-$(CONFIG_RAW_IMAGES_ENABLED))
 
 INCLUDES		:= -I./ -I./core -I./linux
 
@@ -55,6 +61,7 @@ SOURCES+=linux/jump_to_kernel.S
 SOURCES+=linux/image.c
 SOURCES+=crypt/blowfish.c
 SOURCES+=crypt/blowfish_key.S
+SOURCES+=crypt/xor_key.S
 SOURCES+=crypt/sha1.c
 SOURCES+=crypt/sha2.c
 SOURCES+=crypt/bch.c
@@ -83,6 +90,7 @@ OBJECTS+=jump_to_kernel.o
 OBJECTS+=image.o
 OBJECTS+=blowfish.o
 OBJECTS+=blowfish_key.o
+OBJECTS+=xor_key.o
 OBJECTS+=sha1.o
 OBJECTS+=sha2.o
 OBJECTS+=bch.o
@@ -115,6 +123,9 @@ default: qemu
 # Tools
 mkimg:
 	make -C ./tools -f mkimg.mk
+	
+./tools/xor: ./tools/xor.c ./tools/mbr_xor_key.S mbr_xor_key
+	(cd tools; gcc -g -O0 mbr_xor_key.S xor.c -o xor)
 
 # Geometry
 loader.img.size: loader.img
@@ -130,8 +141,8 @@ loader_descriptor.img.size: loader_env.gen
 	echo ".word `du --apparent-size -B512 $^ | cut -f 1`+1" > $@
 
 # Base objects
-mbr.o: core/mbr.S $(BASE_HEADERS)
-	$(GCC_CMD) $<
+mbr.o: $(BASE_HEADERS) ./tools/xor core/mbr.S mbr_xor_key
+	$(GCC_CMD) $(BASE_HEADERS) core/mbr.S
 
 loader_start.o: core/loader_start.S $(BASE_HEADERS)
 	$(GCC_CMD) $<
@@ -182,9 +193,13 @@ mbr.img: mbr.o
 
 loader_descriptor.img: loader_descriptor.o
 	$(call LD_CMD,$(LOADER_DESCRIPTOR_ADDRESS))
+	cp -f loader_descriptor.img loader_descriptor.img.orig 
+	./tools/xor loader_descriptor.img 
 
 loader.img: $(BASE_OBJECTS) $(OBJECTS)
 	$(call LD_CMD,$(LOADER_CODE_ADDRESS))
+	cp -f loader.img loader.img.orig
+	./tools/xor loader.img
 
 # Build
 build: mkimg mbr.img loader_descriptor.img loader.img
@@ -222,8 +237,8 @@ clean:
 kernel.simg: ${BZIMAGE}
 	./tools/mkimg --verbose -i ${BZIMAGE} -o kernel.simg  
 
-#$(HDD_IMG): build kernel.simg
-$(HDD_IMG): build
+#$(HDD_IMG): build
+$(HDD_IMG): build kernel.simg
 	dd if=/dev/zero 				of=$@ bs=$(DISK_SECTOR_SIZE) count=20808 && \
 	dd if=mbr.img 					of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc && \
 	dd if=loader_descriptor.img 	of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc seek=${LOADER_DESCRIPTOR_LBA} && \

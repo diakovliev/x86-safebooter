@@ -50,10 +50,11 @@ word_t STRING_H(memset) (void *dst, byte_t src, word_t sz) {
 	return cnt;
 }
 
-
 word_t STRING_H(strcpy) (byte_t *dst, byte_t *src) {
 	word_t sz = STRING_H(strlen) (src) + 1;
-	return STRING_H(memcpy) (dst,src,sz);
+	word_t res = STRING_H(memcpy) (dst,src,sz);
+	dst[sz] = 0;
+	return res;
 }
 
 byte_t *STRING_H(strtok) (byte_t *sep, byte_t *str) {

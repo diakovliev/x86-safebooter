@@ -7,12 +7,19 @@ NOTES:
 
 */
 
+//#define __DEBUG_MBR__
+
 /* Loader parameters block size */
 #define BPB_SIZE			0x3e
 
 /* Message output */
+#ifdef __DEBUG_MBR__
 #define MSG(x)				movw $(x),%si; call print_string
+#else
+#define MSG(x)
+#endif/*__DEBUG_MBR__*/
 
+#ifdef __DEBUG_MBR__
 /* Message output routes */
 #define PRINT_IMPL	\
 print_char:;	\
@@ -30,6 +37,7 @@ print_string:;	\
 	jmp print_string; \
 print_screen_exit_function:; \
 	ret
+#endif/*__DEBUG_MBR__*/
 
 .file "mbr.S"
 
@@ -71,6 +79,18 @@ load_descriptor:
 	jmp fail
 
 loader_descriptor_pre_loaded:
+/* UnXOR */
+	xor %ax,%ax
+	mov blocks_count,%ax
+	mov $DISK_SECTOR_SIZE,%bx
+	push %dx
+	mul %bx
+	pop %dx
+	mov %ax,%bx
+	mov $LOADER_DESCRIPTOR_ADDRESS,%ax
+	call xor_encrypt_memory
+/**/
+
 	movw $LOADER_DESCRIPTOR_ADDRESS,%bx
 	movw 9(%bx),%ax /* loader_descriptor_sectors_count */
 	movw %ax,blocks_count
@@ -83,6 +103,18 @@ loader_descriptor_pre_loaded:
 
 loader_descriptor_loaded:
 	MSG(string_ok)
+
+/* UnXOR */
+	xor %ax,%ax
+	mov blocks_count,%ax
+	mov $DISK_SECTOR_SIZE,%bx
+	push %dx
+	mul %bx
+	pop %dx
+	mov %ax,%bx
+	mov $LOADER_DESCRIPTOR_ADDRESS,%ax
+	call xor_encrypt_memory
+/**/
 
 /* Get data from loader descriptor */
 	movw $LOADER_DESCRIPTOR_ADDRESS,%bx
@@ -104,6 +136,18 @@ load_code:
 	jmp fail
 
 loader_code_loaded:
+/* UnXOR */
+	xor %ax,%ax
+	mov blocks_count,%ax
+	mov $DISK_SECTOR_SIZE,%bx
+	push %dx
+	mul %bx
+	pop %dx
+	mov %ax,%bx
+	mov $LOADER_CODE_ADDRESS,%ax
+	call xor_encrypt_memory
+/**/
+
 	MSG(string_ok)
 	jmp loader_start
 
@@ -111,24 +155,81 @@ loader_start:
 	MSG(string_jump)
     movw $LOADER_CODE_ADDRESS,%ax
     jmpw *%ax
-//	.byte 0xEA
-//	.word LOADER_CODE_ADDRESS
-//	.word 0
 
+#ifdef __DEBUG_MBR__
 PRINT_IMPL
+#endif/*__DEBUG_MBR__*/
+
+/* %ax - buffer */
+/* %bx - buffer_size */
+xor_encrypt_memory:
+	jmp start_xor_encrypt_memory
+/* Variables */
+mbr_xor_key_ptr:			.int 0x00000000
+mbr_xor_key_stored_ptr:		.int 0x00000000
+mbr_xor_buffer_ptr:			.int 0x00000000
+mbr_xor_buffer_stored_ptr: 	.int 0x00000000
+mbr_xor_buffer_size:		.int 0x00000000
+
+start_xor_encrypt_memory:
+    mov    %eax, mbr_xor_buffer_ptr
+    mov    %eax, mbr_xor_buffer_stored_ptr
+    mov    %ebx, mbr_xor_buffer_size
+	mov    $mbr_xor_key, %eax
+	mov    %eax, mbr_xor_key_ptr
+	mov    %eax, mbr_xor_key_stored_ptr
+    jmp check_buffer_bounds
+
+xor_loop:
+ 	mov   mbr_xor_buffer_ptr,%eax
+ 	xor   %ecx,%ecx
+    movb  (%eax), %cl
+ 	mov   mbr_xor_key_ptr,%eax
+ 	xor   %ebx,%ebx
+    movb  (%eax), %bl
+    xor   %bl, %cl
+ 	mov   mbr_xor_buffer_ptr,%eax
+    movb  %cl, (%eax)
+
+    incl  mbr_xor_key_ptr
+
+    mov   mbr_xor_key_size, %eax
+    dec   %eax
+    add   mbr_xor_key_stored_ptr, %eax
+    mov   mbr_xor_key_ptr, %ebx
+    cmp   %ebx, %eax
+    jae inc_buffer_ptr
+
+	mov   mbr_xor_key_stored_ptr, %eax
+	mov   %eax, mbr_xor_key_ptr
+
+ inc_buffer_ptr:
+    incl  mbr_xor_buffer_ptr
+
+ check_buffer_bounds:
+    mov   mbr_xor_buffer_stored_ptr, %eax
+    add   mbr_xor_buffer_size, %eax
+    mov   mbr_xor_buffer_ptr, %ebx
+    cmp   %ebx, %eax
+	ja xor_loop
+    ret
 
 fail:
 	cli
 	hlt
 
 /* Data */
-string_descriptor:	.string "DESCRIPTOR:" 
-string_code:		.string "CODE:" 
-string_fail:		.string "FAIL" 
-string_ok:			.string "OK\n\r"
-string_jump:		.string "JUMP TO CODE...\n\r"
+#ifdef __DEBUG_MBR__
+string_descriptor:	.string "D"
+string_code:		.string "C"
+string_fail:		.string "F"
+string_ok:			.string "O"
+string_jump:		.string "J\n\r"
+#endif/*__DEBUG_MBR__*/
 
 loader_sectors_count:	.byte 0x00
+mbr_xor_key: 			.incbin "mbr_xor_key"
+mbr_xor_key_size: 		.int . - mbr_xor_key
 
 /* Partitions table */
 	. = _start + 440

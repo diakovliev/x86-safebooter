@@ -4,16 +4,11 @@
 #include <loader_types.h>
 #include <stdio.h>
 
-typedef struct image_block_s {
-
-} image_block, *image_block_p;
-
-typedef struct image_s {
-
-} image, *image_p;
-
 /* Load kernel image to memory */
+#ifdef CONFIG_RAW_IMAGES_ENABLED
 byte_t image_load_raw(blk_istream_p s, dword_t image_start, dword_t whole_image_sectors);
+#endif/*CONFIG_RAW_IMAGES_ENABLED*/
+
 byte_t image_load_sig(blk_istream_p s, dword_t image_start);
 
 /* Boot */

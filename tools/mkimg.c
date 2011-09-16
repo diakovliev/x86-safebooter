@@ -33,7 +33,8 @@ void custom_random_init(void) {
 
 /*********************************************************************************/
 bch_data custom_random(bch_data max) {
-	return rand() % max;
+	bch_data r = rand();
+	return (r % max) + (r & 1);
 }
 
 /*********************************************************************************/
@@ -62,10 +63,24 @@ int process_buffer(void *buffer, long size, void *start_block) {
 	/* Init random generator */
 	(*randrom_gen.init)();
 
+	/* Randomize start block */
+	bch_data_p start_block_randomize = (bch_data_p)start_block;
+	bch_size i;
+	for (i = 0; i < DISK_SECTOR_SIZE; ++i) {
+		*start_block_randomize++ = (*randrom_gen.random)(0xFF);
+	}
+
+	/* Reinit random generator */
+	(*randrom_gen.init)();
+
     /* Fill start block */
-	uint32_t simg = 0x474D4953;
+
+#ifdef CONFIG_SIMG_SIGNATURE_ENABLED
+	uint32_t simg = SIMG_SIGNATURE;
     memcpy(start_block_ptr, &simg, sizeof(simg));
     start_block_ptr += sizeof(simg);
+#endif/*CONFIG_SIMG_SIGNATURE_ENABLED*/
+
     memcpy(start_block_ptr, &size, sizeof(size));
     start_block_ptr += sizeof(size);
 
@@ -76,6 +91,7 @@ int process_buffer(void *buffer, long size, void *start_block) {
 	if(verbose){
         printf("Encryption...");
     }
+	xor_encrypt_memory(buffer, size);
     blowfish_encrypt_memory(buffer, size);
     if(verbose){
         printf("DONE\n\r");
@@ -90,6 +106,7 @@ int process_buffer(void *buffer, long size, void *start_block) {
     }
 
     bch_p bch_sha2 = dsa_from_ba((bch_data_p)processed_sha2, SHA2_SIZE/8);
+
 	bch_p r =		dsa_alloc();
 	bch_p s =		dsa_alloc();
 
@@ -117,15 +134,15 @@ int process_buffer(void *buffer, long size, void *start_block) {
 //	}
 
     dsa_sign(bch_sha2, r, s, &randrom_gen);
-//    if (verbose) {
-//    	bch_hprint("r", r);
-//    	bch_hprint("s", s);
-//    }
+    if (verbose) {
+    	bch_hprint("r", r);
+    	bch_hprint("s", s);
+    }
     res = dsa_check(bch_sha2, r, s);
-//    if (verbose) {
-//		bch_print("SHA2: ", bch_sha2);
-//    	printf("dsa_check result: %x\n\r", res);
-//    }
+    if (verbose) {
+		bch_print("SHA2: ", bch_sha2);
+    	printf("dsa_check result: %x\n\r", res);
+    }
 
     /* Fill start block */
     memcpy(start_block_ptr, r->data, SHA2_SIZE/8);

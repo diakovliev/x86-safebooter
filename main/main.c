@@ -31,7 +31,7 @@
 #define CMD_BUFFER_MAX 0x20
 
 /* Command promt */
-#define CMD_PROMT_INVITE	" >> "
+#define CMD_PROMT_INVITE	">> "
 #define CMD_PARAM_SEP		" "
 #define CMD_CMD_SEP			";"
 
@@ -142,7 +142,11 @@ byte_t IMAGE_load_kernel_to_memory(byte_t *cmd_buffer)
 	}
 
 	if (image_type == 'R') {
+#ifdef CONFIG_RAW_IMAGES_ENABLED
 		res = image_load_raw(s, lba, size) == 0 ? ERR_CMD_OK : ERR_CMD_FAIL;
+#else
+		printf("No support of RAW images\n\r");
+#endif/*CONFIG_RAW_IMAGES_ENABLED*/
 	} else
 	if (image_type == 'S') {
 		res = image_load_sig(s, lba) == 0 ? ERR_CMD_OK : ERR_CMD_FAIL;
@@ -267,6 +271,7 @@ byte_t C_process_command(byte_t *cmd) {
 	byte_t cmd_buffer[CMD_BUFFER_MAX];
 	byte_t buffer[CMD_BUFFER_MAX];
 	byte_t *buf = 0;
+	byte_t *safe_buf = 0;
 
 	strcpy(cmd_buffer,cmd);
 	strtok(CMD_CMD_SEP,cmd_buffer);
@@ -279,7 +284,12 @@ byte_t C_process_command(byte_t *cmd) {
 		while (command->name) {
 			if (starts_from(buffer, command->name) ||
 				starts_from(buffer, command->alias) ) {
+
+				safe_buf = strtok(CMD_CMD_SEP,buf);
 				r = (*command->function)(buffer);
+				strtok(CMD_CMD_SEP,safe_buf);
+
+				break;
 			}
 			++command;
 		}
@@ -288,6 +298,8 @@ byte_t C_process_command(byte_t *cmd) {
 
 	return r;
 }
+
+#ifdef CONFIG_COMMAND_LINE_ENABLED
 
 /* Input loop callback */
 byte_t C_input(byte_t ascii) {
@@ -305,7 +317,7 @@ byte_t C_input(byte_t ascii) {
 			}				
 		}
 
-		print_current_time();
+		/*print_current_time();*/
 		puts(CMD_PROMT_INVITE);
 
 		/* Reset buffer */
@@ -324,6 +336,8 @@ byte_t C_input(byte_t ascii) {
 
 	return 0;
 }
+
+#endif//CONFIG_COMMAND_LINE_ENABLED
 
 /* Detect ATA */
 void detect_ata_drive(word_t bus, byte_t drive) {
@@ -396,15 +410,19 @@ void C_start(void *loader_descriptor_address, void *loader_code_address)
 	printf("Descriptor: %p\r\n", loader_descriptor_address);
 	printf("Code: %p\r\n", loader_code_address);
 	printf("Stack: %p\r\n", LOADER_STACK_ADDRESS);
+/*
 	printf("Loader sectors: %d\r\n", desc->loader_sectors_count);
-	printf("Kernel sectors: %d\r\n", desc->kernel_sectors_count);	
+	printf("Kernel sectors: %d\r\n", desc->kernel_sectors_count);
+*/
 
 	/* Detect ATA drives */
+/*
 	printf("Detect ATA devices:\r\n");
 	detect_ata_drive(ATA_BUS_PRIMARY, ATA_DRIVE_MASTER);
 	detect_ata_drive(ATA_BUS_PRIMARY, ATA_DRIVE_SLAVE);
 	detect_ata_drive(ATA_BUS_SECONDARY, ATA_DRIVE_MASTER);
 	detect_ata_drive(ATA_BUS_SECONDARY, ATA_DRIVE_SLAVE);
+*/
 
 	byte_t ctrl_break = 0;
 	//ssleep(10);
@@ -421,11 +439,14 @@ void C_start(void *loader_descriptor_address, void *loader_code_address)
 	}
 
 #ifdef CONFIG_CONSOLE_ENABLED
-	print_current_time();
+	/*print_current_time();*/
+#ifdef CONFIG_COMMAND_LINE_ENABLED
 	puts(CMD_PROMT_INVITE);
 	while (1) {
 		C_input(getc());
 	}
+#endif//CONFIG_COMMAND_LINE_ENABLED
+
 #endif//CONFIG_CONSOLE_ENABLED
 
 }

@@ -30,7 +30,6 @@ void dsa_sign(bch_p sha2, bch_p r, bch_p s, bch_random_p random) {
 	bch_p inv_res = 0;
 	do {
 		bch_random_gen(k,Q,random);
-		//inv_res = (bch_p)bch_inverse(k_inv,k,Q);
 		inv_res = (bch_p)bch_inverse_bin(k_inv,k,Q);
 	} while ( !inv_res );
 
@@ -96,14 +95,12 @@ int8_t dsa_check(bch_p sha2, bch_p r, bch_p s) {
     bch_p t1 =		bch_alloc(DSA_SIZE);
 
 	/* w = s^-1 mod Q*/
-    //bch_p inv_res = (bch_p)bch_inverse(w,s,Q);
 	bch_p inv_res = (bch_p)bch_inverse_bin(w,s,Q);
 	if (inv_res) {
 
 		/* u1 = (H(m) * w) mod Q*/
 		bch_copy(u1,w);
-		bch_mul(u1,sha2_w);
-		bch_mod(u1, Q);
+		bch_mulmod(u1,sha2_w,Q);
 
 		/* u2 = r * w mod Q */
 		bch_copy(u2,w);
