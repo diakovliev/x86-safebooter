@@ -25,6 +25,8 @@ void blowfish_decrypt_memory(void* buffer, uint32_t size) {
 	}
 }
 
+
+#if 0
 #include "sha2.h"
 
 void sha2_256(uint8_t *digest, void *buffer, uint32_t size) {
@@ -34,14 +36,12 @@ void sha2_256(uint8_t *digest, void *buffer, uint32_t size) {
 	SHA256_Final(digest, &ctx);
 }
 
-#if 0
 void sha2_348(uint8_t *digest, void *buffer, uint32_t size) {
 	SHA348_CTX ctx;
 	SHA348_Init(&ctx);
 	SHA348_Update(&ctx, buffer, size);
 	SHA348_Final(digest, &ctx);
 }
-#endif
 
 void sha2_512(uint8_t *digest, void *buffer, uint32_t size) {
 	SHA512_CTX ctx;
@@ -49,6 +49,7 @@ void sha2_512(uint8_t *digest, void *buffer, uint32_t size) {
 	SHA512_Update(&ctx, buffer, size);
 	SHA512_Final(digest, &ctx);
 }
+#endif
 
 #include "sha1.h"
 

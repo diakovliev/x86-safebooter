@@ -20,7 +20,7 @@ typedef struct loader_descriptor_s {
 	word_t magic;
 	byte_t version[3];
 	word_t loader_sectors_count;
-	word_t kernel_sectors_count;
+	word_t unused;
 	word_t loader_descriptor_sectors_count;
 } loader_descriptor_t;
 #pragma pack(pop)

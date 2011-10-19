@@ -39,7 +39,7 @@ HEADERS+=linux/jump_to_kernel.h
 HEADERS+=linux/image.h
 HEADERS+=crypt/blowfish.h
 HEADERS+=crypt/sha1.h
-HEADERS+=crypt/sha2.h
+#HEADERS+=crypt/sha2.h
 HEADERS+=crypt/bch.h
 HEADERS+=crypt/dsa.h
 HEADERS+=crypt/crypt.h
@@ -63,7 +63,7 @@ SOURCES+=crypt/blowfish.c
 SOURCES+=crypt/blowfish_key.S
 SOURCES+=crypt/xor_key.S
 SOURCES+=crypt/sha1.c
-SOURCES+=crypt/sha2.c
+#SOURCES+=crypt/sha2.c
 SOURCES+=crypt/bch.c
 SOURCES+=crypt/dsa.c
 SOURCES+=crypt/dsa_key.c
@@ -92,7 +92,7 @@ OBJECTS+=blowfish.o
 OBJECTS+=blowfish_key.o
 OBJECTS+=xor_key.o
 OBJECTS+=sha1.o
-OBJECTS+=sha2.o
+#OBJECTS+=sha2.o
 OBJECTS+=bch.o
 OBJECTS+=dsa.o
 OBJECTS+=dsa_key.o
@@ -123,15 +123,12 @@ default: qemu
 # Tools
 mkimg:
 	make -C ./tools -f mkimg.mk
-	
-./tools/xor: ./tools/xor.c ./tools/mbr_xor_key.S mbr_xor_key
-	(cd tools; gcc -g -O0 mbr_xor_key.S xor.c -o xor)
+
+xor:
+	make -C ./tools -f xor.mk
 
 # Geometry
 loader.img.size: loader.img
-	echo ".word `du --apparent-size -B512 $^ | cut -f 1`+1" > $@
-
-kernel.img.size: $(BZIMAGE)
 	echo ".word `du --apparent-size -B512 $^ | cut -f 1`+1" > $@
 
 loader_env.gen:loader_env
@@ -141,7 +138,7 @@ loader_descriptor.img.size: loader_env.gen
 	echo ".word `du --apparent-size -B512 $^ | cut -f 1`+1" > $@
 
 # Base objects
-mbr.o: $(BASE_HEADERS) ./tools/xor core/mbr.S mbr_xor_key
+mbr.o: $(BASE_HEADERS) xor core/mbr.S mbr_xor_key
 	$(GCC_CMD) $(BASE_HEADERS) core/mbr.S
 
 loader_start.o: core/loader_start.S $(BASE_HEADERS)
@@ -150,7 +147,7 @@ loader_start.o: core/loader_start.S $(BASE_HEADERS)
 gdt_table.o : core/gdt_table.S
 	$(GCC_CMD) $<
 
-loader_descriptor.o: core/loader_descriptor.S loader.img.size kernel.img.size loader_descriptor.img.size 
+loader_descriptor.o: core/loader_descriptor.S loader.img.size loader_descriptor.img.size 
 	$(GCC_CMD) $<
 
 # Objects
@@ -239,7 +236,7 @@ kernel.simg: ${BZIMAGE}
 
 #$(HDD_IMG): build
 $(HDD_IMG): build kernel.simg
-	dd if=/dev/zero 				of=$@ bs=$(DISK_SECTOR_SIZE) count=20808 && \
+	dd if=/dev/zero 				of=$@ bs=$(DISK_SECTOR_SIZE) count=208080 && \
 	dd if=mbr.img 					of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc && \
 	dd if=loader_descriptor.img 	of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc seek=${LOADER_DESCRIPTOR_LBA} && \
 	dd if=loader.img 				of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc seek=${LOADER_CODE_LBA} && \
@@ -258,6 +255,7 @@ qemu_gdb: ${HDD_IMG}
 	qemu $(QEMU_ARGS) $<
 	gdb $(GDB_ARGS)
 
+#qemu_serial: QEMU_ARGS=-serial stdio -nographic
 qemu_serial: QEMU_ARGS=-serial stdio
 qemu_serial: ${HDD_IMG}
 	qemu $(QEMU_ARGS) $<

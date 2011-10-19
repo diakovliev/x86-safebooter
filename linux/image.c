@@ -9,11 +9,14 @@
 #include <drivers/ata_driver.h>
 #include <crypt/dsa.h>
 
+static void *simg_end_address = 0;
+
 #ifdef CONFIG_RAW_IMAGES_ENABLED
 
 byte_t image_load_raw(blk_istream_p s, dword_t image_start, dword_t whole_image_sectors) {
 
 	word_t res = 0;
+	simg_end_address = 0;
 	blk_seek(image_start,s);
 
 	/* Load real mode kernel */
@@ -68,6 +71,9 @@ byte_t image_load_raw(blk_istream_p s, dword_t image_start, dword_t whole_image_
 		printf("FAIL (sectors_count: %d, res: %d)\r\n", sectors_count, res);
 		return -4;
 	}
+
+	simg_end_address = KERNEL_CODE_ADDRESS + (sectors_count * DISK_SECTOR_SIZE);
+
 	puts(" DONE\r\n");
 
 	return 0;
@@ -78,19 +84,22 @@ byte_t image_load_raw(blk_istream_p s, dword_t image_start, dword_t whole_image_
 byte_t image_load_simg_block(void *address, blk_istream_p s) {
 
 	byte_t res = 0;
+	simg_end_address = 0;
 	uint8_t processed_sha2[SHA2_SIZE/8];
 
 	/* Allocate start block */
-	void *start_block = malloc(DISK_SECTOR_SIZE);
+	void *start_block = malloc(DISK_SECTOR_SIZE);	
 	if (!start_block) {
 		puts("Unable to allocate start block buffer\n\r");
 		return 1;
 	}
+	void *start_block_orig = start_block;
 
 	/* Read start block */
 	res = blk_read(start_block,1,s);
 	if (res != 1) {
 		puts("Unable to read start block\n\r");
+		free(start_block_orig);
 		return 2;
 	}
 
@@ -101,7 +110,8 @@ byte_t image_load_simg_block(void *address, blk_istream_p s) {
 	start_block += sizeof(simg);
 	if (simg != 0x474D4953) {
 		puts("Wrong SIMG signature\n\r");
-		return 2;
+		free(start_block_orig);
+		return 3;
 	}
 #endif/*CONFIG_SIMG_SIGNATURE_ENABLED*/
 
@@ -132,7 +142,8 @@ byte_t image_load_simg_block(void *address, blk_istream_p s) {
    	res = dsa_check(bch_sha2, dsa_r, dsa_s);
    	if (res) {
    		puts("Wrong digital signature\n\r");
-   		return 2;
+		free(start_block_orig);
+   		return 4;
    	}
 
    	/* Decrypt buffer */
@@ -140,9 +151,13 @@ byte_t image_load_simg_block(void *address, blk_istream_p s) {
    	blowfish_decrypt_memory(address+res,size);
    	xor_encrypt_memory(address+res,size);
 
+	simg_end_address = address + res + size;
+
    	dsa_free(bch_sha2);
 	dsa_free(dsa_r);
 	dsa_free(dsa_s);
+	
+	free(start_block_orig);
 
 	return 0;
 }
@@ -165,6 +180,11 @@ byte_t image_load_sig(blk_istream_p s, dword_t image_start) {
 
 void image_boot(loader_descriptor_p desc) {
 
+	if (simg_end_address == 0) {
+		printf("The kernel image not loaded.\n\r");
+		return;
+	}
+
 	kernel_header_p kernel_header = (kernel_header_p)GET_KERNEL_HEADER_ADDRESS(KERNEL_REAL_CODE_ADDRESS);
 
 	dword_t heap_end = 0;
@@ -180,10 +200,12 @@ void image_boot(loader_descriptor_p desc) {
 		/* Place command line just above loader code */
 		if ( kernel_header->version >= 0x0202 && kernel_header->loadflags & 0x01 )
 			//heap_end = 0xe000;
-			heap_end = LOADER_CODE_ADDRESS + (desc->loader_sectors_count * DISK_SECTOR_SIZE);
+			//heap_end = LOADER_CODE_ADDRESS + (desc->loader_sectors_count * DISK_SECTOR_SIZE);
+			heap_end = simg_end_address;
 		else
 			//heap_end = 0x9800;
-			heap_end = LOADER_CODE_ADDRESS + (desc->loader_sectors_count * DISK_SECTOR_SIZE);
+			//heap_end = LOADER_CODE_ADDRESS + (desc->loader_sectors_count * DISK_SECTOR_SIZE);
+			heap_end = simg_end_address;
 
 		//printf("heap_end: 0x%X\r\n", heap_end);
 

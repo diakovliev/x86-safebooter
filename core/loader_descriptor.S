@@ -10,8 +10,8 @@ loader_version:
 .byte VER_MAJ,VER_MID,VER_MIN
 loader_sectors_count:
 .include "loader.img.size"
-kernel_sectors_count:
-.include "kernel.img.size"
+unused:
+.word 0
 loader_descriptor_sectors_count:
 .include "loader_descriptor.img.size"
 

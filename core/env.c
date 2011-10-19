@@ -111,20 +111,25 @@ void env_set(byte_t *name, byte_t *value) {
 		var->name = malloc(strlen(name)+1);
 		if (var->name) strcpy(var->name,name);
 	}
+	if (var->value) free(var->value);
 	var->value = malloc(strlen(value)+1);
 	if (var->value) strcpy(var->value,value);
 }
 
 void env_print(void) {
+	size_t count = 0;
 	envvar_p var = envlist;
 	printf("================ Environment variables ================\n\r");
 	while (var) {
-		if (var->name)
-			printf("%s:", var->name);
-		if (var->value)
-			printf("\t%s", var->value);
-		printf("\n\r");
-		var = var->next;
+		if (var->name) {
+			printf("\t%s:", var->name);
+			if (var->value)
+				printf("\t%s", var->value);
+			++count;
+			printf("\n\r");
+		}
+		var = var->next;		
 	}
+	printf("%d items\n\r", count);
 	printf("=======================================================\n\r");
 }

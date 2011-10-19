@@ -9,5 +9,5 @@ IMAGE_0=S:1F0:A0:C8
 APPEND=console\=ttyS0,115200 vga\=0x318
 #APPEND=vga\=0x318
 # Startup commands
-#STARTUP=printenv
-STARTUP=l 0;b
+STARTUP=printenv
+#STARTUP=l 0;b

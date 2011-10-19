@@ -21,11 +21,13 @@
 #include <drivers/ata_driver.h>
 #include <drivers/serial_driver.h>
 
-/* TODO: Move to command processor header */
-#define ERR_CMD_OK				0
-#define ERR_CMD_FAIL			ERR_CMD_OK+1
-#define ERR_CMD_NOT_SUPPORTED	ERR_CMD_OK+2
-#define ERR_CMD_BAD_PARAMS		ERR_CMD_OK+3
+/* forward declarations */
+byte_t IMAGE_load_kernel_to_memory(byte_t *cmd_buffer);
+byte_t IMAGE_boot(byte_t *cmd_buffer);
+byte_t TOOLS_display_memory(byte_t *cmd_buffer);
+byte_t TOOLS_help(byte_t *cmd_buffer);
+byte_t TOOLS_heap_info(byte_t *cmd_buffer);
+byte_t TOOLS_print_env(byte_t *cmd_buffer);
 
 /* Max command identifier size */
 #define CMD_BUFFER_MAX 0x20
@@ -46,13 +48,17 @@ typedef struct cmd_command_s {
 	byte_t (*function)(byte_t *);
 } cmd_command_t;
 
-/* forward declarations */
-byte_t IMAGE_load_kernel_to_memory(byte_t *cmd_buffer);
-byte_t IMAGE_boot(byte_t *cmd_buffer);
-byte_t TOOLS_display_memory(byte_t *cmd_buffer);
-byte_t TOOLS_help(byte_t *cmd_buffer);
-byte_t TOOLS_heap_info(byte_t *cmd_buffer);
-byte_t TOOLS_print_env(byte_t *cmd_buffer);
+/* Errors */
+static byte_p errors[] = {
+#define ERR_CMD_OK				0
+	[ERR_CMD_OK]			= "OK",
+#define ERR_CMD_FAIL			ERR_CMD_OK+1
+	[ERR_CMD_FAIL]			= "FAIL",
+#define ERR_CMD_NOT_SUPPORTED	ERR_CMD_OK+2
+	[ERR_CMD_NOT_SUPPORTED]	= "UNKNOWN COMMAND",
+#define ERR_CMD_BAD_PARAMS		ERR_CMD_OK+3
+	[ERR_CMD_BAD_PARAMS]	= "BAD COMMAND PARAMETERS",
+};
 
 /* Registered commands */
 static cmd_command_t commands[] = {
@@ -104,41 +110,41 @@ byte_t IMAGE_load_kernel_to_memory(byte_t *cmd_buffer)
 	byte_p type_s = strtok(":", 0);
 	if (!type_s) {
 		printf("Wrong environment variable \"%s\" format\n\r", env_name);
-		return res;
+		goto finish;
 	}
 	byte_t image_type = *type_s;
 	if (image_type != 'R' && image_type != 'S') {
 		printf("Wrong environment variable \"%s\" format\n\r", env_name);
-		return res;
+		goto finish;
 	}
 	byte_p bus_s = strtok(":", 0);
 	if (!bus_s) {
 		printf("Wrong environment variable \"%s\" format\n\r", env_name);
-		return res;
+		goto finish;
 	}
 	word_t bus = atol(bus_s,16);
 	byte_p drive_s = strtok(":", 0);
 	if (!drive_s) {
 		printf("Wrong environment variable \"%s\" format\n\r", env_name);
-		return res;
+		goto finish;
 	}
 	word_t drive = atol(drive_s,16);
 	byte_p lba_s = strtok(":", 0);
 	if (!lba_s) {
 		printf("Wrong environment variable \"%s\" format\n\r", env_name);
-		return res;
+		goto finish;
 	}
 	dword_t lba = atol(lba_s,16);
 	byte_p size_s = strtok(":", 0);
 	if (!size_s && *type_s == 'R') {
 		printf("Wrong environment variable \"%s\" format\n\r", env_name);
-		return res;
+		goto finish;
 	}
 	dword_t size = atol(size_s,16);
 	blk_istream_p s = ata_blk_stream_open(bus,drive,lba);
 	if (!s) {
 		printf("Unable to open input stream\n\r");
-		return res;
+		goto finish;
 	}
 
 	if (image_type == 'R') {
@@ -150,11 +156,12 @@ byte_t IMAGE_load_kernel_to_memory(byte_t *cmd_buffer)
 	} else
 	if (image_type == 'S') {
 		res = image_load_sig(s, lba) == 0 ? ERR_CMD_OK : ERR_CMD_FAIL;
-		return res;
 	}
 
-	free(env_s);
 	ata_blk_stream_close(s);
+
+finish:
+	free(env_s);
 	return res;
 }
 
@@ -313,7 +320,8 @@ byte_t C_input(byte_t ascii) {
 			byte_t res = C_process_command(cmd_buffer);
 			if (res) {
 				// TODO: Out symbolic error code 
-				printf("Command error: %x\n\rType 'help' for list available commands\r\n", res);
+				printf("Command error: %s\r\n", errors[res]);
+				//printf("Command error: %x\n\rType 'help' for list available commands\r\n", res);
 			}				
 		}
 
@@ -340,6 +348,7 @@ byte_t C_input(byte_t ascii) {
 #endif//CONFIG_COMMAND_LINE_ENABLED
 
 /* Detect ATA */
+/*
 void detect_ata_drive(word_t bus, byte_t drive) {
 
 	printf("ATA(%x:%x) - ", bus, drive);
@@ -366,6 +375,7 @@ void detect_ata_drive(word_t bus, byte_t drive) {
 
 	puts("\r\n");
 }
+*/
 
 /* Console init code */
 void console_initialize(void) {

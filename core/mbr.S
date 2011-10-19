@@ -19,26 +19,6 @@ NOTES:
 #define MSG(x)
 #endif/*__DEBUG_MBR__*/
 
-#ifdef __DEBUG_MBR__
-/* Message output routes */
-#define PRINT_IMPL	\
-print_char:;	\
-	movb $0x0E,%ah;	\
-	movb $0x00,%bh;	\
-	movb $0x07,%bl;	\
-	int $0x10;	\
-	ret;	\
-print_string:;	\
-	mov (%si),%al; \
-	inc %si;	\
-	or %al,%al; \
-	jz print_screen_exit_function; \
-	call print_char; \
-	jmp print_string; \
-print_screen_exit_function:; \
-	ret
-#endif/*__DEBUG_MBR__*/
-
 .file "mbr.S"
 
 .text
@@ -153,11 +133,26 @@ loader_code_loaded:
 
 loader_start:
 	MSG(string_jump)
-    movw $LOADER_CODE_ADDRESS,%ax
-    jmpw *%ax
+    mov $LOADER_CODE_ADDRESS,%eax
+    jmp *%eax
 
 #ifdef __DEBUG_MBR__
-PRINT_IMPL
+print_char:
+	movb $0x0E,%ah
+	movb $0x00,%bh
+	movb $0x07,%bl
+	int $0x10
+	ret
+print_string:
+	mov (%si),%al
+	inc %si
+	or %al,%al
+	jz print_screen_exit_function
+	call print_char
+	jmp print_string
+print_screen_exit_function:
+	ret
+
 #endif/*__DEBUG_MBR__*/
 
 /* %ax - buffer */
@@ -224,7 +219,7 @@ string_descriptor:	.string "D"
 string_code:		.string "C"
 string_fail:		.string "F"
 string_ok:			.string "O"
-string_jump:		.string "J\n\r"
+string_jump:		.string "J"
 #endif/*__DEBUG_MBR__*/
 
 loader_sectors_count:	.byte 0x00
@@ -238,17 +233,21 @@ reserved: 					.byte 0,0
 
 /* Using GUID partitoinal table for me. So I need one entry */
 /* Partition 1 */
+
+#if 0
 partition1_status:			.byte 0x80		/* Active */
 partition1_chs_start:		.byte 0x00,0x01,0x01		
 											/* Not used by me */
 partition1_type:			.byte 0xEE		/* EFI partition */
 partition1_chs_end:			.byte 0x00,0x01,0x01		
 											/* Not used by me */
-partition1_lba_start:		.byte 0x3E,0x00,0x00,0x00	
+partition1_lba_start:		.byte 0x00,0xA0,0x00,0x00	
 											/* Start LBA address */
-partition1_lba_sector_cnt:	.byte 0x2A,0x50,0x00,0x00	
+partition1_lba_sector_cnt:	.byte 0x00,0x90,0x01,0x00	
 											/* !!! Shall be filled during installation !!! */
-	. = _start + 510
+#endif
+
+. = _start + 510
 /* MBR signature */
 .byte 0x55,0xAA
-
+. = _start + 512
