@@ -85,23 +85,24 @@ void va_printf(console_base_p console, const byte_t *fmt, va_list ap)
 {
 	/* Supported %s, %c, %o, %i, %d, %x, %X, %p, %lo, %li, %ld, %lx, %lX, %pwith fill and width */
 
-
 	const byte_t *s = 0;
 	long d = 0;
 
 	byte_t fill = ' ';
 	byte_t width = 0;
-	byte_t fill_flag = 0;
-	byte_t long_flag = 0;
-	byte_t wc, ilen;
+
+	byte_t flags = 0;
+#define FILL_FLAG 0x01
+#define LONG_FLAG 0x02
 
 	byte_t c;
 	while (c = *fmt++) {
 
 #define OUT_NUMERIC(type,base) \
 	{ \
+		byte_t wc, ilen; \
 		d = va_arg(ap, type); \
-		if (fill_flag) { \
+		if (flags & FILL_FLAG) { \
 			wc = 0; \
 			ilen = strilen(d,base); \
 			while (wc+ilen < width) { \
@@ -110,14 +111,13 @@ void va_printf(console_base_p console, const byte_t *fmt, va_list ap)
 			} \
 		} \
 		console_puts(console,itoa(d,base)); \
-		long_flag = 0; \
-		fill_flag = 0; \
+		flags = 0; \
 	}
 
-		if (c == '%' || fill_flag) {
+		if (c == '%' || flags) {
 			c = *fmt++;
 			if (c == 'l') {
-				long_flag	= 1;
+				flags	|=  LONG_FLAG;
 				c = *fmt++;
 			}
 
@@ -127,23 +127,21 @@ void va_printf(console_base_p console, const byte_t *fmt, va_list ap)
 				{
 					s = va_arg(ap, const byte_t *);
 					if (s) console_puts(console,s);
-					fill_flag	= 0;
-					long_flag	= 0;
+					flags = 0;
 				}
 			break;
 			case 'c':
 				{
 					c = va_arg(ap, int);
 					console_putc(console,c);
-					fill_flag	= 0;
-					long_flag	= 0;
+					flags = 0;
 				}
 			break;
 			/* Fill + Width */
 			case 'p':
 				{
-					if (!fill_flag) {
-						fill_flag	= 1;
+					if (! (flags & FILL_FLAG) ) {
+						flags		|= FILL_FLAG;
 						fill		= '0';
 						width		= 8;
 					}
@@ -152,45 +150,44 @@ void va_printf(console_base_p console, const byte_t *fmt, va_list ap)
 			case 'X':
 			case 'x':
 				{
-					if (!long_flag) {
-						OUT_NUMERIC(int,16)
+					if (flags & LONG_FLAG) {
+						OUT_NUMERIC(long,16)
 					}
 					else {
-						OUT_NUMERIC(long,16)
+						OUT_NUMERIC(int,16)
 					}
 				}
 			break;
 			case 'o':
 				{
-					if (!long_flag) {
-						OUT_NUMERIC(int,8)
+					if (flags & LONG_FLAG) {
+						OUT_NUMERIC(long,8)
 					}
 					else {
-						OUT_NUMERIC(long,8)
+						OUT_NUMERIC(int,8)
 					}
 				}
 			break;
 			case 'i':
 			case 'd':
 				{
-					if (!long_flag) {
-						OUT_NUMERIC(int,10)
+					if (flags & LONG_FLAG) {
+						OUT_NUMERIC(long,10)
 					}
 					else {
-						OUT_NUMERIC(long,10)
+						OUT_NUMERIC(int,10)
 					}
 				}
 			break;
 			default:
-				if (!fill_flag) {
-					fill		= c;
-					width		= xnumber(*fmt, 16);
-					fill_flag	= 1;
+				if (flags & FILL_FLAG) {
+					console_putc(console,c);
+					flags = 0;
 				}
 				else {
-					console_putc(console,c);
-					fill_flag	= 0;
-					long_flag	= 0;
+					fill		= c;
+					width		= xnumber(*fmt, 16);
+					flags		|= FILL_FLAG;
 				}
 			}
 		}

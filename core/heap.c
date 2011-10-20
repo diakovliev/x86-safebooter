@@ -12,7 +12,7 @@
 #define HEAP_MIN(x,y) (x)<(y)?(x):(y)
 #endif//HEAP_MIN
 
-//#define CALCULATE_HEAP_STATISTIC
+#define CALCULATE_HEAP_STATISTIC
 
 /* Heap item */
 typedef struct heap_node_s {
