@@ -11,8 +11,6 @@ struct heap_s {
 	void (*dump_heap_info)(void *ctx);
 } heap, heap_p;
 
-//heap_p heap_init(void *heap_start, size_t heap_size);
-
 void heap_init(void *heap_start, size_t heap_size);
 
 void *malloc(size_t size);

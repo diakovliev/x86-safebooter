@@ -206,6 +206,7 @@ clean:
 	make -C ./tools -f mkimg.mk clean
 	rm -f ${HDD_IMG}
 	rm -f ./drivers/*.gch
+	rm -f ./core/*.gch
 	rm -f *.gch
 	rm -f *.gen
 	rm -f *.gen.h
