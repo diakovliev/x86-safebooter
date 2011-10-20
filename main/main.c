@@ -1,6 +1,6 @@
 //
 // This file is part of project
-// "x86 ssloader" (c) Dmytro Iakovliev 2010
+// "32bit secured bootloader" (c) Dmytro Iakovliev 2010
 //
 
 #include <loader.h>
@@ -319,9 +319,7 @@ byte_t C_input(byte_t ascii) {
 		if ( pos != cmd_buffer ) {
 			byte_t res = C_process_command(cmd_buffer);
 			if (res) {
-				// TODO: Out symbolic error code 
 				printf("Command error: %s\r\n", errors[res]);
-				//printf("Command error: %x\n\rType 'help' for list available commands\r\n", res);
 			}				
 		}
 
@@ -346,36 +344,6 @@ byte_t C_input(byte_t ascii) {
 }
 
 #endif//CONFIG_COMMAND_LINE_ENABLED
-
-/* Detect ATA */
-/*
-void detect_ata_drive(word_t bus, byte_t drive) {
-
-	printf("ATA(%x:%x) - ", bus, drive);
-
-	switch (ata_identify_device(bus,drive)) {
-	case ATADEV_NONE:
-		puts("none");
-		break;
-	case ATADEV_PATA:
-		puts("PATA");
-		break;
-	case ATADEV_SATA:
-		puts("SATA");
-		break;
-	case ATADEV_PATAPI:
-		puts("PATAPI");
-		break;
-	case ATADEV_SATAPI:
-		puts("SATAPI");
-		break;
-	default:
-		puts("Unknown");
-	}
-
-	puts("\r\n");
-}
-*/
 
 /* Console init code */
 void console_initialize(void) {
@@ -411,7 +379,7 @@ void C_start(void *loader_descriptor_address, void *loader_code_address)
 	console_initialize();
 
 	/* Out information and command promt */
-	printf("32bit SS loader v%d.%d.%d (c)daemondzk@gmail.com\r\n", 
+	printf("32bit secured bootloader v%d.%d.%d (c)daemondzk@gmail.com\r\n", 
 		desc->version[0], 
 		desc->version[1],
 		desc->version[2]);
@@ -420,19 +388,6 @@ void C_start(void *loader_descriptor_address, void *loader_code_address)
 	printf("Descriptor: %p\r\n", loader_descriptor_address);
 	printf("Code: %p\r\n", loader_code_address);
 	printf("Stack: %p\r\n", LOADER_STACK_ADDRESS);
-/*
-	printf("Loader sectors: %d\r\n", desc->loader_sectors_count);
-	printf("Kernel sectors: %d\r\n", desc->kernel_sectors_count);
-*/
-
-	/* Detect ATA drives */
-/*
-	printf("Detect ATA devices:\r\n");
-	detect_ata_drive(ATA_BUS_PRIMARY, ATA_DRIVE_MASTER);
-	detect_ata_drive(ATA_BUS_PRIMARY, ATA_DRIVE_SLAVE);
-	detect_ata_drive(ATA_BUS_SECONDARY, ATA_DRIVE_MASTER);
-	detect_ata_drive(ATA_BUS_SECONDARY, ATA_DRIVE_SLAVE);
-*/
 
 	byte_t ctrl_break = 0;
 	//ssleep(10);
@@ -444,7 +399,7 @@ void C_start(void *loader_descriptor_address, void *loader_code_address)
 		byte_t res = C_process_command(startup);
 		if (res) {
 			// TODO: Out symbolic error code
-			printf("STARTUP commands error: %x\n\r", res);
+			printf("STARTUP commands error: %s\n\r", errors[res]);
 		}
 	}
 
