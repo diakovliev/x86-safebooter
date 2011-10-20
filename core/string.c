@@ -2,14 +2,14 @@
 
 /* Base string utils */
 
-word_t STRING_H(strlen) (const byte_p s) {
+word_t strlen(const byte_p s) {
 	word_t r = 0;
 	byte_p w = (byte_p)s;
 	while( *w++ ) ++r;
 	return r;
 }
 
-byte_t STRING_H(strncmp) (byte_t *s0, byte_t *s1, word_t n) {
+byte_t strncmp(byte_t *s0, byte_t *s1, word_t n) {
 	byte_t r = 0;
 	word_t cnt = 0;
 	while ( (*s0 || *s1) && !(r = *s0-*s1) && cnt < n-1 ) {
@@ -18,7 +18,7 @@ byte_t STRING_H(strncmp) (byte_t *s0, byte_t *s1, word_t n) {
 	return r;
 }
 
-byte_t STRING_H(strcmp) (byte_t *s0, byte_t *s1) {
+byte_t strcmp(byte_t *s0, byte_t *s1) {
 	byte_t r = 0;
 	while ( (*s0 || *s1) && !(r = *s0-*s1) ) {
 		++s0, ++s1;
@@ -26,7 +26,7 @@ byte_t STRING_H(strcmp) (byte_t *s0, byte_t *s1) {
 	return r;
 }
 
-byte_t STRING_H(starts_from) (byte_t *s0, byte_t *s1) {
+byte_t starts_from(byte_t *s0, byte_t *s1) {
 	byte_t r = 0;
 	while ( *s0 && *s1 && !(r = *s0-*s1) ) {
 		++s0, ++s1;
@@ -34,7 +34,7 @@ byte_t STRING_H(starts_from) (byte_t *s0, byte_t *s1) {
 	return (!*s1 && !r) ? 1 : 0;
 }
 
-word_t STRING_H(memcpy) (void *dst, void *src, word_t sz) {
+word_t memcpy(void *dst, void *src, word_t sz) {
 	word_t cnt = 0;
 	while(cnt < sz) {
 		((byte_t*)dst)[cnt] = ((byte_t*)src)[cnt++];
@@ -42,7 +42,7 @@ word_t STRING_H(memcpy) (void *dst, void *src, word_t sz) {
 	return cnt;
 }
 
-word_t STRING_H(memset) (void *dst, byte_t src, word_t sz) {
+word_t memset(void *dst, byte_t src, word_t sz) {
 	word_t cnt = 0;
 	while(cnt < sz) {
 		((byte_t*)dst)[cnt++] = src;
@@ -50,14 +50,14 @@ word_t STRING_H(memset) (void *dst, byte_t src, word_t sz) {
 	return cnt;
 }
 
-word_t STRING_H(strcpy) (byte_t *dst, byte_t *src) {
-	word_t sz = STRING_H(strlen) (src) + 1;
-	word_t res = STRING_H(memcpy) (dst,src,sz);
+word_t strcpy(byte_t *dst, byte_t *src) {
+	word_t sz = strlen(src) + 1;
+	word_t res = memcpy(dst,src,sz);
 	dst[sz] = 0;
 	return res;
 }
 
-byte_t *STRING_H(strtok) (byte_t *sep, byte_t *str) {
+byte_t *strtok(byte_t *sep, byte_t *str) {
 	static byte_t *buf = 0;
 	if (str) {
 		byte_t *old_buf = buf;
@@ -84,7 +84,7 @@ byte_t *STRING_H(strtok) (byte_t *sep, byte_t *str) {
 }
 
 
-byte_t *STRING_H(strltrim) (byte_t *trim, byte_t *str) {
+byte_t *strltrim(byte_t *trim, byte_t *str) {
 	byte_t *res = str;
 	byte_t *trim_p = trim;
 
@@ -102,7 +102,7 @@ byte_t *STRING_H(strltrim) (byte_t *trim, byte_t *str) {
 }
 
 /* !!! Modify buffer s !!! */
-void STRING_H(strrev) (byte_t *s, word_t ln) {
+void strrev(byte_t *s, word_t ln) {
 	word_t i;
 	byte_t c;
 	for (i = 0; i < ln/2; i++) {
@@ -112,7 +112,7 @@ void STRING_H(strrev) (byte_t *s, word_t ln) {
 	}
 }
 
-char STRING_H(xnumber) (byte_t ch, byte_t base) {
+char xnumber(byte_t ch, byte_t base) {
 	if (ch >= 0x30 && ch <= 0x39) /* 0..9 */
 		return (ch - 0x30);
 	else
@@ -125,19 +125,19 @@ char STRING_H(xnumber) (byte_t ch, byte_t base) {
 		return -1;
 }
 
-unsigned long STRING_H(atol) (byte_t *str, byte_t base) {
+unsigned long atol(byte_t *str, byte_t base) {
 
 	unsigned long r = 0;
 
-	while (STRING_H(xnumber) (*str,base) >= 0) {
-		r += STRING_H(xnumber) (*str++,base);
+	while (xnumber(*str,base) >= 0) {
+		r += xnumber(*str++,base);
 		r *= base;
 	}
 
 	return r/base;
 }
 
-byte_t *STRING_H(itoa) (long value, byte_t base) {
+byte_t *itoa(long value, byte_t base) {
 	/* max is 128-bit binary value with sign */
 	static byte_t res[129];
 	byte_t *buf = res;
@@ -154,6 +154,6 @@ byte_t *STRING_H(itoa) (long value, byte_t base) {
 		*buf++ = ch;
 	} while (v);
 	*buf++ = 0;
-	STRING_H(strrev) (res, buf-res-1);
+	strrev(res, buf-res-1);
 	return res;
 }
