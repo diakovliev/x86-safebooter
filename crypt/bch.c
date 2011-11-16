@@ -8,6 +8,9 @@
 #include "bch.h"
 
 #include <stdio.h>
+#include <string.h>
+#include <stdarg.h>
+
 #ifdef __HOST_COMPILE__
 #include <stdlib.h>
 #include <assert.h>
@@ -15,10 +18,7 @@
 #define assert(x)
 #endif
 
-#include <string.h>
-
 /* compiler built-in for va_args */
-#include <stdarg.h>
 
 /********************************************************************************************************
  * Memory trace
@@ -302,22 +302,32 @@ int32_t bch_bexp(bch_p op) {
 			break;
 		}
 	} while (i-- > 0);
+
+	/* Binary search */
 	i = 0;
-	if (v) {
-		i = 8;
-		bch_data mask = 0x80;
-		while (! (v & mask) ) {
-			i--;
-			mask >>= 1;
+	if (v & 0xF0) {
+		if (v & 0xC0) {
+			i = v & 0x80 ? 8 : 7;
+		} else {
+			i = v & 0x20 ? 6 : 5;
 		}
 	}
+	else if (v & 0x0F) {
+		if (v & 0x0C) {
+			i = v & 0x08 ? 4 : 3;
+		} else {
+			i = v & 0x02 ? 2 : 1;
+		}
+	}
+
 	return res + i;
 }
 
 void
 bch_add_arr(
 	bch_data_p dst, bch_size dst_size,
-	bch_data_p add, bch_size add_size
+	bch_data_p add, bch_size add_size,
+	char sub
 	)
 {
 	/*
@@ -343,11 +353,12 @@ bch_add_arr(
 	*/
 
 	bch_size i, loop_cnt;
-	uint32_t v = 0;
+	uint32_t v = sub ? 1 : 0;
 
 	loop_cnt = ((BCH_MIN(dst_size,add_size)/2)+1)*2;
 	for (i = 0; i < loop_cnt && i < dst_size; i += 2) {
-		v += *(uint16_t*)(dst+i) + *(uint16_t*)(add+i);
+		uint16_t a = sub ? (*(uint16_t*)(add+i)) ^ 0xFFFF : *(uint16_t*)(add+i);
+		v += *(uint16_t*)(dst+i) + a;
 		*(uint16_t*)(dst+i) = v & 0xFFFF;
 		v -= *(uint16_t*)(dst+i);
 		v >>= 16;
@@ -366,45 +377,10 @@ bch_add_arr(
 
 bch_p bch_add(bch_p dst, bch_p add) {
 
-	assert(dst != 0);
-	assert(add != 0);
+	assert(dst);
+	assert(add);
 
-	bch_add_arr(dst->data,dst->size, add->data, add->size);
-
-	return dst;
-}
-
-bch_p bch_add_s(bch_p dst, bch_data add) {
-	/*
-	bch_data2x v = add;
-
-	assert(dst != 0);
-
-	int i = 0;
-	do {
-		if (i < dst->size) {
-			v += dst->data[i];
-			dst->data[i] = v & 0xFF;
-		}
-		v -= v & 0xFF;
-		v >>= 8;
-	} while (v && i++ < dst->size);
-	*/
-	uint32_t v = add;
-
-	assert(dst != 0);
-
-	bch_size i = 0;
-	do {
-		if (i < dst->size) {
-			v += *(uint16_t*)(dst->data+i);
-			*(uint16_t*)(dst->data+i) = v & 0xFFFF;
-			v -= *(uint16_t*)(dst->data+i);
-			v >>= 16;
-		}
-		else break;
-		i += 2;
-	} while (v);
+	bch_add_arr(dst->data,dst->size, add->data, add->size, 0);
 
 	return dst;
 }
@@ -414,12 +390,25 @@ bch_p bch_sub(bch_p dst, bch_p sub) {
 	assert(dst);
 	assert(sub);
 
-	bch_p add = bch_negate(bch_clone(sub));
+	bch_add_arr(dst->data,dst->size, sub->data, sub->size, 1);
 
-	assert(add);
+	return dst;
+}
 
-	bch_add(dst,add);
-	bch_free(add);
+bch_p bch_add_s(bch_p dst, bch_data add) {
+	uint32_t v = add;
+
+	assert(dst != 0);
+
+	bch_size i = 0;
+	while (v && i < dst->size) {
+		v += *(uint16_t*)(dst->data+i);
+		*(uint16_t*)(dst->data+i) = v & 0xFFFF;
+		v -= *(uint16_t*)(dst->data+i);
+		v >>= 16;
+		i += 2;
+	}
+
 	return dst;
 }
 
@@ -428,14 +417,11 @@ bch_p bch_negate(bch_p op) {
 
 	assert(op != 0);
 
-//	for (i = 0; i < op->size; ++i) {
-//		op->data[i] ^= 0xFF;
-//	}
 	for (i = 0; i < op->size; i += 4) {
 		*(uint32_t*)(op->data + i) ^= 0xFFFFFFFF;
 	}
-
 	bch_add_s(op,1);
+
 	return op;
 }
 
@@ -994,11 +980,15 @@ void bch_div_mod(bch_p r, bch_p m, bch_p divided, bch_p divider) {
 	int32_t exp = (divided_exp-divider_exp);
 	bch_p sub = bch_alloc(divided_->size);
 
-	bch_copy(sub, divider_);
-	bch_bit_shl(sub, exp);
-
 	int32_t m_exp = 0;
 	int32_t sub_exp = 0;
+	int32_t shift = 0;
+
+	bch_copy(sub, divider_);
+	bch_bit_shl(sub, exp);
+	sub_exp = bch_bexp(sub);
+/*	m_exp = bch_bexp(m_);*/
+	m_exp = sub_exp;
 
 	while(exp >= 0) {
 
@@ -1010,19 +1000,13 @@ void bch_div_mod(bch_p r, bch_p m, bch_p divided, bch_p divider) {
 			}
 
 			m_exp = bch_bexp(m_);
-			sub_exp = bch_bexp(sub);
 		}
 
-		if (sub_exp >= 0 && m_exp >= 0 && BCH_ABS(sub_exp - m_exp) > 0) {
-			bch_bit_shr(sub, BCH_ABS(sub_exp - m_exp));
-			exp -= BCH_ABS(sub_exp - m_exp);
-			sub_exp = 0;
-			m_exp = 0;
-		}
-		else {
-			bch_bit_shr(sub, 1);
-			exp -= 1;
-		}
+		shift = (sub_exp > 0 && m_exp > 0 && (BCH_ABS(sub_exp-m_exp) > 0)) 
+			? BCH_ABS(sub_exp - m_exp) : 1;
+		bch_bit_shr(sub, shift);
+		exp 	-= shift;
+		sub_exp	-= shift;
 
 	}
 
@@ -1435,6 +1419,3 @@ out:
 	return x;
 }
 
-/********************************************************************************************************
- * Test code
- ********************************************************************************************************/

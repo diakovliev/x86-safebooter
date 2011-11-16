@@ -101,9 +101,9 @@ static byte_t ata_read_sectors_internal(word_t bus, byte_t drive, void *buffer, 
 			"movl %2,%%edx\n"
 			"cld\n"
 			"rep insw"
-			: /*no output*/
-			: "g" (DISK_SECTOR_SIZE/2), "g" (buffer+(i*DISK_SECTOR_SIZE)), "g" (ATA_DATA_PORT(bus))
-			: "ecx", "edi", "edx"
+		: /*no output*/
+		: "g" (DISK_SECTOR_SIZE/2), "g" (buffer+(i*DISK_SECTOR_SIZE)), "g" (ATA_DATA_PORT(bus))
+		: "ecx", "edi", "edx"
 		);
 
 		do {

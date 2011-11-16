@@ -7,6 +7,7 @@
 word_t strlen(const byte_p s);
 byte_t strncmp(byte_t *s0, byte_t *s1, word_t n);
 byte_t strcmp(byte_t *s0, byte_t *s1);
+byte_t memcmp(byte_t *p0, byte_t *p1, size_t len);
 byte_t starts_from(byte_t *s0, byte_t *s1);
 word_t memcpy(void *dst, void *src, word_t sz);
 word_t memset(void *dst, byte_t src, word_t sz);

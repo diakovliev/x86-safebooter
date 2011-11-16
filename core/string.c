@@ -26,6 +26,16 @@ byte_t strcmp(byte_t *s0, byte_t *s1) {
 	return r;
 }
 
+byte_t memcmp(byte_t *p0, byte_t *p1, size_t len)
+{
+	byte_t r = 0;
+	size_t l = 0;
+	while ( r = *p0-*p1 && len > l ) {
+		++p0, ++p1, ++l;
+	}
+	return r;
+}
+
 byte_t starts_from(byte_t *s0, byte_t *s1) {
 	byte_t r = 0;
 	while ( *s0 && *s1 && !(r = *s0-*s1) ) {

@@ -25,9 +25,9 @@ extern unsigned int dsa_G_size;
 #define SHA2_func sha1
 
 #ifdef __HOST_COMPILE__
-void dsa_sign(bch_p sha2, bch_p r, bch_p s, bch_random_p random);
+void dsa_sign(bch_p H, bch_p r, bch_p s, bch_random_p random);
 #endif/*__HOST_COMPILE__*/
-int8_t dsa_check(bch_p sha2, bch_p r, bch_p s);
+int8_t dsa_check(bch_p H, bch_p r, bch_p s);
 
 void dsa_init(void);
 

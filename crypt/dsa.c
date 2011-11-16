@@ -1,7 +1,7 @@
 #include "dsa.h"
 
 #ifdef __HOST_COMPILE__
-void dsa_sign(bch_p sha2, bch_p r, bch_p s, bch_random_p random) {
+void dsa_sign(bch_p H, bch_p r, bch_p s, bch_random_p random) {
 
 	/* Alloc numbers */
 	bch_p k =		bch_alloc(DSA_SIZE);
@@ -10,21 +10,7 @@ void dsa_sign(bch_p sha2, bch_p r, bch_p s, bch_random_p random) {
 	bch_p G =		bch_rev(bch_from_ba(DSA_SIZE, (bch_data_p)dsa_G, dsa_G_size));
 	bch_p P =		bch_rev(bch_from_ba(DSA_SIZE, (bch_data_p)dsa_P, dsa_P_size));
 	bch_p Q =		bch_rev(bch_from_ba(DSA_SIZE, (bch_data_p)dsa_Q, dsa_Q_size));
-//	bch_p pub =		bch_rev(bch_from_ba(DSA_SIZE, (bch_data_p)dsa_pub, dsa_pub_size));
 	bch_p priv =	bch_rev(bch_from_ba(DSA_SIZE, (bch_data_p)dsa_priv, dsa_priv_size));
-	bch_p sha2_w =	bch_clone(sha2);
-
-	/* Get part of sha2 */
-//	int32_t priv_hexp = bch_hexp(priv);
-//	int32_t sha2_hexp = bch_hexp(sha2_w);
-//	if (sha2_hexp != priv_hexp) {
-//		if (sha2_hexp > priv_hexp) {
-//			bch_byte_shr(sha2_w,sha2_hexp - priv_hexp);
-//		}
-//		else {
-//			bch_byte_shl(sha2_w,priv_hexp - sha2_hexp);
-//		}
-//	}
 
 	/* Generate random k E [ 0.. G )*/
 	bch_p inv_res = 0;
@@ -43,49 +29,23 @@ void dsa_sign(bch_p sha2, bch_p r, bch_p s, bch_random_p random) {
 	bch_mulmod(s,r,Q);
 
 	/* H(m) + x*r mod Q */
-	bch_add(s,sha2_w);
+	bch_add(s,H);
 	bch_mod(s,Q);
 
 	/* (k^-1 * (H(m) + x*r)) mod Q */
 	bch_mulmod(s,k_inv,Q);
 
-	bch_free(k);
-	bch_free(k_inv);
-
-	bch_free(G);
-	bch_free(P);
-	bch_free(Q);
-//	bch_free(pub);
-	bch_free(priv);
-	bch_free(sha2_w);
+	bch_free(k, k_inv, G, P, Q, priv);
 }
 #endif/*__HOST_COMPILE__*/
 
-int8_t dsa_check(bch_p sha2, bch_p r, bch_p s) {
+int8_t dsa_check(bch_p H, bch_p r, bch_p s) {
 	int8_t res = -1;
 
 	bch_p G =		bch_rev(bch_from_ba(DSA_SIZE, (bch_data_p)dsa_G, dsa_G_size));
 	bch_p P =		bch_rev(bch_from_ba(DSA_SIZE, (bch_data_p)dsa_P, dsa_P_size));
 	bch_p Q =		bch_rev(bch_from_ba(DSA_SIZE, (bch_data_p)dsa_Q, dsa_Q_size));
 	bch_p pub =		bch_rev(bch_from_ba(DSA_SIZE, (bch_data_p)dsa_pub, dsa_pub_size));
-#ifdef __HOST_COMPILE__
-//	bch_p priv =	bch_rev(bch_from_ba(DSA_SIZE, (bch_data_p)dsa_priv, dsa_priv_size));
-#endif/*__HOST_COMPILE__*/
-	bch_p sha2_w =	bch_clone(sha2);
-
-	/* Get part of sha2 */
-#ifdef __HOST_COMPILE__
-//	int32_t priv_hexp = bch_hexp(priv);
-//	int32_t sha2_hexp = bch_hexp(sha2_w);
-//	if (sha2_hexp != priv_hexp) {
-//		if (sha2_hexp > priv_hexp) {
-//			bch_byte_shr(sha2_w,sha2_hexp - priv_hexp);
-//		}
-//		else {
-//			bch_byte_shl(sha2_w,priv_hexp - sha2_hexp);
-//		}
-//	}
-#endif/*__HOST_COMPILE__*/
 
     bch_p w =		bch_alloc(DSA_SIZE);
     bch_p u1 =		bch_alloc(DSA_SIZE);
@@ -100,7 +60,7 @@ int8_t dsa_check(bch_p sha2, bch_p r, bch_p s) {
 
 		/* u1 = (H(m) * w) mod Q*/
 		bch_copy(u1,w);
-		bch_mulmod(u1,sha2_w,Q);
+		bch_mulmod(u1,H,Q);
 
 		/* u2 = r * w mod Q */
 		bch_copy(u2,w);
@@ -120,21 +80,7 @@ int8_t dsa_check(bch_p sha2, bch_p r, bch_p s) {
 		res = bch_cmp(r,v);
 	}
 
-    bch_free(w);
-    bch_free(u1);
-    bch_free(u2);
-    bch_free(v);
-    bch_free(t0);
-    bch_free(t1);
-
-	bch_free(G);
-	bch_free(P);
-	bch_free(Q);
-	bch_free(pub);
-#ifdef __HOST_COMPILE__
-//	bch_free(priv);
-#endif/*__HOST_COMPILE__*/
-	bch_free(sha2_w);
+    bch_free(w, u1, u2, v, t0, t1, G, P, Q, pub);
 
 	return res;
 }
