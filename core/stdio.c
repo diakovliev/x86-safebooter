@@ -3,6 +3,7 @@
 
 /* compiler built-in for va_args */
 #include <stdarg.h>
+#include <time.h>
 
 static console_base_p p = 0;
 
@@ -31,6 +32,12 @@ inline byte_t console_getc(console_base_p console) {
 	return (*console->get)(console->ctx);
 }
 
+inline byte_t console_recieved(console_base_p console) {
+	if (!console->recieved) return 0;
+
+	return (*console->recieved)(console->ctx);
+}
+
 /* ----------------------------------------------------------- */
 /* Out */
 void putc(byte_t c) {
@@ -50,6 +57,28 @@ byte_t getc(void) {
 	if (!p) return 0;
 
 	return console_getc(p);
+}
+
+/* Timeout extension */
+byte_t waitc(quad_t *tm, byte_t *c) {
+
+	if (!p) return;
+
+	quad_t ctm 		= ctime();
+	
+	quad_t s 		= ctm;
+	quad_t delta 	= 0;
+	byte_t recv 	= 0;
+	while (delta < *tm && !(recv = console_recieved(p)) ) {
+		ctm = ctime();
+		delta = ctm - s;
+		idle();
+	};
+
+	if (tm)			*tm -= delta;
+	if (c && recv)	*c = console_getc(p);
+
+	return recv;
 }
 
 /* ----------------------------------------------------------- */

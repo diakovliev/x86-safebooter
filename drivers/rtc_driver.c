@@ -17,6 +17,8 @@
 void rtc_init(void) {
 	outb(0x70, 0x0B);
 	outb(0x71, 1 << 2);
+
+	rtc_current();
 }
 
 inline byte_t rtc_get(byte_t reg) {

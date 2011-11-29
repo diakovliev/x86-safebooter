@@ -143,14 +143,14 @@ byte_t keyboard_run_input_loop(keyboard_driver_p thiz,
 				res = keyboard_driver_key_handler(thiz,data);
 			}
 		}
-		else
-		if (thiz->idle_handler) {
-			res = (*thiz->idle_handler) (thiz->context);
-		}
 		else {
-			idle();
+			if (thiz->idle_handler) {
+				res = (*thiz->idle_handler) (thiz->context);
+			}
+			else {
+				idle();
+			}
 		}
-
 	}
 	while (res == KEYBOARD_OK);
 

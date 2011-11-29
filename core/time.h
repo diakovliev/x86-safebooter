@@ -6,23 +6,6 @@
 #include <stdio.h>
 #include <drivers/rtc_driver.h>
 
-static inline quad_t ctime(void) {
-	tm_p tm = rtc_current();
-	quad_t start = tm->sec + (tm->min * 60) + (tm->hour * 3600);
-	return start;
-}
-
-static inline void print_tm(tm_p tm) {
-	printf("%02d:%02d:%02d %02d.%02d.%02d",
-			tm->hour, tm->min, tm->sec,
-			tm->day, tm->mon, tm->year);
-}
-
-static inline void print_current_time(void) {
-	print_tm(rtc_current());
-	//printf("\n\r");
-}
-
 /* !!!  !!! */
 /* Converts Gregorian date to seconds since 1970-01-01 00:00:00.
  * Assumes input in normal date format, i.e. 1980-12-31 23:59:59
@@ -39,7 +22,7 @@ static inline void print_current_time(void) {
  * machines where long is 32-bit! (However, as time_t is signed, we
  * will already get problems at other places on 2038-01-19 03:14:08)
  */
-unsigned long
+static unsigned long
 mktime(const unsigned int year0, const unsigned int mon0,
        const unsigned int day, const unsigned int hour,
        const unsigned int min, const unsigned int sec)
@@ -60,18 +43,37 @@ mktime(const unsigned int year0, const unsigned int mon0,
     )*60 + sec; /* finally seconds */
 }
 
+static inline quad_t ctime(void) {
+	tm_p tm = rtc_current();
+	quad_t start = mktime(tm->year, tm->mon, tm->day,
+		 tm->hour, tm->min, tm->sec);
+	return start;
+}
+
+static inline void print_tm(tm_p tm) {
+	printf("%02d:%02d:%02d %02d.%02d.%02d",
+			tm->hour, tm->min, tm->sec,
+			tm->day, tm->mon, tm->year);
+}
+
+static inline void print_current_time(void) {
+	print_tm(rtc_current());
+}
 
 static inline void ssleep(quad_t timeout) {
 	quad_t ctm 		= ctime();
 	quad_t s 		= ctm;
 	quad_t delta 	= 0;
-	//printf("%d\t", s);
-	do {
-		//idle();
+	while (delta < timeout) {
 		ctm = ctime();
 		delta = ctm - s;
-		//printf("%d - %d = %d\n\r", ctm, s, delta);
-	} while (delta < timeout);
+		idle();
+	}
+}
+
+static void time_init(void) {
+	quad_t ctm = ctime();
+	while(ctm == ctime()) idle();
 }
 
 #endif /* TIME_HEADER */

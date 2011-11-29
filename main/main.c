@@ -374,6 +374,7 @@ void C_start(void *loader_descriptor_address, void *loader_code_address)
 
 	/* Init subsystems */
 	rtc_init();
+	time_init();
 	heap_init((void*)LOADER_HEAP_START,LOADER_HEAP_SIZE);
 	env_init(desc);
 	console_initialize();
@@ -389,18 +390,29 @@ void C_start(void *loader_descriptor_address, void *loader_code_address)
 	printf("Code: %p\r\n", loader_code_address);
 	printf("Stack: %p\r\n", LOADER_STACK_ADDRESS);
 
+	/* Waiting for break */
 	byte_t ctrl_break = 0;
-	//ssleep(10);
-	/* Run environment STARTUP commands */
+	quad_t tm = 5;
+	byte_t c = 0;
+	byte_t recv = 0;
+	printf("Waiting %ld seconds for the BREAK command\n\r", tm);
+	while (recv = waitc(&tm, &c)) {
+		if (c == 'B') {
+			ctrl_break = 1;
+			break;
+		}
+	}
 
+	/* Run environment STARTUP commands */
 	byte_t *startup = env_get("STARTUP");
 	if (!ctrl_break && startup) {
 		printf("Process STARTUP commands...\n\r");
 		byte_t res = C_process_command(startup);
 		if (res) {
-			// TODO: Out symbolic error code
 			printf("STARTUP commands error: %s\n\r", errors[res]);
 		}
+	} else {
+		printf("BREAK revieved, ignore STARTUP variable\n\r");
 	}
 
 #ifdef CONFIG_CONSOLE_ENABLED

@@ -69,6 +69,15 @@ static byte_t ser_console_get(void *ctx) {
 	return ser_read(sctx->port);
 }
 
+static byte_t ser_console_received(void *ctx) {
+
+	if (!ctx) return 0;
+	
+	struct ser_console_context_s *sctx = (struct ser_console_context_s *)ctx;
+
+	return ser_received(sctx->port);
+}
+
 /* Static serial console data */
 static struct ser_console_context_s ser_console_context = {
 	.port = 0
@@ -77,7 +86,8 @@ static struct ser_console_context_s ser_console_context = {
 static console_base_t ser_console = {
 	.ctx = &ser_console_context,
 	.put = ser_console_put,
-	.get = ser_console_get
+	.get = ser_console_get,
+	.recieved = ser_console_received,
 };
 
 /* */

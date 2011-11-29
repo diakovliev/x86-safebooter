@@ -1172,7 +1172,6 @@ bch_p bch_inverse_bin(bch_p dst, bch_p a, bch_p n) {
 	return result;
 }
 
-#if 0
 bch_p bch_gcdex(bch_p dst, bch_p a, bch_p b, bch_p x, bch_p y) {
 
 	if (bch_is_zero(b)) {
@@ -1250,7 +1249,6 @@ bch_p bch_inverse(bch_p dst, bch_p a, bch_p n) {
 
 	return result;
 }
-#endif
 
 bch_p bch_mulmod(bch_p a, bch_p b, bch_p c) {
 

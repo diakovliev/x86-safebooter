@@ -8,6 +8,7 @@ typedef struct console_base_s {
 	void *ctx;
 	void (*put)(void *ctx, byte_t byte);
 	byte_t (*get)(void *ctx);
+	byte_t (*recieved)(void *ctx);
 } console_base_t, *console_base_p;
 
 /* Service */
@@ -19,6 +20,9 @@ void puts(const byte_t *s);
 
 /* In */
 byte_t getc(void);
+
+/* Timeout extension */
+byte_t waitc(quad_t *t, byte_t *c);
 
 /* Supported %s, %c, %d, %x, %p without fill and width */
 void printf(const byte_t *fmt, ...);
@@ -46,3 +50,4 @@ static inline dword_t blk_addr(blk_istream_p s) {
 }
 
 #endif//STDIO_HEADER
+

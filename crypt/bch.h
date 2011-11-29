@@ -106,10 +106,10 @@ bch_p bch_div(bch_p dst, bch_p div);
 bch_p bch_mod(bch_p dst, bch_p div);
 
 bch_p bch_gcd(bch_p dst, bch_p a, bch_p b);
-//bch_p bch_gcdex(bch_p dst, bch_p a, bch_p b, bch_p x, bch_p y);
+bch_p bch_gcdex(bch_p dst, bch_p a, bch_p b, bch_p x, bch_p y);
 bch_p bch_gcdex_bin(bch_p dst, bch_p a, bch_p b, bch_p x, bch_p y);
 
-//bch_p bch_inverse(bch_p dst, bch_p a, bch_p n);
+bch_p bch_inverse(bch_p dst, bch_p a, bch_p n);
 bch_p bch_inverse_bin(bch_p dst, bch_p a, bch_p n);
 
 bch_p bch_pow(bch_p x,bch_p y);

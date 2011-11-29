@@ -17,6 +17,7 @@ void dsa_sign(bch_p H, bch_p r, bch_p s, bch_random_p random) {
 	do {
 		bch_random_gen(k,Q,random);
 		inv_res = (bch_p)bch_inverse_bin(k_inv,k,Q);
+/*		inv_res = (bch_p)bch_inverse(k_inv,k,Q);*/
 	} while ( !inv_res );
 
     /* (G ^ k mod P) mod Q */
@@ -56,6 +57,7 @@ int8_t dsa_check(bch_p H, bch_p r, bch_p s) {
 
 	/* w = s^-1 mod Q*/
 	bch_p inv_res = (bch_p)bch_inverse_bin(w,s,Q);
+/*	bch_p inv_res = (bch_p)bch_inverse(w,s,Q);*/
 	if (inv_res) {
 
 		/* u1 = (H(m) * w) mod Q*/
