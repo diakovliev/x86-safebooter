@@ -69,7 +69,7 @@ static byte_t text_display_console_get(void *ctx) {
 		(struct text_display_console_context_s *)ctx;
 
 	while (!context->recieved) {
-		keyboard_run_input_loop(context->keyboard, key_handler, 0, idle_handler);
+		keyboard_run_input_loop(context->keyboard, key_handler, 0, 0);
 	}
 
 	context->recieved = 0;
