@@ -154,9 +154,6 @@ static byte_t ata_write_sectors_internal(word_t bus, byte_t drive, void *buffer,
 			outw(ATA_DATA_PORT(bus),((word_t*)buffer)[(i*(DISK_SECTOR_SIZE/2))+j]);
 		} while (++j < (DISK_SECTOR_SIZE/2));
 		
-		/* FLUSH every sector */
-		outb(ATA_COMMAND_PORT(bus),ATA_CMD_FLUSH);
-
 		do {
 			idle();
 			status = inb(ATA_COMMAND_PORT(bus));
@@ -167,6 +164,9 @@ static byte_t ata_write_sectors_internal(word_t bus, byte_t drive, void *buffer,
 			return i;
 		}
 	}
+
+	/* FLUSH every sector */
+	outb(ATA_COMMAND_PORT(bus),ATA_CMD_FLUSH);
 
 	return sectors;
 }
