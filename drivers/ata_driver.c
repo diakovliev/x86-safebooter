@@ -120,6 +120,58 @@ static byte_t ata_read_sectors_internal(word_t bus, byte_t drive, void *buffer, 
 	return sectors;
 }
 
+static byte_t ata_write_sectors_internal(word_t bus, byte_t drive, void *buffer, byte_t sectors, dword_t addr) {
+
+	/* Select device */
+	byte_t slavebit = drive==ATA_DRIVE_SLAVE?1:0;
+	outb(ATA_DRIVE_SELECT_PORT(bus),(0xE0|(slavebit<<4)|((addr>>24)&0x0F)));
+	ATA_SELECT_DELAY(bus);
+
+	outb(ATA_SECTORS_COUNT_PORT(bus),sectors);
+	outb(ATA_FEATURES_PORT(bus),0);
+	outb(ATA_ADDRESS1_PORT(bus),addr);
+	outb(ATA_ADDRESS2_PORT(bus),addr>>8);
+	outb(ATA_ADDRESS3_PORT(bus),addr>>16);
+
+	/* Send command */
+	outb(ATA_COMMAND_PORT(bus),ATA_CMD_WRITE_SECTORS);
+	byte_t status = 0;
+	do {
+		idle();
+		status = inb(ATA_COMMAND_PORT(bus));
+	} while ( !(status & ATA_DRQ) && (status & ATA_BSY) );
+	if ( status & ATA_ERR ) {
+		/* Error */
+		return 0;
+	}
+
+	/* Write sector */
+	word_t i = 0, j;
+	for (i = 0; i < sectors; ++i) {
+
+		j = 0;	
+		do {
+			outw(ATA_DATA_PORT(bus),((word_t*)buffer)[(i*(DISK_SECTOR_SIZE/2))+j]);
+		} while (++j < (DISK_SECTOR_SIZE/2));
+		
+		/* FLUSH every sector */
+		outb(ATA_COMMAND_PORT(bus),ATA_CMD_FLUSH);
+
+		do {
+			idle();
+			status = inb(ATA_COMMAND_PORT(bus));
+		} while ( !(status & ATA_DRQ) && (status & ATA_BSY) );
+		if ( status & ATA_ERR ) {
+			puts("ATA_ERR\n\r");
+			// Error 
+			return i;
+		}
+	}
+
+	return sectors;
+}
+
+/****************************************************************/
 word_t ata_read_sectors(word_t bus, byte_t drive, void *buffer, word_t sectors, dword_t addr) {
 	word_t i;
 	byte_t count = sectors / 0xff;
@@ -131,6 +183,22 @@ word_t ata_read_sectors(word_t bus, byte_t drive, void *buffer, word_t sectors, 
 	}
 	if (!count || i == count * 0xff) {
 		i += ata_read_sectors_internal(bus,drive,buffer+(DISK_SECTOR_SIZE*i),finish,addr+i);
+	}
+
+	return i;
+}
+
+word_t ata_write_sectors(word_t bus, byte_t drive, void *buffer, word_t sectors, dword_t addr) {
+	word_t i;
+	byte_t count = sectors / 0xff;
+	byte_t finish = sectors % 0xff;
+
+	for ( i = 0; i < count * 0xff; i += 0xff ) {		
+		if ( !ata_write_sectors_internal(bus,drive,buffer+(DISK_SECTOR_SIZE*i),0xff,addr+i) )
+			break;
+	}
+	if (!count || i == count * 0xff) {
+		i += ata_write_sectors_internal(bus,drive,buffer+(DISK_SECTOR_SIZE*i),finish,addr+i);
 	}
 
 	return i;
@@ -181,6 +249,14 @@ word_t ata_read(byte_p dst, word_t size, void *ctx) {
 	return res;
 }
 
+word_t ata_write(byte_p src, word_t size, void *ctx) {
+
+	word_t res = ata_write_sectors(CTX->bus,CTX->drive,(void*)src,size,CTX->caddr);
+	CTX->caddr += res;
+
+	return res;
+}
+
 dword_t ata_seek(dword_t addr, void *ctx) {
 
 	dword_t res = CTX->caddr;
@@ -202,9 +278,10 @@ blk_istream_p ata_blk_stream_open(word_t bus, byte_t drive, dword_t addr) {
 	blk_istream_p res = malloc(sizeof(blk_istream_t));
 	if (res) {
 		memset(res, 0, sizeof(blk_istream_p));
-		res->read = ata_read;
-		res->seek = ata_seek;
-		res->addr = ata_addr;
+		res->read	= ata_read;
+		res->write	= ata_write;
+		res->seek	= ata_seek;
+		res->addr	= ata_addr;
 		input_stream_context_p ctx = malloc(sizeof(input_stream_context));
 		if (!ctx) {
 			free(res);
@@ -227,3 +304,4 @@ void ata_blk_stream_close(blk_istream_p ptr) {
 	if (ptr)
 		free(ptr);
 }
+

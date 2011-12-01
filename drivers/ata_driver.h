@@ -50,10 +50,13 @@
 /* ATA commands */
 #define ATA_CMD_IDENTIFY		0xEC
 #define ATA_CMD_READ_SECTORS	0x20
+#define ATA_CMD_WRITE_SECTORS	0x30
+#define ATA_CMD_FLUSH			0xE7
 
 /* Base */
 byte_t ata_identify_device(word_t bus, byte_t drive);
 word_t ata_read_sectors(word_t bus, byte_t drive, void *buffer, word_t sectors, dword_t addr);
+word_t ata_write_sectors(word_t bus, byte_t drive, void *buffer, word_t sectors, dword_t addr);
 
 /* Enumerate drives */
 typedef byte_t (*ata_enum_callback)(word_t bus, byte_t drive, byte_t type, void *ctx);

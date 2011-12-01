@@ -19,6 +19,10 @@ static inline word_t inw(word_t port) {
    return ret;
 }
 
+static inline void outw(word_t port, word_t word) {
+   __asm__ __volatile__ ("outw %1,%0" : : "dN" (port), "a"(word) );
+}
+
 static inline void idle(void) {
 	__asm__ __volatile__ ("pause");
 }
