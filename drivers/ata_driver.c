@@ -4,6 +4,39 @@
 #include <stdio.h>
 #include <heap.h>
 
+/* ATA ports */
+#define ATA_DATA_PORT(x)			(x+0)
+#define ATA_FEATURES_PORT(x)		(x+1)
+#define ATA_SECTORS_COUNT_PORT(x)	(x+2)
+#define ATA_ADDRESS1_PORT(x)		(x+3)
+#define ATA_ADDRESS2_PORT(x)		(x+4)
+#define ATA_ADDRESS3_PORT(x)		(x+5)
+#define ATA_DRIVE_SELECT_PORT(x)	(x+6)
+#define ATA_COMMAND_PORT(x)			(x+7)
+#define ATA_DCR_PORT(x)				(x+0x206)
+
+/* ATA status */
+#define ATA_ERR					(1<<0)
+#define ATA_DRQ					(1<<3)
+#define ATA_SRV					(1<<4)
+#define ATA_DF					(1<<5)
+#define ATA_RDY					(1<<6)
+#define ATA_BSY					(1<<7)
+
+/* Device control port & values */
+#define ATA_DCR__nIEN		(1<<1)
+#define ATA_DCR__SRST		(1<<2)
+#define ATA_DCR__HOB		(1<<7)
+
+#define ATA_SELECT_DELAY(bus) \
+	{inb(ATA_DCR_PORT(bus));inb(ATA_DCR_PORT(bus));inb(ATA_DCR_PORT(bus));inb(ATA_DCR_PORT(bus));}
+
+/* ATA commands */
+#define ATA_CMD_IDENTIFY		0xEC
+#define ATA_CMD_READ_SECTORS	0x20
+#define ATA_CMD_WRITE_SECTORS	0x30
+#define ATA_CMD_FLUSH			0xE7
+
 #define _ATA_CHECK_ERROR(msg,ret) \
 	do { \
 		idle(); \
@@ -14,7 +47,7 @@
 		return ret; \
 	}
 	
-byte_t ata_identify_device(word_t bus, byte_t drive) {
+static byte_t ata_identify_device(word_t bus, byte_t drive) {
 
 	byte_t devtype = ATADEV_NONE;
 	byte_t status = 0;
@@ -151,7 +184,7 @@ static byte_t ata_write_sectors_internal(word_t bus, byte_t drive, void *buffer,
 }
 
 /****************************************************************/
-word_t ata_io(word_t bus, byte_t drive, void *buffer, word_t sectors, dword_t addr, ata_io_func io_func) {
+static word_t ata_io(word_t bus, byte_t drive, void *buffer, word_t sectors, dword_t addr, ata_io_func io_func) {
 	word_t i;
 	byte_t count = sectors / 0xff;
 	byte_t finish = sectors % 0xff;
@@ -204,7 +237,7 @@ typedef struct input_stream_context_s   {
 #endif
 #define CTX ((input_stream_context_p)ctx)
 
-word_t ata_read(byte_p dst, word_t size, void *ctx) {
+static word_t ata_read(byte_p dst, word_t size, void *ctx) {
 
 	word_t res = ata_io(CTX->bus,CTX->drive,(void*)dst,size,CTX->caddr,ata_read_sectors_internal);
 	CTX->caddr += res;
@@ -212,7 +245,7 @@ word_t ata_read(byte_p dst, word_t size, void *ctx) {
 	return res;
 }
 
-word_t ata_write(byte_p src, word_t size, void *ctx) {
+static word_t ata_write(byte_p src, word_t size, void *ctx) {
 
 	word_t res = ata_io(CTX->bus,CTX->drive,(void*)src,size,CTX->caddr,ata_write_sectors_internal);
 	CTX->caddr += res;
@@ -220,7 +253,7 @@ word_t ata_write(byte_p src, word_t size, void *ctx) {
 	return res;
 }
 
-dword_t ata_seek(dword_t addr, void *ctx) {
+static dword_t ata_seek(dword_t addr, void *ctx) {
 
 	dword_t res = CTX->caddr;
 
@@ -229,7 +262,7 @@ dword_t ata_seek(dword_t addr, void *ctx) {
 	return res;
 }
 
-dword_t ata_addr(void *ctx) {
+static dword_t ata_addr(void *ctx) {
 
 	return CTX->caddr;
 }
