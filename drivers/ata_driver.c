@@ -4,9 +4,20 @@
 #include <stdio.h>
 #include <heap.h>
 
+#define _ATA_CHECK_ERROR(msg,ret) \
+	do { \
+		idle(); \
+		status = inb(ATA_COMMAND_PORT(bus)); \
+	} while ( !(status & ATA_DRQ) && (status & ATA_BSY) ); \
+	if ( status & ATA_ERR ) { \
+		if(msg) puts(msg); \
+		return ret; \
+	}
+	
 byte_t ata_identify_device(word_t bus, byte_t drive) {
 
 	byte_t devtype = ATADEV_NONE;
+	byte_t status = 0;
 
 	/* Select device */
 	outb(ATA_DRIVE_SELECT_PORT(bus),drive&(1<<4));
@@ -19,15 +30,7 @@ byte_t ata_identify_device(word_t bus, byte_t drive) {
 
 	/* Send command */
 	outb(ATA_COMMAND_PORT(bus),ATA_CMD_IDENTIFY);
-	byte_t status = 0;
-	do {
-		idle();
-		status = inb(ATA_COMMAND_PORT(bus));
-	} while ( !(status & ATA_DRQ) && (status & ATA_BSY) );
-	if ( !status ) {
-		/* Error */
-		return devtype;
-	}
+	_ATA_CHECK_ERROR(0,devtype);
 
 	/* Checking for ATA device type */
 	byte_t cl = inb(ATA_ADDRESS2_PORT(bus));
@@ -58,8 +61,13 @@ byte_t ata_identify_device(word_t bus, byte_t drive) {
 	return devtype;
 }
 
+/* Typedef */
+typedef byte_t (*ata_io_func)(word_t, byte_t, void *, byte_t, dword_t);
+
 /* 28 bit PIO IO */
 static byte_t ata_read_sectors_internal(word_t bus, byte_t drive, void *buffer, byte_t sectors, dword_t addr) {
+
+	byte_t status = 0;
 
 	/* Select device */
 	byte_t slavebit = drive==ATA_DRIVE_SLAVE?1:0;
@@ -74,17 +82,9 @@ static byte_t ata_read_sectors_internal(word_t bus, byte_t drive, void *buffer, 
 
 	/* Send command */
 	outb(ATA_COMMAND_PORT(bus),ATA_CMD_READ_SECTORS);
-	byte_t status = 0;
-	do {
-		idle();
-		status = inb(ATA_COMMAND_PORT(bus));
-	} while ( !(status & ATA_DRQ) && (status & ATA_BSY) );
-	if ( status & ATA_ERR ) {
-		/* Error */
-		return 0;
-	}
+	_ATA_CHECK_ERROR(0,0);
 
-	/* Read sector */
+	/* Read sectors */
 	word_t i = 0, j;
 	for (i = 0; i < sectors; ++i) {
 
@@ -106,21 +106,16 @@ static byte_t ata_read_sectors_internal(word_t bus, byte_t drive, void *buffer, 
 		: "ecx", "edi", "edx"
 		);
 
-		do {
-			idle();
-			status = inb(ATA_COMMAND_PORT(bus));
-		} while ( !(status & ATA_DRQ) && (status & ATA_BSY) );
-		if ( status & ATA_ERR ) {
-			puts("ATA_ERR\n\r");
-			// Error 
-			return i;
-		}
+		_ATA_CHECK_ERROR("ATA_ERR read\n\r", i);
 	}
 
 	return sectors;
 }
 
+/* 28 bit PIO IO */
 static byte_t ata_write_sectors_internal(word_t bus, byte_t drive, void *buffer, byte_t sectors, dword_t addr) {
+
+	byte_t status = 0;
 
 	/* Select device */
 	byte_t slavebit = drive==ATA_DRIVE_SLAVE?1:0;
@@ -135,17 +130,9 @@ static byte_t ata_write_sectors_internal(word_t bus, byte_t drive, void *buffer,
 
 	/* Send command */
 	outb(ATA_COMMAND_PORT(bus),ATA_CMD_WRITE_SECTORS);
-	byte_t status = 0;
-	do {
-		idle();
-		status = inb(ATA_COMMAND_PORT(bus));
-	} while ( !(status & ATA_DRQ) && (status & ATA_BSY) );
-	if ( status & ATA_ERR ) {
-		/* Error */
-		return 0;
-	}
+	_ATA_CHECK_ERROR(0,0);
 
-	/* Write sector */
+	/* Write sectors */
 	word_t i = 0, j;
 	for (i = 0; i < sectors; ++i) {
 
@@ -154,51 +141,27 @@ static byte_t ata_write_sectors_internal(word_t bus, byte_t drive, void *buffer,
 			outw(ATA_DATA_PORT(bus),((word_t*)buffer)[(i*(DISK_SECTOR_SIZE/2))+j]);
 		} while (++j < (DISK_SECTOR_SIZE/2));
 		
-		do {
-			idle();
-			status = inb(ATA_COMMAND_PORT(bus));
-		} while ( !(status & ATA_DRQ) && (status & ATA_BSY) );
-		if ( status & ATA_ERR ) {
-			puts("ATA_ERR\n\r");
-			// Error 
-			return i;
-		}
+		_ATA_CHECK_ERROR("ATA_ERR write\n\r", i);
 	}
 
-	/* FLUSH every sector */
 	outb(ATA_COMMAND_PORT(bus),ATA_CMD_FLUSH);
+	_ATA_CHECK_ERROR("ATA_ERR flush\n\r", i);
 
 	return sectors;
 }
 
 /****************************************************************/
-word_t ata_read_sectors(word_t bus, byte_t drive, void *buffer, word_t sectors, dword_t addr) {
+word_t ata_io(word_t bus, byte_t drive, void *buffer, word_t sectors, dword_t addr, ata_io_func io_func) {
 	word_t i;
 	byte_t count = sectors / 0xff;
 	byte_t finish = sectors % 0xff;
 
 	for ( i = 0; i < count * 0xff; i += 0xff ) {		
-		if ( !ata_read_sectors_internal(bus,drive,buffer+(DISK_SECTOR_SIZE*i),0xff,addr+i) )
+		if ( !(*io_func)(bus,drive,buffer+(DISK_SECTOR_SIZE*i),0xff,addr+i) )
 			break;
 	}
 	if (!count || i == count * 0xff) {
-		i += ata_read_sectors_internal(bus,drive,buffer+(DISK_SECTOR_SIZE*i),finish,addr+i);
-	}
-
-	return i;
-}
-
-word_t ata_write_sectors(word_t bus, byte_t drive, void *buffer, word_t sectors, dword_t addr) {
-	word_t i;
-	byte_t count = sectors / 0xff;
-	byte_t finish = sectors % 0xff;
-
-	for ( i = 0; i < count * 0xff; i += 0xff ) {		
-		if ( !ata_write_sectors_internal(bus,drive,buffer+(DISK_SECTOR_SIZE*i),0xff,addr+i) )
-			break;
-	}
-	if (!count || i == count * 0xff) {
-		i += ata_write_sectors_internal(bus,drive,buffer+(DISK_SECTOR_SIZE*i),finish,addr+i);
+		i += (*io_func)(bus,drive,buffer+(DISK_SECTOR_SIZE*i),finish,addr+i);
 	}
 
 	return i;
@@ -243,7 +206,7 @@ typedef struct input_stream_context_s   {
 
 word_t ata_read(byte_p dst, word_t size, void *ctx) {
 
-	word_t res = ata_read_sectors(CTX->bus,CTX->drive,(void*)dst,size,CTX->caddr);
+	word_t res = ata_io(CTX->bus,CTX->drive,(void*)dst,size,CTX->caddr,ata_read_sectors_internal);
 	CTX->caddr += res;
 
 	return res;
@@ -251,7 +214,7 @@ word_t ata_read(byte_p dst, word_t size, void *ctx) {
 
 word_t ata_write(byte_p src, word_t size, void *ctx) {
 
-	word_t res = ata_write_sectors(CTX->bus,CTX->drive,(void*)src,size,CTX->caddr);
+	word_t res = ata_io(CTX->bus,CTX->drive,(void*)src,size,CTX->caddr,ata_write_sectors_internal);
 	CTX->caddr += res;
 
 	return res;
