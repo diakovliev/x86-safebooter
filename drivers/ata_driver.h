@@ -55,8 +55,6 @@
 
 /* Base */
 byte_t ata_identify_device(word_t bus, byte_t drive);
-word_t ata_read_sectors(word_t bus, byte_t drive, void *buffer, word_t sectors, dword_t addr);
-word_t ata_write_sectors(word_t bus, byte_t drive, void *buffer, word_t sectors, dword_t addr);
 
 /* Enumerate drives */
 typedef byte_t (*ata_enum_callback)(word_t bus, byte_t drive, byte_t type, void *ctx);
