@@ -168,6 +168,39 @@ bch_p bch_from_ba(bch_size dst_size, bch_data_p src, bch_size src_size) {
 	return res;
 }
 
+#if 0
+bch_p bch_from_string(bch_size dst_size, const char *presentation, unsigned char base) 
+{
+	bch_p res = bch_alloc(dst_size);
+
+	assert(res);
+	assert(res->data);
+
+	size_t len = strlen(presentation);
+	const char *ptr = presentation + len - 1;
+	bch_data byte = 0;
+	char buffer[3];
+	buffer[2] = 0;
+	bch_data_p dst_ptr = res->data;
+	while (ptr > presentation) {
+		buffer[0] = *(ptr - 1);
+		buffer[1] = *(ptr);
+		//printf("%s = ", buffer);
+		byte = BCH_ABS(strtol(buffer, 0, base));
+		//printf("0x%02X\n", byte);
+		if (res->data + res->size > dst_ptr) {
+			*dst_ptr = byte;
+			++dst_ptr;
+		}
+		ptr -= 2;
+	}
+	if (buffer[0] == '-')
+		bch_negate(res);
+
+	return res;
+}
+#endif
+
 bch_p bch_copy(bch_p dst, bch_p src) {
 
 	assert(dst);
@@ -284,6 +317,28 @@ int32_t bch_hexp(bch_p op) {
 	} while (i-- > 0);
 
 	return res;
+}
+
+static inline bch_size bch_ffs(bch_data v) {
+
+	bch_size i = 0;
+
+	if (v & 0xF0) {
+		if (v & 0xC0) {
+			i = v & 0x80 ? 8 : 7;
+		} else {
+			i = v & 0x20 ? 6 : 5;
+		}
+	}
+	else if (v & 0x0F) {
+		if (v & 0x0C) {
+			i = v & 0x08 ? 4 : 3;
+		} else {
+			i = v & 0x02 ? 2 : 1;
+		}
+	}
+
+	return i;
 }
 
 int32_t bch_bexp(bch_p op) {
@@ -534,14 +589,16 @@ bch_p bch_mul_s(bch_p dst, bch_data mul) {
 	}
 
 	loop_cnt = bch_hexp(dst_) + 1;
-	for (i = 0; i < loop_cnt; i++) {
-		v += dst_->data[i] * mul;
-		dst_->data[i] = v & 0xFF;
+	for (i = 0; i < loop_cnt || v; ++i) {
+		if (dst_->size > i) {
+			v += dst_->data[i] * mul;
+			dst_->data[i] = v & 0xFF;
+		} else {
+			v = 0;
+			break;
+		}
 		v -= v & 0xFF;
 		v >>= 8;
-	}
-	if (v && dst_->size-1 > i) {
-		dst_->data[i] += v & 0xFF;
 	}
 
 	if (sign) {
@@ -723,6 +780,15 @@ bch_p bch_set_bit(bch_p dst, uint32_t exp) {
 	assert(dst);
 
 	dst->data[exp/8] |= (1 << (exp % 8));
+
+	return dst;
+}
+
+bch_p bch_set_byte(bch_p dst, bch_size exp, bch_data byte) {
+
+	assert(dst);
+
+	dst->data[exp] = byte;
 
 	return dst;
 }
@@ -925,6 +991,150 @@ bch_p bch_sqr(bch_p dst) {
 	return dst;
 }
 
+void bch_div_mod_bin_internal(bch_p r, bch_p m_, bch_p divided_, bch_p divider_)
+{
+	int32_t divided_exp = bch_bexp(divided_);
+	/* Zero divided */
+	if (divided_exp < 0) {
+		if (r) bch_zero(r);
+		return;
+	}
+	int32_t divider_exp = bch_bexp(divider_);
+	/* Zero divider */
+	if (divider_exp < 0) {
+		DBG_print("Division by zero detected\n\r");
+		return;
+	}
+
+	int32_t exp = (divided_exp-divider_exp);
+	bch_p sub = bch_alloc(divided_->size);
+
+	int32_t m_exp = 0;
+	int32_t sub_exp = 0;
+	int32_t shift = 0;
+
+	bch_copy(sub, divider_);
+	bch_bit_shl(sub, exp);
+	sub_exp = bch_bexp(sub);
+	m_exp = sub_exp;
+
+	while(exp >= 0) {
+		
+		if (bch_cmp(m_,sub) >= 0) {
+	
+			bch_sub(m_,sub);
+			if (r) {
+				bch_set_bit(r,exp);
+			}
+
+			m_exp = bch_bexp(m_);
+		}
+
+		shift = (sub_exp > 0 && m_exp > 0 && (BCH_ABS(sub_exp-m_exp) > 0)) 
+			? BCH_ABS(sub_exp - m_exp) : 1;
+		bch_bit_shr(sub, shift);
+		exp 	-= shift;
+		sub_exp	-= shift;
+	}
+
+	bch_free(sub);
+}
+
+void bch_div_mod_internal(bch_p r, bch_p m_, bch_p divided_, bch_p divider_)
+{
+	int32_t divided_exp = bch_hexp(divided_);
+	/* Zero divided */
+	if (divided_exp < 0) {
+		if (r) bch_zero(r);
+		return;
+	}
+	int32_t divider_exp = bch_hexp(divider_);
+	/* Zero divider */
+	if (divider_exp < 0) {
+		DBG_print("Division by zero detected\n\r");
+		return;
+	}
+
+	int32_t exp 		= (divided_exp-divider_exp);
+	bch_p sub			= bch_alloc(divided_->size);
+
+	bch_copy(sub,divider_);
+	bch_p sub_shifted	= bch_clone(sub);
+	bch_byte_shl(sub_shifted,exp);
+
+	bch_copy(m_,divided_);
+
+	int32_t m_exp = divided_exp;
+	uint16_t q = 0;
+	uint32_t a, b = 0;
+
+	b = 0;
+	if (divider_exp >= 2) {
+		b = (divider_->data[divider_exp] << 16) |
+			(divider_->data[divider_exp-1] << 8) |
+			(divider_->data[divider_exp-2]);
+	} else if (divider_exp == 1) {
+		b = (divider_->data[divider_exp] << 16) |
+			(divider_->data[divider_exp-1] << 8);
+	} else if (divider_exp == 0) {
+		b = (divider_->data[divider_exp] << 16);
+	}
+	
+	assert(b > 0);
+
+	while (bch_cmp(m_,divider_) > 0) {
+
+		a = 0;
+		if (m_exp >= 3) {
+			a = (m_->data[m_exp] << 24) |
+				(m_->data[m_exp-1] << 16) |
+				(m_->data[m_exp-2] << 8) |
+				(m_->data[m_exp-3]);
+		}
+		else if (m_exp == 2) {
+			a = (m_->data[m_exp] << 24) |
+				(m_->data[m_exp-1] << 16) |
+				(m_->data[m_exp-2] << 8);
+		}
+		else if (m_exp == 1) {
+			a = (m_->data[m_exp] << 24) |
+				(m_->data[m_exp-1] << 16);
+		}
+		else if (m_exp == 0) {
+			a = (m_->data[m_exp] << 24);
+		}
+
+		q = a/b;
+		if (q & 0xFF00) {
+			q >>= 8;
+		}
+
+		bch_copy(sub,sub_shifted);
+		bch_mul_s(sub,q);
+
+		while (bch_cmp(sub,m_) > 0 && q) {
+			bch_sub(sub,sub_shifted);
+			q--;
+		}		
+
+		bch_sub(m_,sub);
+		if (r) {
+			bch_set_byte(r,exp,q);
+		}
+
+		bch_byte_shr(sub_shifted,1);
+
+		m_exp = bch_hexp(m_);
+		--exp;
+
+		if (exp < 0)
+			break;
+	}
+
+
+	bch_free(sub, sub_shifted);
+}
+
 void bch_div_mod(bch_p r, bch_p m, bch_p divided, bch_p divider) {
 
 	assert(divided != 0);
@@ -967,50 +1177,8 @@ void bch_div_mod(bch_p r, bch_p m, bch_p divided, bch_p divider) {
 	assert(divider_ != 0);
 	assert(m_ != 0);
 
-	int32_t divided_exp = bch_bexp(divided_);
-	/* Zero divided */
-	if (divided_exp < 0) {
-		if (r) bch_zero(r);
-		goto exit_func;
-	}
-	int32_t divider_exp = bch_bexp(divider_);
-	/* Zero divider */
-	assert(divider_exp >= 0);
-
-	int32_t exp = (divided_exp-divider_exp);
-	bch_p sub = bch_alloc(divided_->size);
-
-	int32_t m_exp = 0;
-	int32_t sub_exp = 0;
-	int32_t shift = 0;
-
-	bch_copy(sub, divider_);
-	bch_bit_shl(sub, exp);
-	sub_exp = bch_bexp(sub);
-/*	m_exp = bch_bexp(m_);*/
-	m_exp = sub_exp;
-
-	while(exp >= 0) {
-
-		if (bch_cmp(sub,m_) <= 0) {
-
-			bch_sub(m_,sub);
-			if (r) {
-				bch_set_bit(r,exp);
-			}
-
-			m_exp = bch_bexp(m_);
-		}
-
-		shift = (sub_exp > 0 && m_exp > 0 && (BCH_ABS(sub_exp-m_exp) > 0)) 
-			? BCH_ABS(sub_exp - m_exp) : 1;
-		bch_bit_shr(sub, shift);
-		exp 	-= shift;
-		sub_exp	-= shift;
-
-	}
-
-	bch_free(sub);
+//	bch_div_mod_bin_internal(r,m_,divided_,divider_);
+	bch_div_mod_internal(r,m_,divided_,divider_);
 
 exit_func:
 	if (divideds) {

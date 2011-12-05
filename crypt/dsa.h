@@ -19,7 +19,7 @@ extern unsigned int dsa_G_size;
 
 /* ALU byte length */
 //#define DSA_SIZE	256
-#define DSA_SIZE	256
+#define DSA_SIZE	(256+4)
 
 #define SHA2_SIZE 160
 #define SHA2_func sha1
