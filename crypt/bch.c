@@ -991,6 +991,7 @@ bch_p bch_sqr(bch_p dst) {
 	return dst;
 }
 
+/* O(divided_bit_len - divider_bit_len) */
 void bch_div_mod_bin_internal(bch_p r, bch_p m_, bch_p divided_, bch_p divider_)
 {
 	int32_t divided_exp = bch_bexp(divided_);
@@ -1040,6 +1041,7 @@ void bch_div_mod_bin_internal(bch_p r, bch_p m_, bch_p divided_, bch_p divider_)
 	bch_free(sub);
 }
 
+/* O(divided_byte_len - divider_byte_len) */
 void bch_div_mod_internal(bch_p r, bch_p m_, bch_p divided_, bch_p divider_)
 {
 	int32_t divided_exp = bch_hexp(divided_);
@@ -1082,53 +1084,52 @@ void bch_div_mod_internal(bch_p r, bch_p m_, bch_p divided_, bch_p divider_)
 	
 	assert(b > 0);
 
-	while (bch_cmp(m_,divider_) > 0) {
+	while ((exp >= 0) && (bch_cmp(m_,divider_) > 0)) {
 
-		a = 0;
-		if (m_exp >= 3) {
-			a = (m_->data[m_exp] << 24) |
-				(m_->data[m_exp-1] << 16) |
-				(m_->data[m_exp-2] << 8) |
-				(m_->data[m_exp-3]);
-		}
-		else if (m_exp == 2) {
-			a = (m_->data[m_exp] << 24) |
-				(m_->data[m_exp-1] << 16) |
-				(m_->data[m_exp-2] << 8);
-		}
-		else if (m_exp == 1) {
-			a = (m_->data[m_exp] << 24) |
-				(m_->data[m_exp-1] << 16);
-		}
-		else if (m_exp == 0) {
-			a = (m_->data[m_exp] << 24);
-		}
+		if ( bch_cmp(sub_shifted, m_) <= 0 ) {
 
-		q = a/b;
-		if (q & 0xFF00) {
-			q >>= 8;
-		}
+			a = 0;
+			if (m_exp >= 3) {
+				a = (m_->data[m_exp] << 24) |
+					(m_->data[m_exp-1] << 16) |
+					(m_->data[m_exp-2] << 8) |
+					(m_->data[m_exp-3]);
+			}
+			else if (m_exp == 2) {
+				a = (m_->data[m_exp] << 24) |
+					(m_->data[m_exp-1] << 16) |
+					(m_->data[m_exp-2] << 8);
+			}
+			else if (m_exp == 1) {
+				a = (m_->data[m_exp] << 24) |
+					(m_->data[m_exp-1] << 16);
+			}
+			else if (m_exp == 0) {
+				a = (m_->data[m_exp] << 24);
+			}
 
-		bch_copy(sub,sub_shifted);
-		bch_mul_s(sub,q);
+			q = a/b;
+			if (q & 0xFF00) {
+				q >>= 8;
+			}
 
-		while (bch_cmp(sub,m_) > 0 && q) {
-			bch_sub(sub,sub_shifted);
-			q--;
-		}		
+			bch_copy(sub,sub_shifted);
+			bch_mul_s(sub,q);
+			if (bch_cmp(sub,m_) > 0) {
+				bch_sub(sub,sub_shifted);
+				q--;
+			}
 
-		bch_sub(m_,sub);
-		if (r) {
-			bch_set_byte(r,exp,q);
+			bch_sub(m_,sub);
+			if (r) {
+				bch_set_byte(r,exp,q);
+			}
+
+			m_exp = bch_hexp(m_);
 		}
 
 		bch_byte_shr(sub_shifted,1);
-
-		m_exp = bch_hexp(m_);
 		--exp;
-
-		if (exp < 0)
-			break;
 	}
 
 

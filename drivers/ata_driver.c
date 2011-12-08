@@ -239,7 +239,8 @@ typedef struct input_stream_context_s   {
 
 static word_t ata_read(byte_p dst, word_t size, void *ctx) {
 
-	word_t res = ata_io(CTX->bus,CTX->drive,(void*)dst,size,CTX->caddr,ata_read_sectors_internal);
+	word_t res = ata_io(CTX->bus,CTX->drive,(void*)dst,size,
+		CTX->caddr,ata_read_sectors_internal);
 	CTX->caddr += res;
 
 	return res;
@@ -247,7 +248,8 @@ static word_t ata_read(byte_p dst, word_t size, void *ctx) {
 
 static word_t ata_write(byte_p src, word_t size, void *ctx) {
 
-	word_t res = ata_io(CTX->bus,CTX->drive,(void*)src,size,CTX->caddr,ata_write_sectors_internal);
+	word_t res = ata_io(CTX->bus,CTX->drive,(void*)src,size,
+		CTX->caddr,ata_write_sectors_internal);
 	CTX->caddr += res;
 
 	return res;
