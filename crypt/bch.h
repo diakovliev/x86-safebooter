@@ -10,19 +10,6 @@
 
 #include <stdint.h>
 
-#ifdef __DEBUG__
-#	ifndef DBG
-#		define DBG(X) X
-#	endif
-#else
-#	ifndef DBG
-#		define DBG(X)
-#	endif
-#endif
-#ifndef DBG_print
-#	define DBG_print(...) DBG(printf(__VA_ARGS__))
-#endif
-
 /* Bit chains */
 /********************************************************************************************************
  * BCH code

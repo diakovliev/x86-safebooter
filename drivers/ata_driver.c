@@ -3,6 +3,7 @@
 #include <common.h>
 #include <stdio.h>
 #include <heap.h>
+#include <debug.h>
 
 /* ATA ports */
 #define ATA_DATA_PORT(x)			(x+0)
@@ -43,7 +44,7 @@
 		status = inb(ATA_COMMAND_PORT(bus)); \
 	} while ( !(status & ATA_DRQ) && (status & ATA_BSY) ); \
 	if ( status & ATA_ERR ) { \
-		if(msg) puts(msg); \
+		DBG(if(msg) puts(msg);) \
 		return ret; \
 	}
 	

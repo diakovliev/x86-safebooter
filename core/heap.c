@@ -2,6 +2,7 @@
 #include <loader.h>
 
 #include <stdio.h>
+#include <debug.h>
 
 /* Simple heap */
 
@@ -176,7 +177,7 @@ void *malloc(size_t size)
 		return node->start;	
 	}
 
-	printf("!!! Allocation failed !!!\n\r");
+	DBG_print("Allocation failed\n\r");
 
 	return 0;
 }
@@ -188,7 +189,7 @@ void free(void *ptr)
 		++current_node;
 	}	
 	if (current_node >= heap_nodes + heap_nodes_count) {
-		printf("!!! Was tried to free unknown node at %p !!!\n\r", ptr);
+		DBG_print("Was tried to free unknown node at %p\n\r", ptr);
 		return;
 	}
 

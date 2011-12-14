@@ -11,14 +11,7 @@
 #include <string.h>
 #include <stdarg.h>
 
-#ifdef __HOST_COMPILE__
-#include <stdlib.h>
-#include <assert.h>
-#else
-#define assert(x)
-#endif
-
-/* compiler built-in for va_args */
+#include "../core/debug.h" /* assert */
 
 /********************************************************************************************************
  * Memory trace
@@ -143,15 +136,12 @@ bch_p bch_alloc(bch_size size) {
 	res = (bch_p)bch__alloc(sizeof(bch));
 	if (res)
 		res->size = size;
-	else
-		DBG_print("Unable to allocate memory for bit chain.\n\r");
 	res->data = (bch_data_p)bch__alloc(((size/4)+(size%4?1:0))*4*sizeof(bch_data));
 	if (res->data) {
 		bch_zero(res);
 	}
 	else {
 		free(res);
-		DBG_print("Unable to allocate memory for bit chain data (size %d).\n\r", size);
 		res = 0;
 	}
 	return res;
@@ -219,8 +209,6 @@ bch_p bch_clone(bch_p src) {
 	bch_p clone = bch_alloc(src->size);
 	if (clone) {
 		bch_copy(clone,src);
-	} else {
-		DBG_print("Unable to clone bit chain.\n\r");
 	}
 	return clone;
 }
@@ -506,69 +494,22 @@ int8_t bch_cmp(bch_p l, bch_p r) {
 	}
 
 	/* Step 2: Exponents */
-	bch_p l_ = bch_abs(bch_clone(l));
-	bch_p r_ = bch_abs(bch_clone(r));
+	bch_p l_ = ls ? bch_abs(bch_clone(l)) : l;
+	bch_p r_ = rs ? bch_abs(bch_clone(r)) : r;
 
-	int32_t	le = bch_bexp(l_),
-			re = bch_bexp(r_);
-	if (le < 0 && re >= 0)
-		res = -1;
-	if (re < 0 && le >= 0)
-		res = 1;
-	if (le < 0 && re < 0) {
-		res = 0;
-		return res;
-	}
-	if (!res && le != re) {
-		res = (le - re) > 0 ? 1 : -1;
-	}
-
-	/* Step 3: Digits */
-	int32_t hexp = bch_hexp(l_);
-	if (!res && hexp >= 0) {
-
-		/*
-		int32_t i = hexp;
-		while (i >= 0) {
-			if (l_->data[i] != r_->data[i]) {
-				res = (l_->data[i] - r_->data[i]) > 0 ? 1 : -1;
-				break;
-			}
-			--i;
+	int32_t i;
+	bch_data l_data, r_data;
+	for (i = BCH_MAX(l_->size,r_->size) - 1; i >= 0; --i) {
+		l_data = (i < l_->size) ? l_->data[i] : 0;
+		r_data = (i < r_->size) ? r_->data[i] : 0;
+		if (l_data != r_data) {
+			res = ((l_data - r_data) > 0) ? 1 : -1;
+			break;
 		}
-		*/
-
-		/* Decrease iterates count using more longer type */
-		/* TODO: !!! Something wrong with this code optimization with type different of uint8_t
-		 * (works OK without optimization) */
-//		typedef uint16_t enum_type;
-		typedef uint8_t enum_type;
-
-		int32_t i = ((hexp / sizeof(enum_type)) + (hexp % sizeof(enum_type) ? 1 : 0)) * sizeof(enum_type);
-
-		enum_type l;
-		enum_type r;
-
-		while (i >= 0) {
-
-#define data_cmp(x)	(*((enum_type*)((x)->data + i)))
-
-			l = data_cmp(l_);
-			r = data_cmp(r_);
-
-			if (l != r) {
-				res = ((l - r) > 0) ? 1 : -1;
-				break;
-			}
-			i -= sizeof(enum_type);
-
-#undef data_cmp
-
-		}
-
 	}
 
-	bch_free(l_,r_);
+	if (ls) bch_free(l_);
+	if (rs) bch_free(r_);
 
 	if (invert && res) {
 		res = res == 1 ? -1 : 1;
@@ -1003,7 +944,6 @@ void bch_div_mod_bin_internal(bch_p r, bch_p m_, bch_p divided_, bch_p divider_)
 	int32_t divider_exp = bch_bexp(divider_);
 	/* Zero divider */
 	if (divider_exp < 0) {
-		DBG_print("Division by zero detected\n\r");
 		return;
 	}
 
@@ -1053,7 +993,6 @@ void bch_div_mod_internal(bch_p r, bch_p m_, bch_p divided_, bch_p divider_)
 	int32_t divider_exp = bch_hexp(divider_);
 	/* Zero divider */
 	if (divider_exp < 0) {
-		DBG_print("Division by zero detected\n\r");
 		return;
 	}
 
@@ -1078,7 +1017,12 @@ void bch_div_mod_internal(bch_p r, bch_p m_, bch_p divided_, bch_p divider_)
 	} else if (divider_exp == 0) {
 		b = (divider_->data[divider_exp] << 16);
 	}
-	
+
+	/* HACK: Save pointer */	
+	bch_data_p saved_pointer 	= sub_shifted->data;
+	bch_size saved_size 		= sub_shifted->size;
+	/**/
+
 	while ((exp >= 0) && (bch_cmp(m_,divider_) > 0)) {
 
 		if ( bch_cmp(sub_shifted, m_) <= 0 ) {
@@ -1123,9 +1067,21 @@ void bch_div_mod_internal(bch_p r, bch_p m_, bch_p divided_, bch_p divider_)
 			m_exp = bch_hexp(m_);
 		}
 
-		bch_byte_shr(sub_shifted,1);
+		
+		/*bch_byte_shr(sub_shifted,1);*/
+
+		/* HACK: bch_byte_shr(sub_shifted,1); */
+		sub_shifted->data += 1;
+		sub_shifted->size -= 1;
+		/**/
+
 		--exp;
 	}
+
+	/* HACK: Restore internal pointer */
+	sub_shifted->data = saved_pointer;
+	sub_shifted->size = saved_size;
+	/**/
 
 	bch_free(sub, sub_shifted);
 }
