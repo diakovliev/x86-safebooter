@@ -40,7 +40,7 @@ CONFIG-ENABLE-ASM-OUTPUT=n
 CONFIG-GPROF-SUPPORT-y=-pg
 CONFIG-GPROF-SUPPORT-n=
 
-CONFIG-DEBUG-y=-g -O0 -D__DEBUG__
+CONFIG-DEBUG-y=-g -O0 -D__DEBUG__ -Wall
 CONFIG-DEBUG-n=-O2 -fdata-sections -ffunction-sections -Wl,--gc-sections
 
 CONFIG-ENABLE-ASM-OUTPUT-y=-Wa,-a,-ad,-aln=asm.S

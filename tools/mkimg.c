@@ -110,28 +110,28 @@ int process_buffer(void *buffer, long size, void *start_block) {
 	bch_p r =		dsa_alloc();
 	bch_p s =		dsa_alloc();
 
-//	if (verbose) {
-//		bch_p G =		dsa_from_ba((bch_data_p)dsa_G, dsa_G_size);
-//		bch_p P =		dsa_from_ba((bch_data_p)dsa_P, dsa_P_size);
-//		bch_p Q =		dsa_from_ba((bch_data_p)dsa_Q, dsa_Q_size);
-//		bch_p pub =		dsa_from_ba((bch_data_p)dsa_pub, dsa_pub_size);
-//		bch_p priv =	dsa_from_ba((bch_data_p)dsa_priv, dsa_priv_size);
-//
-//		printf("#----------------- DSA params ---------------\n\r");
-//		bch_print("G = ", G);
-//		bch_print("P = ", P);
-//		bch_print("Q = ", Q);
-//		bch_print("pub = ", pub);
-//		bch_print("priv = ", priv);
-//		bch_print("sha2 = ", bch_sha2);
-//		printf("#--------------------------------------------\n\r");
-//
-//		dsa_free(G);
-//		dsa_free(P);
-//		dsa_free(Q);
-//		dsa_free(pub);
-//		dsa_free(priv);
-//	}
+	if (verbose) {
+		bch_p G =		dsa_from_ba((bch_data_p)dsa_G, dsa_G_size);
+		bch_p P =		dsa_from_ba((bch_data_p)dsa_P, dsa_P_size);
+		bch_p Q =		dsa_from_ba((bch_data_p)dsa_Q, dsa_Q_size);
+		bch_p pub =		dsa_from_ba((bch_data_p)dsa_pub, dsa_pub_size);
+		bch_p priv =	dsa_from_ba((bch_data_p)dsa_priv, dsa_priv_size);
+
+		printf("#----------------- DSA params ---------------\n\r");
+		bch_print("G = ", G);
+		bch_print("P = ", P);
+		bch_print("Q = ", Q);
+		bch_print("pub = ", pub);
+		bch_print("priv = ", priv);
+		bch_print("sha2 = ", bch_sha2);
+		printf("#--------------------------------------------\n\r");
+
+		dsa_free(G);
+		dsa_free(P);
+		dsa_free(Q);
+		dsa_free(pub);
+		dsa_free(priv);
+	}
 
     dsa_sign(bch_sha2, r, s, &randrom_gen);
     if (verbose) {
@@ -221,27 +221,27 @@ int process_raw_file(char *output_file, char *input_file) {
 		FILE *output = fopen(output_file, "w+");
 		if (output) {
 
-			process_buffer(buffer, size, start_block);
+			res = process_buffer(buffer, size, start_block);
+			if (!res) {
+				readed = 0;
+				do {
+					readed += fwrite(start_block + readed, 1, DISK_SECTOR_SIZE - readed, output);
+					if (verbose) {
+						printf("Wrote %ld bytes\n\r", readed);
+					}
+				} while (readed < DISK_SECTOR_SIZE);
 
-			readed = 0;
-			do {
-				readed += fwrite(start_block + readed, 1, DISK_SECTOR_SIZE - readed, output);
-				if (verbose) {
-					printf("Wrote %ld bytes\n\r", readed);
-				}
-			} while (readed < DISK_SECTOR_SIZE);
+				readed = 0;
+				do {
+					readed += fwrite(buffer + readed, 1, size - readed, output);
+					if (verbose) {
+						printf("Wrote %ld bytes\n\r", readed);
+					}
+				} while (readed < size);
 
-			readed = 0;
-			do {
-				readed += fwrite(buffer + readed, 1, size - readed, output);
-				if (verbose) {
-					printf("Wrote %ld bytes\n\r", readed);
-				}
-			} while (readed < size);
-
-			fclose(output);
-			res = 0;
-
+				fclose(output);
+				res = 0;
+			}
 		} else {
 			res = -2;
 		}
@@ -386,7 +386,7 @@ out:
 	if (output) fclose(output);
 	if (input) fclose(input);
 
-	return 0;
+	return res;
 }
 
 /*********************************************************************************/

@@ -20,6 +20,10 @@ void dsa_sign(bch_p H, bch_p r, bch_p s, bch_random_p random) {
 /*		inv_res = (bch_p)bch_inverse(k_inv,k,Q);*/
 	} while ( !inv_res );
 
+#ifdef __DEBUG__
+	bch_print("k = ",k);
+#endif/*__DEBUG__*/
+
     /* (G ^ k mod P) mod Q */
     bch_copy(r, G);
     bch_powmod(r, k, P);
@@ -78,6 +82,10 @@ int8_t dsa_check(bch_p H, bch_p r, bch_p s) {
 		bch_copy(v,t0);
 		bch_mulmod(v,t1,P);
 		bch_mod(v,Q);
+
+#ifdef __DEBUG__
+		bch_hprint("v", v);
+#endif/*__DEBUG__*/
 
 		res = bch_cmp(r,v);
 	}

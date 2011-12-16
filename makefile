@@ -1,7 +1,7 @@
 include makefile.config
 
 #-----------------------------------------------------------------------------------
-CONFIG-DBG-y					:= -ggdb3 -O0 -D__DEBUG__
+CONFIG-DBG-y					:= -ggdb3 -O0 -D__DEBUG__ -Wall
 CONFIG-DBG-n					:= -O2
 CONFIG-CONSOLE-ENABLED-y 		:= -DCONFIG_CONSOLE_ENABLED
 CONFIG-CONSOLE-SERIAL-y 		:= -DCONFIG_CONSOLE_SERIAL

@@ -134,10 +134,9 @@ bch_p bch_random_gen(bch_p dst, bch_p max, bch_random_p g) {
 bch_p bch_alloc(bch_size size) {
 	bch_p res = 0;
 	res = (bch_p)bch__alloc(sizeof(bch));
-	if (res)
+	if (res) {
 		res->size = size;
-	res->data = (bch_data_p)bch__alloc(((size/4)+(size%4?1:0))*4*sizeof(bch_data));
-	if (res->data) {
+		res->data = (bch_data_p)bch__alloc(((size/4)+(size%4?1:0))*4*sizeof(bch_data));
 		bch_zero(res);
 	}
 	else {
@@ -172,6 +171,7 @@ bch_p bch_from_string(bch_size dst_size, const char *presentation, unsigned char
 	char buffer[3];
 	buffer[2] = 0;
 	bch_data_p dst_ptr = res->data;
+	uint8_t is_set = 0;
 	while (ptr > presentation) {
 		buffer[0] = *(ptr - 1);
 		buffer[1] = *(ptr);
@@ -183,9 +183,11 @@ bch_p bch_from_string(bch_size dst_size, const char *presentation, unsigned char
 			++dst_ptr;
 		}
 		ptr -= 2;
+		is_set = 1;
 	}
-	if (buffer[0] == '-')
+	if (is_set && buffer[0] == '-') {
 		bch_negate(res);
+	}
 
 	return res;
 }
@@ -228,7 +230,7 @@ void bch_va_free(bch_p ptr,...) {
 	va_start(ap,ptr);
 	do {
 		bch_free_raw(p);
-	} while (p = va_arg(ap, bch_p));
+	} while ((p = va_arg(ap,bch_p)));
 	va_end(ap);
 }
 
@@ -244,6 +246,7 @@ bch_p bch_rev(bch_p s) {
 		}
 		bch_byte_shr(s,s->size-bexp-1);
 	}
+	return s;
 }
 
 /********************************************************************************************************
@@ -265,13 +268,6 @@ bch_p bch_one(bch_p op) {
 	op->data[0] = 1;
 
 	return op;
-}
-
-int8_t bch_is_negative(bch_p op) {
-
-	assert(op != 0);
-
-	return op->data[op->size-1] & 0x80 ? 1 : 0;
 }
 
 int8_t bch_is_zero(bch_p op) {
@@ -307,24 +303,31 @@ int32_t bch_hexp(bch_p op) {
 	return res;
 }
 
-static inline bch_size bch_ffs(bch_data v) {
-
-	bch_size i = 0;
-
-	if (v & 0xF0) {
-		if (v & 0xC0) {
-			i = v & 0x80 ? 8 : 7;
-		} else {
-			i = v & 0x20 ? 6 : 5;
-		}
+/* Binary search */
+#define BCH_FFS(v) \
+	{ \
+		i = 0; \
+		if (v & 0xF0) { \
+			if (v & 0xC0) { \
+				i = v & 0x80 ? 8 : 7; \
+			} else { \
+				i = v & 0x20 ? 6 : 5; \
+			} \
+		} \
+		else if (v & 0x0F) { \
+			if (v & 0x0C) { \
+				i = v & 0x08 ? 4 : 3; \
+			} else { \
+				i = v & 0x02 ? 2 : 1; \
+			} \
+		} \
 	}
-	else if (v & 0x0F) {
-		if (v & 0x0C) {
-			i = v & 0x08 ? 4 : 3;
-		} else {
-			i = v & 0x02 ? 2 : 1;
-		}
-	}
+	
+bch_size bch_ffs(bch_data v) {
+
+	bch_size i;
+
+	BCH_FFS(v);
 
 	return i;
 }
@@ -346,22 +349,7 @@ int32_t bch_bexp(bch_p op) {
 		}
 	} while (i-- > 0);
 
-	/* Binary search */
-	i = 0;
-	if (v & 0xF0) {
-		if (v & 0xC0) {
-			i = v & 0x80 ? 8 : 7;
-		} else {
-			i = v & 0x20 ? 6 : 5;
-		}
-	}
-	else if (v & 0x0F) {
-		if (v & 0x0C) {
-			i = v & 0x08 ? 4 : 3;
-		} else {
-			i = v & 0x02 ? 2 : 1;
-		}
-	}
+	BCH_FFS(v);
 
 	return res + i;
 }
@@ -493,7 +481,7 @@ int8_t bch_cmp(bch_p l, bch_p r) {
 		invert = ls == rs;
 	}
 
-	/* Step 2: Exponents */
+	/* Step 2: Compare data */
 	bch_p l_ = ls ? bch_abs(bch_clone(l)) : l;
 	bch_p r_ = rs ? bch_abs(bch_clone(r)) : r;
 
@@ -535,7 +523,6 @@ bch_p bch_mul_s(bch_p dst, bch_data mul) {
 			v += dst_->data[i] * mul;
 			dst_->data[i] = v & 0xFF;
 		} else {
-			v = 0;
 			break;
 		}
 		v -= v & 0xFF;
@@ -671,7 +658,7 @@ bch_p bch_bit_shr(bch_p dst, bch_size shift) {
 
 bch_p bch_keep_sign_shift_right(bch_p dst) {
 
-	const shift = 1;
+	const uint8_t shift = 1;
 
 	/*
 	const bch_size bit_shift = shift % 8;
@@ -716,39 +703,6 @@ bch_p bch_keep_sign_shift_right(bch_p dst) {
 	return dst;
 }
 
-bch_p bch_set_bit(bch_p dst, uint32_t exp) {
-
-	assert(dst);
-
-	dst->data[exp/8] |= (1 << (exp % 8));
-
-	return dst;
-}
-
-bch_p bch_set_byte(bch_p dst, bch_size exp, bch_data byte) {
-
-	assert(dst);
-
-	dst->data[exp] = byte;
-
-	return dst;
-}
-
-bch_data bch_get_bit(bch_p src, uint32_t exp) {
-
-	assert(src);
-
-	return (src->data[exp/8]) & (1 << (exp % 8));
-}
-
-bch_p bch_clr_bit(bch_p dst, uint32_t exp) {
-
-	assert(dst);
-
-	dst->data[exp/8] &= ~(1 << (exp % 8));
-
-	return dst;
-}
 
 void
 bch_mul_arr_base(
@@ -850,9 +804,6 @@ bch_p bch_mul_base(bch_p dst, bch_p mul) {
 
 	bch_p dst_ = bch_clone(dst);
 	bch_p mul_ = mul;
-
-	int32_t mul_hexp = bch_hexp(mul_);
-	int32_t dst_hexp = bch_hexp(dst_);
 
 	bch_p dstmul_ = bch_clone(dst);
 	bch_zero(dst_);
@@ -1018,11 +969,6 @@ void bch_div_mod_internal(bch_p r, bch_p m_, bch_p divided_, bch_p divider_)
 		b = (divider_->data[divider_exp] << 16);
 	}
 
-	/* HACK: Save pointer */	
-	bch_data_p saved_pointer 	= sub_shifted->data;
-	bch_size saved_size 		= sub_shifted->size;
-	/**/
-
 	while ((exp >= 0) && (bch_cmp(m_,divider_) > 0)) {
 
 		if ( bch_cmp(sub_shifted, m_) <= 0 ) {
@@ -1054,34 +1000,24 @@ void bch_div_mod_internal(bch_p r, bch_p m_, bch_p divided_, bch_p divider_)
 
 			bch_copy(sub,sub_shifted);
 			bch_mul_s(sub,q);
-			if (bch_cmp(sub,m_) > 0) {
-				bch_sub(sub,sub_shifted);
+
+			bch_sub(m_,sub);
+			if (bch_is_negative(m_)) {
+				bch_add(m_,sub_shifted);
 				q--;
 			}
 
-			bch_sub(m_,sub);
 			if (r) {
 				bch_set_byte(r,exp,q);
 			}
 
 			m_exp = bch_hexp(m_);
 		}
-
 		
-		/*bch_byte_shr(sub_shifted,1);*/
-
-		/* HACK: bch_byte_shr(sub_shifted,1); */
-		sub_shifted->data += 1;
-		sub_shifted->size -= 1;
-		/**/
+		bch_byte_shr(sub_shifted,1);
 
 		--exp;
 	}
-
-	/* HACK: Restore internal pointer */
-	sub_shifted->data = saved_pointer;
-	sub_shifted->size = saved_size;
-	/**/
 
 	bch_free(sub, sub_shifted);
 }
@@ -1355,7 +1291,6 @@ bch_p bch_inverse(bch_p dst, bch_p a, bch_p n) {
 	bch_set_bit(tmp,0);
 
 	bch_gcdex(dst, a, n, x, y);
-	//bch_gcdex_bin(dst, a, n, x, y);
 	if (bch_cmp(dst,tmp) == 0) {
 		if (bch_is_negative(x)) {
 			bch_add(x,n);
@@ -1399,14 +1334,6 @@ bch_p bch_mulmod(bch_p a, bch_p b, bch_p c) {
 			bch_mod(y,c); \
 		}
 
-//#define do_mulmod_step(index) \
-		{ \
-			if ( b_data & index ) { \
-				bch_add(x,y); \
-			} \
-			bch_bit_shl(y,1); \
-		}
-
 		do_mulmod_step(0x01);
 		do_mulmod_step(0x02);
 		do_mulmod_step(0x04);
@@ -1423,7 +1350,6 @@ bch_p bch_mulmod(bch_p a, bch_p b, bch_p c) {
 
 out:
 	bch_copy(a,x);
-	//bch_mod(a,c);
 
 	bch_free(x,y,b_);
 
@@ -1452,7 +1378,6 @@ bch_p bch_pow(bch_p x,bch_p y) {
 			if (y_data & index) { \
 				bch_mul(s,x_); \
 			} \
-			/*bch_mul(x_,x_);*/ \
 			bch_sqr(x_); \
 		}
 
@@ -1501,17 +1426,8 @@ bch_p bch_powmod(bch_p x,bch_p y,bch_p n) {
 				bch_mul(s,x_); \
 				bch_mod(s,n); \
 			} \
-			/*bch_mul(x_,x_);*/ \
 			bch_sqr(x_); \
 			bch_mod(x_,n); \
-		}
-
-//#define do_powmod_step(index) \
-		{ \
-			if (y_data & index) { \
-				bch_mulmod(s,x_,n); \
-			} \
-			bch_mulmod(x_,x_,n); \
 		}
 
 		do_powmod_step(0x01);

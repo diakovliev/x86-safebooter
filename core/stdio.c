@@ -62,7 +62,7 @@ byte_t getc(void) {
 /* Timeout extension */
 byte_t waitc(quad_t *tm, byte_t *c) {
 
-	if (!p) return;
+	if (!p) return 0;
 
 	quad_t ctm 		= ctime();
 	

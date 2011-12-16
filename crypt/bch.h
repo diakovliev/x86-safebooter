@@ -65,7 +65,6 @@ bch_p bch_clone(bch_p src);
 
 bch_p bch_rev(bch_p src);
 
-int8_t bch_is_negative(bch_p op);
 int8_t bch_is_zero(bch_p op);
 int32_t bch_hexp(bch_p op);
 int32_t bch_bexp(bch_p op);
@@ -79,7 +78,6 @@ bch_p bch_byte_shl(bch_p dst, bch_size shift);
 bch_p bch_byte_shr(bch_p dst, bch_size shift);
 bch_p bch_bit_shl(bch_p dst, bch_size shift);
 bch_p bch_bit_shr(bch_p dst, bch_size shift);
-bch_p bch_set_bit(bch_p dst, uint32_t exp);
 
 bch_p bch_add_s(bch_p dst, bch_data add);
 bch_p bch_mul_s(bch_p dst, bch_data mul);
@@ -102,5 +100,25 @@ bch_p bch_inverse_bin(bch_p dst, bch_p a, bch_p n);
 bch_p bch_pow(bch_p x,bch_p y);
 bch_p bch_powmod(bch_p x,bch_p y,bch_p n);
 bch_p bch_mulmod(bch_p x, bch_p y, bch_p n);
+
+/************************ Inlines **********************************/
+#define bch_is_negative(op) (op->data[op->size-1] & 0x80 ? 1 : 0)
+
+static inline bch_p bch_set_bit(bch_p dst, uint32_t exp) {
+	dst->data[exp/8] |= (1 << (exp % 8));
+	return dst;
+}
+
+static inline bch_p bch_set_byte(bch_p dst, bch_size exp, bch_data byte) {
+	dst->data[exp] = byte;
+	return dst;
+}
+
+#define bch_get_bit(src,exp) ((src->data[exp/8]) & (1 << (exp % 8)))
+
+static inline bch_p bch_clr_bit(bch_p dst, uint32_t exp) {
+	dst->data[exp/8] &= ~(1 << (exp % 8));
+	return dst;
+}
 
 #endif /* BCH_H_ */
