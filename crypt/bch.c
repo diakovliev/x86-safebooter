@@ -500,7 +500,7 @@ int8_t bch_cmp(bch_p l, bch_p r) {
 	if (rs) bch_free(r_);
 
 	if (invert && res) {
-		res = res == 1 ? -1 : 1;
+		res = -res;
 	}
 	return res;
 }
@@ -950,10 +950,6 @@ void bch_div_mod_internal(bch_p r, bch_p m_, bch_p divided_, bch_p divider_)
 	int32_t exp 		= (divided_exp-divider_exp);
 	bch_p sub			= bch_alloc(divided_->size);
 
-	bch_copy(sub,divider_);
-	bch_p sub_shifted	= bch_clone(sub);
-	bch_byte_shl(sub_shifted,exp);
-
 	int32_t m_exp = divided_exp;
 	uint16_t q = 0;
 	uint32_t a, b = 0;
@@ -969,9 +965,11 @@ void bch_div_mod_internal(bch_p r, bch_p m_, bch_p divided_, bch_p divider_)
 		b = (divider_->data[divider_exp] << 16);
 	}
 
-	while ((exp >= 0) && (bch_cmp(m_,divider_) > 0)) {
+	bch_byte_shl(divider_,exp++);
 
-		if ( bch_cmp(sub_shifted, m_) <= 0 ) {
+	while (exp > 0) {
+
+		if ( bch_cmp(divider_, m_) <= 0 ) {
 
 			a = 0;
 			if (m_exp >= 3) {
@@ -997,29 +995,29 @@ void bch_div_mod_internal(bch_p r, bch_p m_, bch_p divided_, bch_p divider_)
 			if (q & 0xFF00) {
 				q >>= 8;
 			}
-
-			bch_copy(sub,sub_shifted);
+			
+			bch_copy(sub,divider_);
 			bch_mul_s(sub,q);
 
 			bch_sub(m_,sub);
 			if (bch_is_negative(m_)) {
-				bch_add(m_,sub_shifted);
+				bch_add(m_,divider_);
 				q--;
 			}
 
 			if (r) {
-				bch_set_byte(r,exp,q);
+				bch_set_byte(r,exp-1,q);
 			}
 
 			m_exp = bch_hexp(m_);
 		}
 		
-		bch_byte_shr(sub_shifted,1);
-
-		--exp;
+		if (--exp) {
+			bch_byte_shr(divider_,1);
+		}
 	}
 
-	bch_free(sub, sub_shifted);
+	bch_free(sub);
 }
 
 void bch_div_mod(bch_p r, bch_p m, bch_p divided, bch_p divider) {
