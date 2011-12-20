@@ -1,31 +1,6 @@
 include makefile.config
 
 #-----------------------------------------------------------------------------------
-CONFIG-DBG-y					:= -ggdb3 -O0 -D__DEBUG__ -Wall
-CONFIG-DBG-n					:= -O2
-CONFIG-CONSOLE-ENABLED-y 		:= -DCONFIG_CONSOLE_ENABLED
-CONFIG-CONSOLE-SERIAL-y 		:= -DCONFIG_CONSOLE_SERIAL
-CONFIG-CONSOLE-SERIAL-PORT-COM1 := -DCONFIG_CONSOLE_SERIAL_PORT=COM1
-CONFIG-CONSOLE-SERIAL-PORT-COM2 := -DCONFIG_CONSOLE_SERIAL_PORT=COM2
-CONFIG-CONSOLE-SERIAL-PORT-COM3 := -DCONFIG_CONSOLE_SERIAL_PORT=COM3
-CONFIG-CONSOLE-SERIAL-PORT-COM4 := -DCONFIG_CONSOLE_SERIAL_PORT=COM4
-CONFIG-COMMAND-LINE-ENABLED-y	:= -DCONFIG_COMMAND_LINE_ENABLED
-CONFIG-RAW-IMAGES-ENABLED-y		:= -DCONFIG_RAW_IMAGES_ENABLED
-
-DEFINES			+= $(CONFIG-CONSOLE-ENABLED-$(CONFIG_CONSOLE_ENABLED))
-DEFINES			+= $(CONFIG-CONSOLE-SERIAL-$(CONFIG_CONSOLE_SERIAL))
-DEFINES			+= $(CONFIG-CONSOLE-SERIAL-PORT-$(CONFIG_CONSOLE_SERIAL_PORT))
-DEFINES			+= $(CONFIG-COMMAND-LINE-ENABLED-$(CONFIG_COMMAND_LINE_ENABLED))
-DEFINES			+= $(CONFIG-RAW-IMAGES-ENABLED-$(CONFIG_RAW_IMAGES_ENABLED))
-
-INCLUDES		:= -I./ -I./core -I./linux
-
-#-----------------------------------------------------------------------------------
-BASE_HEADERS+=core/loader.h 
-BASE_HEADERS+=loader.gen.h
-BASE_HEADERS+=core/gdt_table.h 
-BASE_HEADERS+=gdt_table.gen.h 
-
 HEADERS+=core/common.h
 HEADERS+=core/loader_types.h 
 HEADERS+=core/string.h 
@@ -78,36 +53,37 @@ DRIVERS_SOURCES+=drivers/serial_driver.c
 DRIVERS_SOURCES+=drivers/rtc_driver.c
 SOURCES+=$(DRIVERS_SOURCES)
 
+#-----------------------------------------------------------------------------------
+CONFIG-DBG-y					:= -ggdb3 -O0 -D__DEBUG__ -Wall
+CONFIG-DBG-n					:= -O2
+CONFIG-CONSOLE-ENABLED-y 		:= -DCONFIG_CONSOLE_ENABLED
+CONFIG-CONSOLE-SERIAL-y 		:= -DCONFIG_CONSOLE_SERIAL
+CONFIG-CONSOLE-SERIAL-PORT-COM1 := -DCONFIG_CONSOLE_SERIAL_PORT=COM1
+CONFIG-CONSOLE-SERIAL-PORT-COM2 := -DCONFIG_CONSOLE_SERIAL_PORT=COM2
+CONFIG-CONSOLE-SERIAL-PORT-COM3 := -DCONFIG_CONSOLE_SERIAL_PORT=COM3
+CONFIG-CONSOLE-SERIAL-PORT-COM4 := -DCONFIG_CONSOLE_SERIAL_PORT=COM4
+CONFIG-COMMAND-LINE-ENABLED-y	:= -DCONFIG_COMMAND_LINE_ENABLED
+CONFIG-RAW-IMAGES-ENABLED-y		:= -DCONFIG_RAW_IMAGES_ENABLED
+
+DEFINES			+= $(CONFIG-CONSOLE-ENABLED-$(CONFIG_CONSOLE_ENABLED))
+DEFINES			+= $(CONFIG-CONSOLE-SERIAL-$(CONFIG_CONSOLE_SERIAL))
+DEFINES			+= $(CONFIG-CONSOLE-SERIAL-PORT-$(CONFIG_CONSOLE_SERIAL_PORT))
+DEFINES			+= $(CONFIG-COMMAND-LINE-ENABLED-$(CONFIG_COMMAND_LINE_ENABLED))
+DEFINES			+= $(CONFIG-RAW-IMAGES-ENABLED-$(CONFIG_RAW_IMAGES_ENABLED))
+
+INCLUDES		:= -I./ -I./core -I./linux
+
+#-----------------------------------------------------------------------------------
+BASE_HEADERS+=core/loader.h 
+BASE_HEADERS+=loader.gen.h
+BASE_HEADERS+=core/gdt_table.h 
+BASE_HEADERS+=gdt_table.gen.h 
+
 BASE_OBJECTS+=loader_start.o 
 BASE_OBJECTS+=gdt_table.o
 
-OBJECTS+=main.o 
-OBJECTS+=string.o 
-OBJECTS+=heap.o 
-OBJECTS+=env.o 
-OBJECTS+=stdio.o
-OBJECTS+=jump_to_kernel.o
-OBJECTS+=image.o
-OBJECTS+=blowfish.o
-OBJECTS+=blowfish_key.o
-OBJECTS+=xor_key.o
-OBJECTS+=sha1.o
-#OBJECTS+=sha2.o
-OBJECTS+=bch.o
-OBJECTS+=dsa.o
-OBJECTS+=dsa_key.o
-#OBJECTS+=dsa_pkey.o
-OBJECTS+=crypt.o
-DRIVERS_OBJECTS+=text_display_driver.o
-DRIVERS_OBJECTS+=text_display_console.o
-DRIVERS_OBJECTS+=keyboard_driver.o
-DRIVERS_OBJECTS+=ascii_driver.o
-DRIVERS_OBJECTS+=ata_driver.o
-DRIVERS_OBJECTS+=serial_driver.o
-DRIVERS_OBJECTS+=rtc_driver.o
-OBJECTS+=$(DRIVERS_OBJECTS)
+OBJECTS=$(patsubst %.c,%.o,$(patsubst %.S,%.o,$(notdir $(SOURCES))))
 
-#-----------------------------------------------------------------------------------
 GCCARGS			:= -c $(CONFIG-DBG-$(CONFIG_DBG)) -m32 -march=i386 -nostdlib -fno-builtin $(DEFINES) $(INCLUDES)
 GCC				:= gcc
 

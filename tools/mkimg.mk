@@ -1,5 +1,10 @@
 # Mkimg tool makefile
 
+CONFIG-DEBUG=n
+CONFIG-GPROF-SUPPORT=n
+CONFIG-ENABLE-ASM-OUTPUT=n
+
+#------------------------------------------------------------------------
 HEADERS += ../crypt/blowfish.h
 HEADERS += ../crypt/sha1.h
 HEADERS += ../crypt/sha2.h
@@ -19,23 +24,8 @@ SOURCES += ../crypt/dsa_key.c
 SOURCES += ../crypt/dsa_pkey.c
 SOURCES += mkimg.c
 
-OBJECTS += blowfish_key.o
-OBJECTS += xor_key.o
-OBJECTS += blowfish.o
-OBJECTS += sha1.o
-OBJECTS += sha2.o
-OBJECTS += bch.o
-OBJECTS += crypt.o
-OBJECTS += dsa.o
-OBJECTS += dsa_key.o
-OBJECTS += dsa_pkey.o
-OBJECTS += mkimg.o
-
+#------------------------------------------------------------------------
 .PHONY: clean prepare
-
-CONFIG-DEBUG=n
-CONFIG-GPROF-SUPPORT=n
-CONFIG-ENABLE-ASM-OUTPUT=n
 
 CONFIG-GPROF-SUPPORT-y=-pg
 CONFIG-GPROF-SUPPORT-n=
@@ -45,6 +35,8 @@ CONFIG-DEBUG-n=-O2 -fdata-sections -ffunction-sections -Wl,--gc-sections
 
 CONFIG-ENABLE-ASM-OUTPUT-y=-Wa,-a,-ad,-aln=asm.S
 CONFIG-ENABLE-ASM-OUTPUT-n=
+
+OBJECTS=$(patsubst %.c,%.o,$(patsubst %.S,%.o,$(notdir $(SOURCES))))
 
 GCC_CMD=gcc $(CONFIG-ENABLE-ASM-OUTPUT-$(CONFIG-ENABLE-ASM-OUTPUT)) $(CONFIG-GPROF-SUPPORT-$(CONFIG-GPROF-SUPPORT)) 
 
