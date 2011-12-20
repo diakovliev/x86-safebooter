@@ -200,7 +200,10 @@ bch_p bch_copy(bch_p dst, bch_p src) {
 
 	bch_size copy_size = BCH_MIN(dst->size, src->size);
 
-	bch_zero(dst);
+	if (dst->size < src->size) {
+		bch_zero(dst);
+	}
+
 	memcpy(dst->data,src->data,copy_size * sizeof(bch_data));
 	//dst->size = copy_size;
 
@@ -542,12 +545,12 @@ bch_p bch_byte_shl(bch_p dst, bch_size shift) {
 
 	assert(dst != 0);
 
-	bch_size sz = (dst->size-shift) * sizeof(bch_data);
+	bch_size sz = (dst->size-shift);
 	bch_data_p buffer = bch__alloc(sz);
 
 	if (dst->size - shift > 0) {
 		memcpy(buffer, dst->data, sz);
-		bch_zero(dst);
+		memset(dst->data, 0, dst->size - sz);
 		memcpy(dst->data + shift, buffer, sz);
 	}
 
@@ -560,12 +563,12 @@ bch_p bch_byte_shr(bch_p dst, bch_size shift) {
 
 	assert(dst != 0);
 
-	bch_size sz = (dst->size-shift) * sizeof(bch_data);
+	bch_size sz = (dst->size-shift);
 	bch_data_p buffer = bch__alloc(sz);
 
 	if (dst->size - shift > 0) {
 		memcpy(buffer, dst->data + shift, sz);
-		bch_zero(dst);
+		memset(dst->data + sz, 0, dst->size - sz);
 		memcpy(dst->data, buffer, sz);
 	}
 

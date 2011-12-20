@@ -110,6 +110,7 @@ int process_buffer(void *buffer, long size, void *start_block) {
 	bch_p r =		dsa_alloc();
 	bch_p s =		dsa_alloc();
 
+#ifdef __DEBUG__
 	if (verbose) {
 		bch_p G =		dsa_from_ba((bch_data_p)dsa_G, dsa_G_size);
 		bch_p P =		dsa_from_ba((bch_data_p)dsa_P, dsa_P_size);
@@ -132,6 +133,7 @@ int process_buffer(void *buffer, long size, void *start_block) {
 		dsa_free(pub);
 		dsa_free(priv);
 	}
+#endif/*__DEBUG__*/
 
     dsa_sign(bch_sha2, r, s, &randrom_gen);
     if (verbose) {
