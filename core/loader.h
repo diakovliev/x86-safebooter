@@ -10,7 +10,7 @@
 
 #define LOADER_MAGIC 0xEC,0xAF
 #define VER_MAJ 0x01
-#define VER_MID 0x03
-#define VER_MIN 0x08
+#define VER_MID 0x04
+#define VER_MIN 0x00
 
 #endif

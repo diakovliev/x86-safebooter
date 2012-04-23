@@ -158,18 +158,6 @@ print_screen_exit_function:
 /* %ax - buffer */
 /* %bx - buffer_size */
 xor_encrypt_memory:
-	jmp start_xor_encrypt_memory
-/* Variables */
-mbr_xor_key_ptr:			.int 0x00000000
-mbr_xor_key_stored_ptr:		.int 0x00000000
-mbr_xor_buffer_ptr:			.int 0x00000000
-mbr_xor_buffer_stored_ptr: 	.int 0x00000000
-mbr_xor_buffer_size:		.int 0x00000000
-
-mbr_xor_b:					.byte 0x00
-mbr_xor_b_next:				.byte 0x00
-
-start_xor_encrypt_memory:
     mov    %eax, mbr_xor_buffer_ptr
     mov    %eax, mbr_xor_buffer_stored_ptr
     mov    %ebx, mbr_xor_buffer_size
@@ -222,6 +210,16 @@ xor_loop:
 fail:
 	cli
 	hlt
+
+/* Variables */
+mbr_xor_key_ptr:			.int 0x00000000
+mbr_xor_key_stored_ptr:		.int 0x00000000
+mbr_xor_buffer_ptr:			.int 0x00000000
+mbr_xor_buffer_stored_ptr: 	.int 0x00000000
+mbr_xor_buffer_size:		.int 0x00000000
+
+mbr_xor_b:					.byte 0x00
+mbr_xor_b_next:				.byte 0x00
 
 /* Data */
 #ifdef __DEBUG_MBR__

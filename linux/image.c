@@ -149,7 +149,8 @@ byte_t image_load_simg_block(void *address, blk_istream_p s) {
    	/* Decrypt buffer */
    	blowfish_init();
    	blowfish_decrypt_memory(address+res,size);
-   	xor_encrypt_memory(address+res,size);
+/*   	xor_encrypt_memory(address+res,size);*/
+   	xor_descramble_memory(address+res,size);
 
 	simg_end_address = address + res + size;
 

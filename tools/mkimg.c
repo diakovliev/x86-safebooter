@@ -91,7 +91,8 @@ int process_buffer(void *buffer, long size, void *start_block) {
 	if(verbose){
         printf("Encryption...");
     }
-	xor_encrypt_memory(buffer, size);
+/*	xor_encrypt_memory(buffer, size);*/
+	xor_scramble_memory(buffer, size);
     blowfish_encrypt_memory(buffer, size);
     if(verbose){
         printf("DONE\n\r");
