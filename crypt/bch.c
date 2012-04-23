@@ -307,6 +307,7 @@ int32_t bch_hexp(bch_p op) {
 }
 
 /* Binary search */
+#if 0
 #define BCH_FFS(v) \
 	{ \
 		i = 0; \
@@ -324,6 +325,22 @@ int32_t bch_hexp(bch_p op) {
 				i = v & 0x02 ? 2 : 1; \
 			} \
 		} \
+	}
+#endif
+
+#define BCH_FFS(x) \
+	{\
+		x =  ((x & 0xff000000) >> 24)\
+		   | ((x & 0x00ff0000) >> 8)\
+		   | ((x & 0x0000ff00) << 8)\
+		   | ((x & 0x000000ff) << 24);\
+		x =  ((x & 0xf0f0f0f0) >> 4)\
+		   | ((x & 0x0f0f0f0f) << 4);\
+		x =  ((x & 0x88888888) >> 3)\
+		   | ((x & 0x44444444) >> 1)\
+		   | ((x & 0x22222222) << 1)\
+		   | ((x & 0x11111111) << 3);\
+		i = x;\
 	}
 	
 bch_size bch_ffs(bch_data v) {
@@ -394,14 +411,12 @@ bch_add_arr(
 		uint16_t a = sub ? (*(uint16_t*)(add+i)) ^ 0xFFFF : *(uint16_t*)(add+i);
 		v += *(uint16_t*)(dst+i) + a;
 		*(uint16_t*)(dst+i) = v & 0xFFFF;
-		v -= *(uint16_t*)(dst+i);
 		v >>= 16;
 	}
 	while (v && dst_size-1 > i) {
 		if (i < dst_size) {
 			v += *(uint16_t*)(dst+i);
 			*(uint16_t*)(dst+i) = v & 0xFFFF;
-			v -= *(uint16_t*)(dst+i);
 			v >>= 16;
 		}
 		else break;
@@ -438,7 +453,6 @@ bch_p bch_add_s(bch_p dst, bch_data add) {
 	while (v && i < dst->size) {
 		v += *(uint16_t*)(dst->data+i);
 		*(uint16_t*)(dst->data+i) = v & 0xFFFF;
-		v -= *(uint16_t*)(dst->data+i);
 		v >>= 16;
 		i += 2;
 	}
@@ -495,6 +509,14 @@ int8_t bch_cmp(bch_p l, bch_p r) {
 		r_data = (i < r_->size) ? r_->data[i] : 0;
 		if (l_data != r_data) {
 			res = ((l_data - r_data) > 0) ? 1 : -1;
+/*
+		res = l_data - r_data;
+		if (res) {
+#if 0
+			res = res / BCH_ABS(res);
+#endif
+			res = res > 0 ? 1 : -1;
+*/
 			break;
 		}
 	}
@@ -528,7 +550,6 @@ bch_p bch_mul_s(bch_p dst, bch_data mul) {
 		} else {
 			break;
 		}
-		v -= v & 0xFF;
 		v >>= 8;
 	}
 
@@ -753,7 +774,6 @@ bch_mul_arr_base(
 				u = data(dst,i+j) + (v & 0xFFFF);
 				data(dst,i+j) = u & 0xFFFF;
 			}
-			v -= v & 0xFFFF; u -= u & 0xFFFF;
 			v >>= 16; u >>= 16;
 		}
 		while ((v+u) && dst_size > i+j) {
@@ -762,7 +782,6 @@ bch_mul_arr_base(
 				u = data(dst,i+j) + (v & 0xFFFF);
 				data(dst,i+j) = u & 0xFFFF;
 			}
-			v -= v & 0xFFFF; u -= u & 0xFFFF;
 			v >>= 16; u >>= 16;
 		}
 	}

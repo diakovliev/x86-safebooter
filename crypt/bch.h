@@ -102,7 +102,7 @@ bch_p bch_powmod(bch_p x,bch_p y,bch_p n);
 bch_p bch_mulmod(bch_p x, bch_p y, bch_p n);
 
 /************************ Inlines **********************************/
-#define bch_is_negative(op) (op->data[op->size-1] & 0x80 ? 1 : 0)
+#define bch_is_negative(op) ((op)->data[(op)->size-1] & 0x80 ? 1 : 0)
 
 static inline bch_p bch_set_bit(bch_p dst, uint32_t exp) {
 	dst->data[exp/8] |= (1 << (exp % 8));
@@ -114,7 +114,7 @@ static inline bch_p bch_set_byte(bch_p dst, bch_size exp, bch_data byte) {
 	return dst;
 }
 
-#define bch_get_bit(src,exp) ((src->data[exp/8]) & (1 << (exp % 8)))
+#define bch_get_bit(src,exp) (((src)->data[(exp)/8]) & (1 << ((exp) % 8)))
 
 static inline bch_p bch_clr_bit(bch_p dst, uint32_t exp) {
 	dst->data[exp/8] &= ~(1 << (exp % 8));

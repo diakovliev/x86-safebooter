@@ -13,14 +13,14 @@
 #include <time.h>
 #include <image.h>
 
-#include <crypt/bch.h>
-
 #include <drivers/text_display_driver.h>
 #include <drivers/text_display_console.h>
 #include <drivers/keyboard_driver.h>
 #include <drivers/ascii_driver.h>
 #include <drivers/ata_driver.h>
 #include <drivers/serial_driver.h>
+
+#include "cmd.h"
 
 /* forward declarations */
 byte_t IMAGE_load_kernel_to_memory(byte_t *cmd_buffer);
@@ -30,36 +30,8 @@ byte_t TOOLS_help(byte_t *cmd_buffer);
 byte_t TOOLS_heap_info(byte_t *cmd_buffer);
 byte_t TOOLS_print_env(byte_t *cmd_buffer);
 
-/* Max command identifier size */
-#define CMD_BUFFER_MAX 0x20
-
-/* Command promt */
-#define CMD_PROMT_INVITE	">> "
-#define CMD_PARAM_SEP		" "
-#define CMD_CMD_SEP			";"
-
 /* Pointer to loader descriptor */
 static loader_descriptor_p loader_descriptor = 0;
-
-/* Command line command */
-typedef struct cmd_command_s {
-	byte_t *name;
-	byte_t *alias;
-	byte_t *help;
-	byte_t (*function)(byte_t *);
-} cmd_command_t;
-
-/* Errors */
-static byte_p errors[] = {
-#define ERR_CMD_OK				0
-	[ERR_CMD_OK]			= "OK",
-#define ERR_CMD_FAIL			ERR_CMD_OK+1
-	[ERR_CMD_FAIL]			= "FAIL",
-#define ERR_CMD_NOT_SUPPORTED	ERR_CMD_OK+2
-	[ERR_CMD_NOT_SUPPORTED]	= "UNKNOWN COMMAND",
-#define ERR_CMD_BAD_PARAMS		ERR_CMD_OK+3
-	[ERR_CMD_BAD_PARAMS]	= "BAD COMMAND PARAMETERS",
-};
 
 /* Registered commands */
 static cmd_command_t commands[] = {
@@ -272,80 +244,6 @@ byte_t TOOLS_set_env(byte_t *cmd_buffer) {
 	return ERR_CMD_OK;
 }
 
-/* Command processor entry point */
-byte_t C_process_command(byte_t *cmd) {
-
-	byte_t r = ERR_CMD_NOT_SUPPORTED;
-	byte_t cmd_buffer[CMD_BUFFER_MAX];
-	byte_t buffer[CMD_BUFFER_MAX];
-	byte_t *buf = 0;
-	byte_t *safe_buf = 0;
-
-	strcpy(cmd_buffer,cmd);
-	strtok(CMD_CMD_SEP,cmd_buffer);
-
-	while ( buf = strtok(CMD_CMD_SEP,0) ) {
-		buf = strltrim(" ",buf);
-		strcpy(buffer,buf);
-		
-		cmd_command_t *command = commands;
-		while (command->name) {
-			if (starts_from(buffer, command->name) ||
-				starts_from(buffer, command->alias) ) {
-
-				safe_buf = strtok(CMD_CMD_SEP,buf);
-				r = (*command->function)(buffer);
-				strtok(CMD_CMD_SEP,safe_buf);
-
-				break;
-			}
-			++command;
-		}
-
-	}
-
-	return r;
-}
-
-#ifdef CONFIG_COMMAND_LINE_ENABLED
-
-/* Input loop callback */
-byte_t C_input(byte_t ascii) {
-	
-	static byte_t cmd_buffer[CMD_BUFFER_MAX];
-	static byte_t *pos = cmd_buffer;
-
-	if (ascii == '\r') {
-		puts("\r\n");
-		if ( pos != cmd_buffer ) {
-			byte_t res = C_process_command(cmd_buffer);
-			if (res) {
-				printf("Command error: %s\r\n", errors[res]);
-			}				
-		}
-
-		/*print_current_time();*/
-		puts(CMD_PROMT_INVITE);
-
-		/* Reset buffer */
-		pos		= cmd_buffer;
-		*pos	= 0;
-	}
-	else {
-		/* command buffer overflow protection */
-		if ( (cmd_buffer + CMD_BUFFER_MAX) >= (pos + 1) ) {
-			*pos	= ascii;
-			*(pos+1)= 0;
-			++pos;
-		}
-		putc(ascii);
-	}
-
-	return 0;
-}
-
-#endif//CONFIG_COMMAND_LINE_ENABLED
-
 /* Console init code */
 void console_initialize(void) {
 	/* Console init */
@@ -387,9 +285,11 @@ void C_start(void *loader_descriptor_address, void *loader_code_address)
 		desc->version[2]);
 	
 	/* Memory map */
+#ifdef __DEBUG__
 	printf("Descriptor: %p\r\n", loader_descriptor_address);
 	printf("Code: %p\r\n", loader_code_address);
 	printf("Stack: %p\r\n", LOADER_STACK_ADDRESS);
+#endif/*__DEBUG__*/
 
 	/* Waiting for break */
 	byte_t ctrl_break = 0;
@@ -404,28 +304,31 @@ void C_start(void *loader_descriptor_address, void *loader_code_address)
 		}
 	}
 
+	/* Register commands set */
+	cmd_register_commands(commands);
+
 	/* Run environment STARTUP commands */
 	byte_t *startup = env_get("STARTUP");
 	if (!ctrl_break && startup) {
 		printf("Process STARTUP commands...\n\r");
-		byte_t res = C_process_command(startup);
+		byte_t res = cmd_process_command(startup);
 		if (res) {
-			printf("STARTUP commands error: %s\n\r", errors[res]);
+			printf("STARTUP commands error: %s\n\r", cmd_error(res));
 		}
 	} else {
 		printf("BREAK revieved, ignore STARTUP variable\n\r");
 	}
 
 #ifdef CONFIG_CONSOLE_ENABLED
-	/*print_current_time();*/
 #ifdef CONFIG_COMMAND_LINE_ENABLED
-	puts(CMD_PROMT_INVITE);
 	while (1) {
-		C_input(getc());
+		cmd_input(getc());
 	}
 #endif//CONFIG_COMMAND_LINE_ENABLED
-
 #endif//CONFIG_CONSOLE_ENABLED
-
+	/* noreturn */
+	while (1) {
+		idle();
+	}
 }
 

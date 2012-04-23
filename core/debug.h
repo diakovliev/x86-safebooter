@@ -30,7 +30,7 @@
 
 #include <common.h>
 
-/* Assertion failed handler added to make possible to set break at assertion */
+/* Assertion failed handler added to make possible set break at assertion */
 DBG(
 static inline void on_assertion_failed(void) __attribute__((noreturn));
 static inline void on_assertion_failed(void) {

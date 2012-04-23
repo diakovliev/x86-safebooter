@@ -1,7 +1,7 @@
 # Mkimg tool makefile
 
-CONFIG-DEBUG=n
-CONFIG-GPROF-SUPPORT=n
+CONFIG-DEBUG=y
+CONFIG-GPROF-SUPPORT=y
 CONFIG-ENABLE-ASM-OUTPUT=n
 
 #------------------------------------------------------------------------

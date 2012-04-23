@@ -168,17 +168,23 @@ byte_t image_load_sig(blk_istream_p s, dword_t image_start) {
 
 	blk_seek(image_start,s);
 
-	puts("Loading real mode kernel\n\r");
-	res = image_load_simg_block((void*)KERNEL_REAL_CODE_ADDRESS,s);
-	if (res) return res;
+	puts("Loading image... ");
+	res |= image_load_simg_block((void*)KERNEL_REAL_CODE_ADDRESS,s);
+	if (res) {
+		puts("FAIL\n\r");
+		return res;
+	}
 
-	puts("Loading protected mode kernel\n\r");
-	image_load_simg_block((void*)KERNEL_CODE_ADDRESS,s);
+	res |= image_load_simg_block((void*)KERNEL_CODE_ADDRESS,s);
+	if (!res) puts("DONE\n\r");
+	else puts("FAIL\n\r");
 
 	return res;
 }
 
 void image_boot(loader_descriptor_p desc) {
+
+	printf("Booting image... ");
 
 	if (simg_end_address == 0) {
 		printf("The kernel image not loaded.\n\r");
@@ -228,7 +234,7 @@ void image_boot(loader_descriptor_p desc) {
 			}
 		}
 
-		puts("Boot...\r\n");
+		puts("jump to kernel, bye\r\n");
 
 		/* Boot */
 		jump_to_kernel_asm();

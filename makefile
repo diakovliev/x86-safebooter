@@ -1,6 +1,7 @@
 include makefile.config
 
 #-----------------------------------------------------------------------------------
+HEADERS+=main/cmd.h
 HEADERS+=core/common.h
 HEADERS+=core/loader_types.h 
 HEADERS+=core/string.h 
@@ -28,6 +29,7 @@ DRIVERS_HEADERS+=drivers/rtc_driver.h
 HEADERS+=$(DRIVERS_HEADERS)
 
 SOURCES+=main/main.c
+SOURCES+=main/cmd.c
 SOURCES+=core/string.c  
 SOURCES+=core/heap.c 
 SOURCES+=core/stdio.c
@@ -114,8 +116,13 @@ loader_descriptor.img.size: loader_env.gen
 	echo ".word `du --apparent-size -B512 $^ | cut -f 1`+1" > $@
 
 # Base objects
-mbr.o: $(BASE_HEADERS) xor core/mbr.S mbr_xor_key
-	$(GCC_CMD) $(BASE_HEADERS) core/mbr.S
+#mbr.o: $(BASE_HEADERS) xor core/mbr.S mbr_xor_key
+#	$(GCC_CMD) $(BASE_HEADERS) core/mbr.S
+
+# Base objects
+mbr.o: $(BASE_HEADERS) xor core/mbr_ds.S mbr_xor_key
+	$(GCC_CMD) $(BASE_HEADERS) core/mbr_ds.S
+	mv mbr_ds.o mbr.o
 
 loader_start.o: core/loader_start.S $(BASE_HEADERS)
 	$(GCC_CMD) $<
@@ -167,12 +174,12 @@ mbr.img: mbr.o
 loader_descriptor.img: loader_descriptor.o
 	$(call LD_CMD,$(LOADER_DESCRIPTOR_ADDRESS))
 	cp -f loader_descriptor.img loader_descriptor.img.orig 
-	./tools/xor loader_descriptor.img 
+	./tools/xor loader_descriptor.img s 
 
 loader.img: $(BASE_OBJECTS) $(OBJECTS)
 	$(call LD_CMD,$(LOADER_CODE_ADDRESS))
 	cp -f loader.img loader.img.orig
-	./tools/xor loader.img
+	./tools/xor loader.img s
 
 # Build
 build: mkimg mbr.img loader_descriptor.img loader.img
@@ -197,8 +204,6 @@ clean:
 #	rm -f *.img
 	rm -f *.simg
 
-# Run targets
-
 # Look http://jamesmcdonald.id.au/faqs/mine/Running_Bochs.html for geometry details.
 # Currently used 10MB image.
 #$(HDD_IMG): build ${BZIMAGE}
@@ -219,6 +224,7 @@ $(HDD_IMG): build kernel.simg
 	dd if=loader.img 				of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc seek=${LOADER_CODE_LBA} && \
 	dd if=kernel.simg				of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc seek=${KERNEL_CODE_LBA}
 
+# Run targets
 qemu: PORT=9999
 qemu: QEMU_ARGS=-S -gdb tcp::$(PORT) --daemonize
 qemu: GDB_ARGS=--symbols=loader.img.dbg --exec loader.img.elf --eval-command="target remote localhost:$(PORT)"
