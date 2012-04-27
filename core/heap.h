@@ -4,10 +4,19 @@
 #include <stdint.h>
 #include <loader_types.h>
 
+/* Heap item */
+typedef struct heap_node_s {
+	void  *start;
+	size_t size;
+	uint8_t busy;
+	struct heap_node_s *prev,*next;
+} heap_node_t, *heap_node_p;
+
 /* Heap descriptor */
 typedef struct heap_s {
 	void *start;
 	size_t size;
+	struct heap_node_s *first,*last;
 } heap_t, *heap_p;
 
 /* API to create and work separated heap */

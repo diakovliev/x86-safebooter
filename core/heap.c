@@ -5,19 +5,12 @@
 #include <string.h>
 #include <debug.h>
 
-/* Simple heap */
-
-/* Heap item */
-typedef struct heap_node_s {
-	void  *start;
-	size_t size;
-	uint8_t busy;
-	struct heap_node_s *next;
-} heap_node_t, *heap_node_p;
+#define IS_NOT_IN_HEAP(heap,ptr) (((void*)(ptr) < heap->start) || ((void*)(ptr) >= (void*)(heap->start + heap->size)))
 
 /* find free nodes */
 static heap_node_p heap__get_free_node(heap_p heap, size_t size) 
 {
+	heap_node_p		prev_node = 0;
 	heap_node_p 	current_node = heap->start;
 	void 			*address = heap->start + sizeof(heap_node_t);
 
@@ -36,15 +29,18 @@ static heap_node_p heap__get_free_node(heap_p heap, size_t size)
 
 			current_node->start = address;
 			current_node->size = size;
+			current_node->prev = prev_node;
 			current_node->next = current_node->start + current_node->size;
-/* fill start sizeof(node_ctl_t) + sizeof(heap_node_p) by zero to make possible next
- * allocation 
- * */
+			/* fill start sizeof(node_ctl_t) + sizeof(heap_node_p) by zero to make possible next
+			 * allocation 
+			 */
 			memset(current_node->next, 0,  sizeof(heap_node_t));
+			heap->last = current_node;
 			return current_node;
 		}
 
 		address	= address + current_node->size + sizeof(heap_node_t);
+		prev_node = current_node;
 		current_node = current_node->next;
 
 	} while (1);
@@ -52,26 +48,23 @@ static heap_node_p heap__get_free_node(heap_p heap, size_t size)
 	return 0;
 }
 
-#define IS_NOT_IN_HEAP(heap,ptr) (((void*)(ptr) < heap->start) || ((void*)(ptr) >= (void*)(heap->start + heap->size)))
-
 /* find node by pointer */
 static heap_node_p heap__find_node(heap_p heap, void *ptr) {
 
-	heap_node_p 	current_node = heap->start;
+	heap_node_p 	current_node = heap->last;
 
 	if (IS_NOT_IN_HEAP(heap,ptr)) {
 		DBG_print("heap::find_node(%p): ptr %p is not in valid heap address\n\r", heap, ptr);
 		return 0;
 	}
 
-	do {			
-		current_node	= current_node->next;
+	while (current_node && current_node->start != ptr) {
+		current_node = current_node->prev;
 		if (IS_NOT_IN_HEAP(heap,current_node)) {
 			DBG_print("heap::find_node(%p): current_node %p is not in valid heap address\n\r", heap, current_node);
 			return 0;
 		}
-
-	} while (current_node && current_node->start != ptr);
+	}
 
 	return current_node;
 }
@@ -80,36 +73,37 @@ void *heap__malloc(heap_p heap, size_t size)
 {
 	heap_node_p node = heap__get_free_node(heap, size);
 	if (node) {
-		node->busy = 1;
 
+		node->busy = 1;
 		return node->start;	
 	}
 
-	DBG_print("heap::heap_malloc(%p): Allocation failed\n\r", heap);
+	DBG_print("heap::heap_malloc(%p): allocation failed\n\r", heap);
 
 	return 0;
 }
 
 void heap__free(heap_p heap, void *ptr)
 {
-	heap_node_p current_node = heap__find_node(heap, ptr);
-	if (!current_node) {
+	heap_node_p node = heap__find_node(heap, ptr);
+	if (!node) {
 		DBG_print("heap::heap_free(%p): %p is unknown address to free\n\r", heap, ptr);
 		return;
 	}
 
-	current_node->busy = 0;
+	node->busy = 0;
 }
 
 /* Initialize heap */
 void heap__init(heap_p heap, void *start, size_t size)
 {
-	heap->start			= start;
-	heap->size			= size;
+	heap->start					= start;
+	heap->size					= size;
+	heap->first = heap->last	= heap->start;
 
-/* fill start sizeof(node_ctl_t) + sizeof(heap_node_p) by zero to make possible first 
- * allocation 
- * */
+	/* fill start sizeof(node_ctl_t) + sizeof(heap_node_p) by zero to make possible first 
+	 * allocation 
+	 */
 	memset(heap->start, 0,  sizeof(heap_node_t));
 }
 
