@@ -275,8 +275,8 @@ void C_start(void *loader_descriptor_address, void *loader_code_address)
 	rtc_init();
 	time_init();
 	heap_init((void*)LOADER_HEAP_START,LOADER_HEAP_SIZE);
-	env_init(desc);
 	console_initialize();
+	env_init(desc);
 
 	/* Out information and command promt */
 	printf("32bit secured bootloader v%d.%d.%d (c)daemondzk@gmail.com\r\n", 
@@ -308,12 +308,15 @@ void C_start(void *loader_descriptor_address, void *loader_code_address)
 	cmd_register_commands(commands);
 
 	/* Run environment STARTUP commands */
-	byte_t *startup = env_get("STARTUP");
-	if (!ctrl_break && startup) {
-		printf("Process STARTUP commands...\n\r");
-		byte_t res = cmd_process_command(startup);
-		if (res) {
-			printf("STARTUP commands error: %s\n\r", cmd_error(res));
+	if (!ctrl_break) {
+		byte_t *startup = env_get("STARTUP");
+		if (!startup) {
+			printf("STARTUP variable is not set\n\r");
+		} else {
+			byte_t res = cmd_process_command(startup);
+			if (res) {
+				printf("STARTUP commands error: %s\n\r", cmd_error(res));
+			}
 		}
 	} else {
 		printf("BREAK revieved, ignore STARTUP variable\n\r");

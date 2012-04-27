@@ -28,9 +28,40 @@ byte_t waitc(quad_t *t, byte_t *c);
 void printf(const byte_t *fmt, ...);
 void sprintf(const byte_p dst, const byte_t *fmt, ...);
 
-/* Block input stream */
+/* Block input/output stream */
 
 /* Simple abstract interface for working with raw data storages at block level */
+typedef struct blk_iostream_s {
+	void *ctx;
+	word_t (*read)(byte_p dst, word_t size, void *ctx);
+	word_t (*write)(byte_p src, word_t size, void *ctx);
+	dword_t (*seek)(dword_t pos, void *ctx);
+	dword_t (*addr)(void *ctx);
+} blk_iostream_t, *blk_iostream_p;
+
+/* Input stream utilites */
+static inline word_t blk_read(byte_p dst, word_t count, blk_iostream_p s) {
+	if (!s->read) return 0;
+
+	return (*s->read)(dst,count,s->ctx);
+}
+static inline word_t blk_write(byte_p src, word_t count, blk_iostream_p s) {
+	if (!s->write) return 0;
+
+	return (*s->write)(src,count,s->ctx);
+}
+static inline dword_t blk_seek(dword_t pos, blk_iostream_p s) {
+	if (!s->seek) return 0;
+
+	return (*s->seek)(pos,s->ctx);
+}
+static inline dword_t blk_addr(blk_iostream_p s) {
+	if (!s->addr) return 0;
+
+	return (*s->addr)(s->ctx);
+}
+
+/* Char input/output stream */
 typedef struct blk_istream_s {
 	void *ctx;
 	word_t (*read)(byte_p dst, word_t size, void *ctx);
@@ -38,28 +69,6 @@ typedef struct blk_istream_s {
 	dword_t (*seek)(dword_t pos, void *ctx);
 	dword_t (*addr)(void *ctx);
 } blk_istream_t, *blk_istream_p;
-
-/* Input stream utilites */
-static inline word_t blk_read(byte_p dst, word_t count, blk_istream_p s) {
-	if (!s->read) return 0;
-
-	return (*s->read)(dst,count,s->ctx);
-}
-static inline word_t blk_write(byte_p src, word_t count, blk_istream_p s) {
-	if (!s->write) return 0;
-
-	return (*s->write)(src,count,s->ctx);
-}
-static inline dword_t blk_seek(dword_t pos, blk_istream_p s) {
-	if (!s->seek) return 0;
-
-	return (*s->seek)(pos,s->ctx);
-}
-static inline dword_t blk_addr(blk_istream_p s) {
-	if (!s->addr) return 0;
-
-	return (*s->addr)(s->ctx);
-}
 
 #endif//STDIO_HEADER
 
