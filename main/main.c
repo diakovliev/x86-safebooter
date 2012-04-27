@@ -114,7 +114,7 @@ byte_t IMAGE_load_kernel_to_memory(byte_t *cmd_buffer)
 		goto finish;
 	}
 	dword_t size = atol(size_s,16);
-	blk_istream_p s = ata_blk_stream_open(bus,drive,lba);
+	blk_iostream_p s = ata_blk_stream_open(bus,drive,lba);
 	if (!s) {
 		printf("Unable to open input stream\n\r");
 		goto finish;

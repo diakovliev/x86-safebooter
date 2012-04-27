@@ -13,7 +13,7 @@ static void *simg_end_address = 0;
 
 #ifdef CONFIG_RAW_IMAGES_ENABLED
 
-byte_t image_load_raw(blk_istream_p s, dword_t image_start, dword_t whole_image_sectors) {
+byte_t image_load_raw(blk_iostream_p s, dword_t image_start, dword_t whole_image_sectors) {
 
 	word_t res = 0;
 	simg_end_address = 0;
@@ -81,7 +81,7 @@ byte_t image_load_raw(blk_istream_p s, dword_t image_start, dword_t whole_image_
 
 #endif//CONFIG_RAW_IMAGES_ENABLED
 
-byte_t image_load_simg_block(void *address, blk_istream_p s) {
+byte_t image_load_simg_block(void *address, blk_iostream_p s) {
 
 	byte_t res = 0;
 	simg_end_address = 0;
@@ -163,7 +163,7 @@ byte_t image_load_simg_block(void *address, blk_istream_p s) {
 	return 0;
 }
 
-byte_t image_load_sig(blk_istream_p s, dword_t image_start) {
+byte_t image_load_sig(blk_iostream_p s, dword_t image_start) {
 
 	byte_t res = 0;
 
@@ -208,11 +208,11 @@ void image_boot(loader_descriptor_p desc) {
 		if ( kernel_header->version >= 0x0202 && kernel_header->loadflags & 0x01 )
 			//heap_end = 0xe000;
 			//heap_end = LOADER_CODE_ADDRESS + (desc->loader_sectors_count * DISK_SECTOR_SIZE);
-			heap_end = simg_end_address;
+			heap_end = (dword_t)simg_end_address;
 		else
 			//heap_end = 0x9800;
 			//heap_end = LOADER_CODE_ADDRESS + (desc->loader_sectors_count * DISK_SECTOR_SIZE);
-			heap_end = simg_end_address;
+			heap_end = (dword_t)simg_end_address;
 
 		//printf("heap_end: 0x%X\r\n", heap_end);
 

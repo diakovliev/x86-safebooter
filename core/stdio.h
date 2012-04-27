@@ -61,14 +61,5 @@ static inline dword_t blk_addr(blk_iostream_p s) {
 	return (*s->addr)(s->ctx);
 }
 
-/* Char input/output stream */
-typedef struct blk_istream_s {
-	void *ctx;
-	word_t (*read)(byte_p dst, word_t size, void *ctx);
-	word_t (*write)(byte_p src, word_t size, void *ctx);
-	dword_t (*seek)(dword_t pos, void *ctx);
-	dword_t (*addr)(void *ctx);
-} blk_istream_t, *blk_istream_p;
-
 #endif//STDIO_HEADER
 

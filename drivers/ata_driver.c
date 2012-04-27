@@ -272,11 +272,11 @@ static dword_t ata_addr(void *ctx) {
 
 #undef CTX
 
-blk_istream_p ata_blk_stream_open(word_t bus, byte_t drive, dword_t addr) {
+blk_iostream_p ata_blk_stream_open(word_t bus, byte_t drive, dword_t addr) {
 
-	blk_istream_p res = malloc(sizeof(blk_istream_t));
+	blk_iostream_p res = malloc(sizeof(blk_iostream_t));
 	if (res) {
-		memset(res, 0, sizeof(blk_istream_p));
+		memset(res, 0, sizeof(blk_iostream_p));
 		res->read	= ata_read;
 		res->write	= ata_write;
 		res->seek	= ata_seek;
@@ -297,7 +297,7 @@ blk_istream_p ata_blk_stream_open(word_t bus, byte_t drive, dword_t addr) {
 	return res;
 }
 
-void ata_blk_stream_close(blk_istream_p ptr) {
+void ata_blk_stream_close(blk_iostream_p ptr) {
 	if (ptr && ptr->ctx)
 		free(ptr->ctx);
 	if (ptr)

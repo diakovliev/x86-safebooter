@@ -25,8 +25,8 @@ typedef byte_t (*ata_enum_callback)(word_t bus, byte_t drive, byte_t type, void 
 void ata_enum_devices(ata_enum_callback callback, void *ctx);
 
 /* stdio interface */
-blk_istream_p ata_blk_stream_open(word_t bus, byte_t drive, dword_t addr);
-void ata_blk_stream_close(blk_istream_p ptr);
+blk_iostream_p ata_blk_stream_open(word_t bus, byte_t drive, dword_t addr);
+void ata_blk_stream_close(blk_iostream_p ptr);
 
 #endif//ATA_DRIVER_HEADER
 
