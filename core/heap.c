@@ -4,7 +4,7 @@
 #include <string.h>
 #include <debug.h>
 
-#define DEBUG_HEAP
+/*#define DEBUG_HEAP*/
 
 #include "heap.h"
 
