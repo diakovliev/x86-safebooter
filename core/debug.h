@@ -37,7 +37,7 @@ static inline void on_assertion_failed(void) {
 	do { idle(); } while (1);
 }
 )
-#define assert(x) DBG({if(!x){DBG_print("Assertion failed \"%s\" at %s:%d\n\r",\
+#define assert(x) DBG({ if(!(x)) { DBG_print("Assertion failed \"%s\" at %s:%d\n\r",\
 	#x,__FILE__,__LINE__);on_assertion_failed();}})
 
 #endif /* __HOST_COMPILE__ */

@@ -1,11 +1,21 @@
-#include "heap.h"
 #include <loader.h>
 
 #include <stdio.h>
 #include <string.h>
 #include <debug.h>
 
+#define DEBUG_HEAP
+
+#include "heap.h"
+
 #define IS_NOT_IN_HEAP(heap,ptr) (((void*)(ptr) < heap->start) || ((void*)(ptr) >= (void*)(heap->start + heap->size)))
+
+#ifdef DEBUG_HEAP
+#define HEAP_CHECK_NODE(x) assert(((x)->magic_node_start == MAGIC_NODE_START) && ((x)->magic_node_end == MAGIC_NODE_END))
+#else
+#define HEAP_CHECK_NODE(x)
+#endif
+
 
 /* As malloc and free are frequently used in "stack like" way it makes sence to perform 
  * looking nodes for allocation in direct order and for free in back order. 
@@ -21,6 +31,7 @@ static heap_node_p heap__get_free_node(heap_p heap, size_t size)
 	do {			
 
 		if (!current_node->busy && current_node->size >= size) {
+			HEAP_CHECK_NODE(current_node);
 			return current_node;
 		}
 
@@ -31,6 +42,9 @@ static heap_node_p heap__get_free_node(heap_p heap, size_t size)
 				break;
 			}
 
+#ifdef DEBUG_HEAP
+			current_node->magic_node_start = MAGIC_NODE_START;
+#endif
 			current_node->start = address;
 			current_node->raw_start = address;
 			current_node->size = size;
@@ -39,8 +53,13 @@ static heap_node_p heap__get_free_node(heap_p heap, size_t size)
 			/* fill start sizeof(node_ctl_t) + sizeof(heap_node_p) by zero to make possible next
 			 * allocation 
 			 */
+#ifdef DEBUG_HEAP
+			current_node->magic_node_end = MAGIC_NODE_END;
+#endif
 			memset(current_node->next, 0,  sizeof(heap_node_t));
 			heap->last = current_node;
+
+			HEAP_CHECK_NODE(current_node);
 			return current_node;
 		}
 
@@ -58,6 +77,8 @@ static heap_node_p heap__find_node(heap_p heap, void *ptr) {
 
 	heap_node_p 	current_node = heap->last;
 
+	HEAP_CHECK_NODE(current_node);
+
 	if (IS_NOT_IN_HEAP(heap,ptr)) {
 		DBG_print("heap::find_node(%p): ptr %p is not in valid heap address\n\r", heap, ptr);
 		return 0;
@@ -65,6 +86,9 @@ static heap_node_p heap__find_node(heap_p heap, void *ptr) {
 
 	while (current_node && current_node->start != ptr) {
 		current_node = current_node->prev;
+
+		HEAP_CHECK_NODE(current_node);
+
 		if (IS_NOT_IN_HEAP(heap,current_node)) {
 			DBG_print("heap::find_node(%p): current_node %p is not in valid heap address\n\r", heap, current_node);
 			return 0;
@@ -79,7 +103,16 @@ void *heap__malloc(heap_p heap, size_t size)
 	heap_node_p node = heap__get_free_node(heap, size);
 	if (node) {
 
+		HEAP_CHECK_NODE(node);
+
 		node->busy = 1;
+
+#ifdef DEBUG_HEAP
+		++heap->busy_nodes_count;
+		++heap->alloc_count;
+		heap->allocated += node->size;
+#endif
+
 		return node->start;	
 	}
 
@@ -94,7 +127,15 @@ void *heap__memalign(heap_p heap, size_t align, size_t size)
 	heap_node_p node = heap__get_free_node(heap, size + align);
 	if (node) {
 
+		HEAP_CHECK_NODE(node);
+
 		node->busy = 1;
+
+#ifdef DEBUG_HEAP
+		++heap->busy_nodes_count;
+		++heap->alloc_count;
+		heap->allocated += node->size;
+#endif
 
 		/* align pointer */
 		if ((dword_t)node->start % align) {
@@ -110,6 +151,21 @@ void *heap__memalign(heap_p heap, size_t align, size_t size)
 
 }
 
+size_t heap__malloc_usable_size(heap_p heap, void *ptr) 
+{
+	size_t res = 0;
+
+	heap_node_p node = heap__find_node(heap, ptr);
+	if (node) {
+
+		HEAP_CHECK_NODE(node);
+
+		res = node->size;
+	}
+
+	return res;
+}
+
 void heap__free(heap_p heap, void *ptr)
 {
 	heap_node_p node = heap__find_node(heap, ptr);
@@ -118,8 +174,18 @@ void heap__free(heap_p heap, void *ptr)
 		return;
 	}
 
+	HEAP_CHECK_NODE(node);
+
 	node->busy = 0;
 	node->start = node->raw_start;
+
+#ifdef DEBUG_HEAP
+	--heap->busy_nodes_count;
+	++heap->free_nodes_count;
+	++heap->free_count;
+	heap->released += node->size;
+#endif
+
 }
 
 /* Initialize heap */
@@ -129,6 +195,15 @@ void heap__init(heap_p heap, void *start, size_t size)
 	heap->size					= size;
 	heap->first = heap->last	= heap->start;
 
+#ifdef DEBUG_HEAP
+	heap->busy_nodes_count = 0;
+	heap->alloc_count = 0;
+	heap->allocated = 0;
+	heap->free_nodes_count = 0;
+	heap->free_count = 0;
+	heap->released = 0;
+#endif
+
 	/* fill start sizeof(node_ctl_t) + sizeof(heap_node_p) by zero to make possible first 
 	 * allocation 
 	 */
@@ -136,7 +211,7 @@ void heap__init(heap_p heap, void *start, size_t size)
 }
 
 /***************************************************************************/
-static heap_t global_heap = {0,0};
+static heap_t global_heap;
 
 void heap_init(void *start, size_t size)
 {
@@ -158,7 +233,25 @@ void free(void *ptr)
 	return heap__free(&global_heap, ptr);
 }
 
+size_t malloc_usable_size(void *ptr)
+{
+	return heap__malloc_usable_size(&global_heap, ptr);
+}
+
 void dump_heap_info(void) {
 	puts("===================== HEAP INFO =======================\n\r");
+	printf("HEAP: %p\n\r", &global_heap);
+	printf("\tstart: %p\n\r", global_heap.start);
+	printf("\tsize: %d bytes\n\r", global_heap.size);
+#ifdef DEBUG_HEAP
+	printf("\tbusy nodes count: %d\n\r", global_heap.busy_nodes_count);
+	printf("\tallocatins count: %d\n\r", global_heap.alloc_count);
+	printf("\tallocated: %d bytes\n\r", global_heap.allocated);
+	printf("\tfree nodes count: %d\n\r", global_heap.free_nodes_count);
+	printf("\tfrees count: %d\n\r", global_heap.free_count);
+	printf("\treleased: %d bytes\n\r", global_heap.released);
+#else
+	puts("\tDEBUG_HEAP is disabled\n\r");
+#endif
 	puts("=======================================================\n\r");
 }
