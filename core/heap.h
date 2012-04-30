@@ -6,7 +6,8 @@
 
 /* Heap item */
 typedef struct heap_node_s {
-	void  *start;
+	void *start;
+	void *raw_start; 
 	size_t size;
 	uint8_t busy;
 	struct heap_node_s *prev,*next;
@@ -21,12 +22,14 @@ typedef struct heap_s {
 
 /* API to create and work separated heap */
 void *heap__malloc(heap_p heap, size_t size);
+void *heap__memalign(heap_p heap, size_t align, size_t size);
 void heap__free(heap_p heap, void *ptr);
 void heap__init(heap_p heap, void *start, size_t size);
 
 /* Global heap API */
 void heap_init(void *heap_start, size_t heap_size);
 void *malloc(size_t size);
+void *memalign(size_t align, size_t size);
 void free(void *ptr);
 
 /* Debug */

@@ -12,7 +12,7 @@ typedef uint32_t dword_t;
 typedef dword_t *dword_p;
 typedef uint64_t quad_t;
 typedef quad_t *quad_p;
-typedef uint64_t size_t;
+typedef uint32_t size_t;
 
 /* Loader descriptor */
 #pragma pack(push,1)

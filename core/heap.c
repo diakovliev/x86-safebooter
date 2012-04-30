@@ -7,6 +7,10 @@
 
 #define IS_NOT_IN_HEAP(heap,ptr) (((void*)(ptr) < heap->start) || ((void*)(ptr) >= (void*)(heap->start + heap->size)))
 
+/* As malloc and free are frequently used in "stack like" way it makes sence to perform 
+ * looking nodes for allocation in direct order and for free in back order. 
+ */
+
 /* find free nodes */
 static heap_node_p heap__get_free_node(heap_p heap, size_t size) 
 {
@@ -28,9 +32,10 @@ static heap_node_p heap__get_free_node(heap_p heap, size_t size)
 			}
 
 			current_node->start = address;
+			current_node->raw_start = address;
 			current_node->size = size;
 			current_node->prev = prev_node;
-			current_node->next = current_node->start + current_node->size;
+			current_node->next = current_node->raw_start + current_node->size;
 			/* fill start sizeof(node_ctl_t) + sizeof(heap_node_p) by zero to make possible next
 			 * allocation 
 			 */
@@ -83,6 +88,28 @@ void *heap__malloc(heap_p heap, size_t size)
 	return 0;
 }
 
+void *heap__memalign(heap_p heap, size_t align, size_t size)
+{
+	/* allocate block with (size + align) size to guarantee enough block */
+	heap_node_p node = heap__get_free_node(heap, size + align);
+	if (node) {
+
+		node->busy = 1;
+
+		/* align pointer */
+		if ((dword_t)node->start % align) {
+			node->start = ((((dword_t)node->start / align) + 1) * align);
+		}
+
+		return node->start;	
+	}
+
+	DBG_print("heap::heap__memalign(%p): allocation failed\n\r", heap);
+
+	return 0;
+
+}
+
 void heap__free(heap_p heap, void *ptr)
 {
 	heap_node_p node = heap__find_node(heap, ptr);
@@ -92,6 +119,7 @@ void heap__free(heap_p heap, void *ptr)
 	}
 
 	node->busy = 0;
+	node->start = node->raw_start;
 }
 
 /* Initialize heap */
@@ -118,6 +146,11 @@ void heap_init(void *start, size_t size)
 void *malloc(size_t size)
 {
 	return heap__malloc(&global_heap, size);
+}
+
+void *memalign(size_t align, size_t size)
+{
+	return heap__memalign(&global_heap, align, size);
 }
 
 void free(void *ptr)
