@@ -40,6 +40,16 @@ static inline void on_assertion_failed(void) {
 #define assert(x) DBG({ if(!(x)) { DBG_print("Assertion failed \"%s\" at %s:%d\n\r",\
 	#x,__FILE__,__LINE__);on_assertion_failed();}})
 
+static inline void bug_handler(void) __attribute__((noreturn));
+static inline void bug_handler(void) {
+	do { idle(); } while (1);
+}
+
+#define BUG_if(x) { if((x)) { printf("BUG_if: \"%s\" at %s:%d\n\r",\
+	#x,__FILE__,__LINE__);bug_handler();}}
+#define BUG_if_not(x) { if(!(x)) { printf("BUG_if_not: \"%s\" at %s:%d\n\r",\
+	#x,__FILE__,__LINE__);bug_handler();}}
+
 #endif /* __HOST_COMPILE__ */
 
 #endif /* DEBUG_H_ */

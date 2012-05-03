@@ -274,11 +274,13 @@ void C_start(void *loader_descriptor_address, void *loader_code_address)
 	/* Init subsystems */
 	rtc_init();
 	time_init();
-	heap_init((void*)LOADER_HEAP_START,LOADER_HEAP_SIZE);
 	console_initialize();
-	env_init(desc);
 
-	/* Out information and command promt */
+	/* Out startup info */
+	BUG_if_not(desc->version[0] == VER_MAJ);
+	BUG_if_not(desc->version[1] == VER_MID);
+	BUG_if_not(desc->version[2] == VER_MIN);
+
 	printf("32bit secured bootloader v%d.%d.%d (c)daemondzk@gmail.com\r\n", 
 		desc->version[0], 
 		desc->version[1],
@@ -304,6 +306,10 @@ void C_start(void *loader_descriptor_address, void *loader_code_address)
 		}
 	}
 
+	/* Init heap */
+	heap_init((void*)LOADER_HEAP_START,LOADER_HEAP_SIZE);
+	/* Init environment */
+	env_init(desc);
 	/* Register commands set */
 	cmd_register_commands(commands);
 

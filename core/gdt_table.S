@@ -1,5 +1,3 @@
-#include "loader.h"
-
 .file "gdt_table.S"
 .code16gcc
 

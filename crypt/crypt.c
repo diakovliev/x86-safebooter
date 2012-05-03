@@ -2,6 +2,9 @@
 
 #include "blowfish.h"
 
+/*#define CONFIG_BLOWFISH_MODE_ECB*/
+#define CONFIG_BLOWFISH_MODE_CBC
+
 extern uint8_t blowfish_key[];
 extern uint32_t blowfish_key_size;
 
@@ -10,6 +13,8 @@ static BLOWFISH_CTX context;
 void blowfish_init(void) {
 	Blowfish_Init(&context, blowfish_key, blowfish_key_size);
 }
+
+#if defined(CONFIG_BLOWFISH_MODE_ECB)
 
 void blowfish_encrypt_memory(void* buffer, uint32_t size) {
 	unsigned long *array = (unsigned long *)buffer;	
@@ -25,6 +30,59 @@ void blowfish_decrypt_memory(void* buffer, uint32_t size) {
 	}
 }
 
+#elif defined(CONFIG_BLOWFISH_MODE_CBC)
+
+void blowfish_encrypt_memory(void* buffer, uint32_t size) {
+	unsigned long *array = (unsigned long *)buffer;
+	unsigned long a_0 = 0;
+	unsigned long a_1 = 0;
+	unsigned long pa_0 = 0;
+	unsigned long pa_1 = 0;
+	for ( ; array+1 < (unsigned long *)(buffer+size+size%2); array += 2) {
+
+		a_0 = *array;
+		a_1 = *(array + 1);
+
+		a_0 ^= pa_0;
+		a_1 ^= pa_1;
+
+		Blowfish_Encrypt(&context, &a_0, &a_1);
+
+		pa_0 = a_0;
+		pa_1 = a_1;
+
+		*array = a_0;
+		*(array + 1) = a_1;
+	}
+}
+
+void blowfish_decrypt_memory(void* buffer, uint32_t size) {
+	unsigned long *array = (unsigned long *)buffer;	
+	unsigned long a_0 = 0;
+	unsigned long a_1 = 0;
+	unsigned long pa_0 = 0;
+	unsigned long pa_1 = 0;
+	for ( ; array+1 < (unsigned long *)(buffer+size+size%2); array += 2) {
+
+		a_0 = *array;
+		a_1 = *(array + 1);
+
+		Blowfish_Decrypt(&context, &a_0, &a_1);
+
+		a_0 ^= pa_0;
+		a_1 ^= pa_1;
+
+		pa_0 = *array;
+		pa_1 = *(array+1);
+
+		*array = a_0;
+		*(array + 1) = a_1;
+	}
+}
+
+#else
+#error Blowfish encryption mode is not defined. Please define...
+#endif
 
 #if 0
 #include "sha2.h"
