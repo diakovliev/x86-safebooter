@@ -11,6 +11,7 @@ HEADERS += ../crypt/sha2.h
 HEADERS += ../crypt/bch.h
 HEADERS += ../crypt/dsa.h
 HEADERS += ../crypt/crypt.h
+HEADERS += ../crypt/xor_algos.h
 
 SOURCES += ../crypt/blowfish_key.S
 SOURCES += ../crypt/xor_key.S
@@ -22,6 +23,7 @@ SOURCES += ../crypt/dsa.c
 SOURCES += ../crypt/crypt.c
 SOURCES += ../crypt/dsa_key.c
 SOURCES += ../crypt/dsa_pkey.c
+SOURCES += ../crypt/xor_algos.c
 SOURCES += mkimg.c
 
 #------------------------------------------------------------------------

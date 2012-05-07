@@ -175,7 +175,7 @@ xor_loop:
     movb  (%eax), %bl
 
 	movb  %cl,mbr_xor_b_next
-	addb  mbr_xor_b,%bl
+	xor  mbr_xor_b,%bl
 
     xor   %bl, %cl
  	mov   mbr_xor_buffer_ptr,%eax

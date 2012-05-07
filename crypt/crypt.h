@@ -14,9 +14,7 @@ void sha2_512(uint8_t *digest, void *buffer, uint32_t size);
 
 void sha1(uint8_t *digest, void *buffer, uint32_t size);
 
-void xor_encrypt_memory(void* buffer, uint32_t size);
-void xor_scramble_memory(void* buffer, uint32_t size);
-void xor_descramble_memory(void* buffer, uint32_t size);
+#include "xor_algos.h"
 
 #endif//CRYPT_HEADER
 

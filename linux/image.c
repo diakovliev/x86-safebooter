@@ -153,7 +153,6 @@ byte_t image_load_simg_block(void *address, blk_iostream_p s) {
 #ifdef CONFIG_SIMG_XOR_SCRAMBLED
    	xor_descramble_memory(address+res,size);
 #endif/*CONFIG_SIMG_XOR_SCRAMBLED*/
-/*   	xor_encrypt_memory(address+res,size);*/
 
 	simg_end_address = address + res + size;
 
