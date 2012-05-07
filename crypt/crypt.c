@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "crypt.h"
 
 #include "blowfish.h"
@@ -8,10 +10,11 @@
 extern uint8_t blowfish_key[];
 extern uint32_t blowfish_key_size;
 
-static BLOWFISH_CTX context;
+static BLOWFISH_CTX blowfish_context;
 
-void blowfish_init(void) {
-	Blowfish_Init(&context, blowfish_key, blowfish_key_size);
+void blowfish_reset(void) {
+	memset((void*)&blowfish_context, 0, sizeof(blowfish_context));
+	Blowfish_Init(&blowfish_context, blowfish_key, blowfish_key_size);
 }
 
 #if defined(CONFIG_BLOWFISH_MODE_ECB)
@@ -19,14 +22,14 @@ void blowfish_init(void) {
 void blowfish_encrypt_memory(void* buffer, uint32_t size) {
 	unsigned long *array = (unsigned long *)buffer;	
 	for ( ; array+1 < (unsigned long *)(buffer+size+size%2); array += 2) {
-		Blowfish_Encrypt(&context, array, (array+1));
+		Blowfish_Encrypt(&blowfish_context, array, (array+1));
 	}
 }
 
 void blowfish_decrypt_memory(void* buffer, uint32_t size) {
 	unsigned long *array = (unsigned long *)buffer;	
 	for ( ; array+1 < (unsigned long *)(buffer+size+size%2); array += 2) {
-		Blowfish_Decrypt(&context, array, (array+1));
+		Blowfish_Decrypt(&blowfish_context, array, (array+1));
 	}
 }
 
@@ -46,7 +49,7 @@ void blowfish_encrypt_memory(void* buffer, uint32_t size) {
 		a_0 ^= pa_0;
 		a_1 ^= pa_1;
 
-		Blowfish_Encrypt(&context, &a_0, &a_1);
+		Blowfish_Encrypt(&blowfish_context, &a_0, &a_1);
 
 		pa_0 = a_0;
 		pa_1 = a_1;
@@ -67,7 +70,7 @@ void blowfish_decrypt_memory(void* buffer, uint32_t size) {
 		a_0 = *array;
 		a_1 = *(array + 1);
 
-		Blowfish_Decrypt(&context, &a_0, &a_1);
+		Blowfish_Decrypt(&blowfish_context, &a_0, &a_1);
 
 		a_0 ^= pa_0;
 		a_1 ^= pa_1;

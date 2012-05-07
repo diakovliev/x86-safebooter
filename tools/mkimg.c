@@ -19,6 +19,8 @@
 
 #include "lbp.h"
 
+#define CONFIG_SIMG_PRE_RANDOMIZE_BLOCKS
+
 static int verbose = 0;
 
 #define START_BLOCK_HEAD "SIMG"
@@ -63,12 +65,14 @@ int process_buffer(void *buffer, long size, void *start_block) {
 	/* Init random generator */
 	(*randrom_gen.init)();
 
+#ifdef CONFIG_SIMG_PRE_RANDOMIZE_BLOCKS
 	/* Randomize start block */
 	bch_data_p start_block_randomize = (bch_data_p)start_block;
 	bch_size i;
 	for (i = 0; i < DISK_SECTOR_SIZE; ++i) {
 		*start_block_randomize++ = (*randrom_gen.random)(0xFF);
 	}
+#endif/*CONFIG_SIMG_PRE_RANDOMIZE_BLOCKS*/
 
 	/* Reinit random generator */
 	(*randrom_gen.init)();
@@ -86,13 +90,17 @@ int process_buffer(void *buffer, long size, void *start_block) {
 
     printf("size: %ld\n\r", size);
 
-    blowfish_init();
+    blowfish_reset();
 
 	if(verbose){
         printf("Encryption...");
     }
 /*	xor_encrypt_memory(buffer, size);*/
+
+#ifdef CONFIG_SIMG_XOR_SCRAMBLED
 	xor_scramble_memory(buffer, size);
+#endif/*CONFIG_SIMG_XOR_SCRAMBLED*/
+
     blowfish_encrypt_memory(buffer, size);
     if(verbose){
         printf("DONE\n\r");
