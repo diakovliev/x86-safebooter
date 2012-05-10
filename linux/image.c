@@ -6,8 +6,7 @@
 #include <env.h>
 #include <heap.h>
 #include <stdio.h>
-#include <drivers/ata_driver.h>
-#include <crypt/dsa.h>
+#include <main/simg.h>
 
 static void *simg_end_address = 0;
 
@@ -81,110 +80,29 @@ byte_t image_load_raw(blk_iostream_p s, dword_t image_start, dword_t whole_image
 
 #endif//CONFIG_RAW_IMAGES_ENABLED
 
-byte_t image_load_simg_block(void *address, blk_iostream_p s) {
-
-	byte_t res = 0;
-	simg_end_address = 0;
-	uint8_t processed_sha2[SHA2_SIZE/8];
-
-	/* Allocate start block */
-	void *start_block = malloc(DISK_SECTOR_SIZE);	
-	if (!start_block) {
-		puts("Unable to allocate start block buffer\n\r");
-		return 1;
-	}
-	void *start_block_orig = start_block;
-
-	/* Read start block */
-	res = blk_read(start_block,1,s);
-	if (res != 1) {
-		puts("Unable to read start block\n\r");
-		free(start_block_orig);
-		return 2;
-	}
-
-	/* Check SIMG */
-#ifdef CONFIG_SIMG_SIGNATURE_ENABLED
-	dword_t simg = 0;
-	memcpy(&simg, start_block, sizeof(simg));
-	start_block += sizeof(simg);
-	if (simg != 0x474D4953) {
-		puts("Wrong SIMG signature\n\r");
-		free(start_block_orig);
-		return 3;
-	}
-#endif/*CONFIG_SIMG_SIGNATURE_ENABLED*/
-
-	/* Image size */
-	dword_t size = 0;
-	memcpy(&size, start_block, sizeof(size));
-	start_block += sizeof(size);
-
-	bch_p dsa_r = dsa_alloc();
-	bch_p dsa_s = dsa_alloc();
-
-	memcpy(dsa_r->data, start_block, SHA2_SIZE/8);
-    start_block += SHA2_SIZE/8;
-	memcpy(dsa_s->data, start_block, SHA2_SIZE/8);
-    start_block += SHA2_SIZE/8;
-
-	/* Size in sectors */
-	dword_t sectors = (size / DISK_SECTOR_SIZE) + (size % DISK_SECTOR_SIZE ? 1 : 0);
-	memset(address,0xFF,size);
-	res = blk_read(address,sectors,s);
-
-	/* Calculate SHA2 */
-	memset(processed_sha2,0,SHA2_SIZE/8);
-    SHA2_func(processed_sha2,address,size);
-
-    /* Check signing */
-   	bch_p bch_sha2 = dsa_from_ba((bch_data_p)processed_sha2, SHA2_SIZE/8);
-   	res = dsa_check(bch_sha2, dsa_r, dsa_s);
-   	if (res) {
-   		puts("Wrong digital signature\n\r");
-		free(start_block_orig);
-   		return 4;
-   	}
-
-#ifdef CONFIG_SIMG_BLOWFISH_ENCRYPTED
-   	/* Decrypt buffer */
-   	blowfish_reset();
-   	blowfish_decrypt_memory(address+res,size);
-#endif
-
-#ifdef CONFIG_SIMG_XOR_SCRAMBLED
-   	xor_descramble_memory(address+res,size);
-#endif/*CONFIG_SIMG_XOR_SCRAMBLED*/
-
-	simg_end_address = address + res + size;
-
-   	dsa_free(bch_sha2);
-	dsa_free(dsa_r);
-	dsa_free(dsa_s);
-	
-	free(start_block_orig);
-
-	return 0;
-}
-
 byte_t image_load_sig(blk_iostream_p s, dword_t image_start) {
 
-	byte_t res = 0;
+	int res = 0;
+	simg_end_address = 0;
 
 	blk_seek(image_start,s);
 
 	puts("Loading image... ");
-	res |= image_load_simg_block((void*)KERNEL_REAL_CODE_ADDRESS,s);
-	if (res) {
+	if (load_simg((void*)KERNEL_REAL_CODE_ADDRESS,s) < 0) {
 		puts("FAIL\n\r");
-		return res;
+		return 1;
 	}
 
-	res |= image_load_simg_block((void*)KERNEL_CODE_ADDRESS,s);
-	if (!res) puts("DONE\n\r");
-	else puts("FAIL\n\r");
+	res = load_simg((void*)KERNEL_CODE_ADDRESS,s);
+	if (res > 0) {
+		simg_end_address = KERNEL_CODE_ADDRESS + res;
+		puts("DONE\n\r");
+	}
+	else {
+		puts("FAIL\n\r");
+	}
 
-	return res;
+	return simg_end_address == 0;
 }
 
 void image_boot(loader_descriptor_p desc) {

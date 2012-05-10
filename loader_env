@@ -10,4 +10,5 @@ APPEND=console\=ttyS0,115200 vga\=0x318
 #APPEND=vga\=0x318
 # Startup commands
 #STARTUP=printenv
-STARTUP=printenv;load 0;boot
+#STARTUP=printenv;load 0;boot
+STARTUP=p;l 0;b

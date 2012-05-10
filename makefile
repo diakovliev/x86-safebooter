@@ -2,6 +2,7 @@ include makefile.config
 
 #-----------------------------------------------------------------------------------
 HEADERS+=main/cmd.h
+HEADERS+=main/simg.h
 HEADERS+=core/common.h
 HEADERS+=core/loader_types.h 
 HEADERS+=core/string.h 
@@ -31,6 +32,7 @@ HEADERS+=$(DRIVERS_HEADERS)
 
 SOURCES+=main/main.c
 SOURCES+=main/cmd.c
+SOURCES+=main/simg.c
 SOURCES+=core/string.c  
 SOURCES+=core/heap.c 
 SOURCES+=core/stdio.c

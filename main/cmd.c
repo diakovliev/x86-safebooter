@@ -43,16 +43,23 @@ byte_t cmd_process_command(byte_t *cmd) {
 	byte_t *safe_buf = 0;
 
 	strcpy(cmd_buffer,cmd);
-	strtok(CMD_CMD_SEP,cmd_buffer);
+	strtok(CMD_CMD_SEP,cmd_buffer);	
 
 	while ( buf = strtok(CMD_CMD_SEP,0) ) {
 		buf = strltrim(" ",buf);
 		strcpy(buffer,buf);
 		
+		/*printf("\n\r======================\n\r");*/
+
 		cmd_command_t *command = commands;
 		while (command->name) {
+		
+			/*printf("\n\r '%s' '%s' '%s' \n\r", command->name, command->alias, buffer);*/
+
 			if (starts_from(buffer, command->name) ||
 				starts_from(buffer, command->alias) ) {
+
+				/*printf("\n\r==> '%s'\n\r", command->name);*/
 
 				safe_buf = strtok(CMD_CMD_SEP,buf);
 				r = (*command->function)(buffer);
