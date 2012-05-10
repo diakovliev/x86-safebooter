@@ -227,9 +227,10 @@ byte_t IMAGE_load_to_memory(byte_t *cmd_buffer)
 	if (image_type == 'S') {
 		int load_res = 0;
 		printf("Loading data... ");
-		load_res = load_simg((void*)address, s) == 0 ? ERR_CMD_OK : ERR_CMD_FAIL;
+		load_res = load_simg((void*)address, s);
 		if (load_res > 0) {
-			printf("[%p - %p] DONE\n\r", address, (address + size));
+			printf("[%p - %p] DONE\n\r", address, (address + load_res));
+			res = ERR_CMD_OK;
 		} else {
 			puts("FAIL\n\r");
 		}

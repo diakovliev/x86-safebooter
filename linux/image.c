@@ -87,7 +87,7 @@ byte_t image_load_sig(blk_iostream_p s, dword_t image_start) {
 
 	blk_seek(image_start,s);
 
-	puts("Loading image... ");
+	puts("Loading kernel image... ");
 	if (load_simg((void*)KERNEL_REAL_CODE_ADDRESS,s) < 0) {
 		puts("FAIL\n\r");
 		return 1;
@@ -107,7 +107,7 @@ byte_t image_load_sig(blk_iostream_p s, dword_t image_start) {
 
 void image_boot(loader_descriptor_p desc) {
 
-	printf("Booting image... ");
+	printf("Booting kernel image... ");
 
 	if (simg_end_address == 0) {
 		printf("The kernel image not loaded.\n\r");
