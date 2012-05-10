@@ -156,14 +156,10 @@ loader.gen.h: makefile.config makefile
 	$(call define_var,KERNEL_CODE_ADDRESS) >> $@
 	$(call define_var,LOADER_HEAP_START) >> $@
 	$(call define_var,LOADER_HEAP_SIZE) >> $@
-	$(call define_var,KERNEL_CODE_LBA) >> $@
 	$(call define_var,LOADER_CODE_LBA) >> $@
 	$(call define_var,LOADER_DESCRIPTOR_LBA) >> $@
 	$(call define_var,KERNEL_SETUP_SECTORS) >> $@
 	$(call define_var,DISK_SECTOR_SIZE) >> $@
-ifeq ($(CONFIG_SUPPORT_CMD_LINE),y) 
-	$(call define_cfg,CONFIG_SUPPORT_CMD_LINE) >> $@
-endif
 
 gdt_table.gen.h: define_gdt_entry = echo '\#define $1 0x$(shell nm gdt_table.o | grep $2 | cut -d " " -f 1)'
 gdt_table.gen.h: gdt_table.o

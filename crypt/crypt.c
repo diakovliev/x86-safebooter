@@ -1,8 +1,8 @@
 #include <string.h>
 
-#include "crypt.h"
-
+#include "sha1.h"
 #include "blowfish.h"
+#include "crypt.h"
 
 //#define CONFIG_BLOWFISH_MODE_ECB
 #define CONFIG_BLOWFISH_MODE_CBC
@@ -111,8 +111,6 @@ void sha2_512(uint8_t *digest, void *buffer, uint32_t size) {
 	SHA512_Final(digest, &ctx);
 }
 #endif
-
-#include "sha1.h"
 
 void sha1(uint8_t *digest, void *buffer, uint32_t size) {
 	SHA_CTX ctx;
