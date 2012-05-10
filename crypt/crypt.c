@@ -4,7 +4,7 @@
 
 #include "blowfish.h"
 
-/*#define CONFIG_BLOWFISH_MODE_ECB*/
+//#define CONFIG_BLOWFISH_MODE_ECB
 #define CONFIG_BLOWFISH_MODE_CBC
 
 extern uint8_t blowfish_key[];

@@ -146,9 +146,11 @@ byte_t image_load_simg_block(void *address, blk_iostream_p s) {
    		return 4;
    	}
 
+#ifdef CONFIG_SIMG_BLOWFISH_ENCRYPTED
    	/* Decrypt buffer */
    	blowfish_reset();
    	blowfish_decrypt_memory(address+res,size);
+#endif
 
 #ifdef CONFIG_SIMG_XOR_SCRAMBLED
    	xor_descramble_memory(address+res,size);

@@ -72,10 +72,10 @@ int process_buffer(void *buffer, long size, void *start_block) {
 	for (i = 0; i < DISK_SECTOR_SIZE; ++i) {
 		*start_block_randomize++ = (*randrom_gen.random)(0xFF);
 	}
-#endif/*CONFIG_SIMG_PRE_RANDOMIZE_BLOCKS*/
 
 	/* Reinit random generator */
 	(*randrom_gen.init)();
+#endif/*CONFIG_SIMG_PRE_RANDOMIZE_BLOCKS*/
 
     /* Fill start block */
 
@@ -94,6 +94,7 @@ int process_buffer(void *buffer, long size, void *start_block) {
 	xor_scramble_memory(buffer, size);
 #endif/*CONFIG_SIMG_XOR_SCRAMBLED*/
 
+#ifdef CONFIG_SIMG_BLOWFISH_ENCRYPTED
     blowfish_reset();
 	if(verbose){
         printf("Encryption...");
@@ -102,6 +103,7 @@ int process_buffer(void *buffer, long size, void *start_block) {
     if(verbose){
         printf("DONE\n\r");
     }
+#endif
 
     /* SHA2 for processed buffer */
     SHA2_func(processed_sha2, buffer, size);
