@@ -24,6 +24,7 @@
 
 /* forward declarations */
 byte_t IMAGE_load_kernel_to_memory(byte_t *cmd_buffer);
+byte_t IMAGE_load_to_memory(byte_t *cmd_buffer);
 byte_t IMAGE_boot(byte_t *cmd_buffer);
 byte_t TOOLS_display_memory(byte_t *cmd_buffer);
 byte_t TOOLS_help(byte_t *cmd_buffer);
@@ -36,7 +37,8 @@ static loader_descriptor_p loader_descriptor = 0;
 /* Registered commands */
 static cmd_command_t commands[] = {
 	{"help", "h", "list available commands", TOOLS_help},
-	{"load", "l", "load kernel to memory", IMAGE_load_kernel_to_memory},
+	{"kernelload", "k", "load kernel to memory", IMAGE_load_kernel_to_memory},
+	{"load", "l", "load data to memory", IMAGE_load_to_memory},
 	{"boot", "b", "boot kernel", IMAGE_boot},
 	{"display", "d", "display memory", TOOLS_display_memory},
 	{"heapinfo", "e", "show heap info", TOOLS_heap_info},
@@ -129,6 +131,101 @@ byte_t IMAGE_load_kernel_to_memory(byte_t *cmd_buffer)
 	} else
 	if (image_type == 'S') {
 		res = image_load_sig(s, lba) == 0 ? ERR_CMD_OK : ERR_CMD_FAIL;
+	}
+
+	ata_blk_stream_close(s);
+
+finish:
+	free(env_s);
+	return res;
+}
+
+byte_t IMAGE_load_to_memory(byte_t *cmd_buffer)
+{
+	byte_t res = ERR_CMD_FAIL;
+
+	byte_t *buf = strtok(CMD_PARAM_SEP, cmd_buffer);
+	strtok(CMD_PARAM_SEP, 0);
+
+	byte_t *index_s = strtok(CMD_PARAM_SEP, 0);
+	if (!index_s) {
+		printf("Unknown image index\n\r");
+		return res;
+	}
+
+	word_t index = atol(index_s,16);
+	if (index < 0 || index > 3) {
+		printf("Image index should be in [0..3]\n\r");
+		return res;
+	}
+
+	/* Parse image info */
+	byte_t env_name[32];
+	memset(env_name, 0, sizeof(env_name));
+	sprintf(env_name, "IMAGE_%d", index);
+	byte_t *env_s = strdup(env_get(env_name));
+	printf("Image: \"%s\"\n\r", env_s);
+
+	byte_t *address_s = strtok(CMD_PARAM_SEP, 0);
+	if (!address_s) {
+		printf("Unknown destination address\n\r");
+		return res;
+	}
+
+	dword_t address = atol(address_s, 16);
+	printf("Address: %p\n\r", address);
+
+	strtok(":", env_s);
+	byte_p type_s = strtok(":", 0);
+	if (!type_s) {
+		printf("Wrong environment variable \"%s\" format\n\r", env_name);
+		goto finish;
+	}
+	byte_t image_type = *type_s;
+	if (image_type != 'R' && image_type != 'S') {
+		printf("Wrong environment variable \"%s\" format\n\r", env_name);
+		goto finish;
+	}
+	byte_p bus_s = strtok(":", 0);
+	if (!bus_s) {
+		printf("Wrong environment variable \"%s\" format\n\r", env_name);
+		goto finish;
+	}
+	word_t bus = atol(bus_s,16);
+	byte_p drive_s = strtok(":", 0);
+	if (!drive_s) {
+		printf("Wrong environment variable \"%s\" format\n\r", env_name);
+		goto finish;
+	}
+	word_t drive = atol(drive_s,16);
+	byte_p lba_s = strtok(":", 0);
+	if (!lba_s) {
+		printf("Wrong environment variable \"%s\" format\n\r", env_name);
+		goto finish;
+	}
+	dword_t lba = atol(lba_s,16);
+	byte_p size_s = strtok(":", 0);
+	if (!size_s && *type_s == 'R') {
+		printf("Wrong environment variable \"%s\" format\n\r", env_name);
+		goto finish;
+	}
+	dword_t size = atol(size_s,16);
+	blk_iostream_p s = ata_blk_stream_open(bus,drive,lba);
+	if (!s) {
+		printf("Unable to open input stream\n\r");
+		goto finish;
+	}
+
+	if (image_type == 'R') {
+#ifdef CONFIG_RAW_IMAGES_ENABLED
+		/*res = image_load_raw(s, lba, size) == 0 ? ERR_CMD_OK : ERR_CMD_FAIL;*/
+		printf("No support of RAW images\n\r");
+#else
+		printf("No support of RAW images\n\r");
+#endif/*CONFIG_RAW_IMAGES_ENABLED*/
+	} else
+	if (image_type == 'S') {
+		res = load_simg((void*)address, s) == 0 ? ERR_CMD_OK : ERR_CMD_FAIL;
 	}
 
 	ata_blk_stream_close(s);

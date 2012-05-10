@@ -169,3 +169,4 @@ void image_boot(loader_descriptor_p desc) {
 	}
 
 }
+
