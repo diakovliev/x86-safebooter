@@ -225,7 +225,14 @@ byte_t IMAGE_load_to_memory(byte_t *cmd_buffer)
 #endif/*CONFIG_RAW_IMAGES_ENABLED*/
 	} else
 	if (image_type == 'S') {
-		res = load_simg((void*)address, s) == 0 ? ERR_CMD_OK : ERR_CMD_FAIL;
+		int load_res = 0;
+		printf("Loading data... ");
+		load_res = load_simg((void*)address, s) == 0 ? ERR_CMD_OK : ERR_CMD_FAIL;
+		if (load_res > 0) {
+			printf("[%p - %p] DONE\n\r", address, (address + size));
+		} else {
+			puts("FAIL\n\r");
+		}
 	}
 
 	ata_blk_stream_close(s);
