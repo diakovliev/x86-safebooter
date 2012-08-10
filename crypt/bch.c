@@ -308,19 +308,27 @@ int8_t bch_is_zero(bch_p op) {
 int32_t bch_hexp(bch_p op) {
 
 	int32_t res = -1;
+	uint32_t dw = 0;
 	bch_size i;
 
 	assert(op != 0);
 
-	i = op->size - 1;
+	i = op->size - 4;
 	do {
-		if (op->data[i]) {
+		dw = uint32_data(xdata(op),i);
+		if (dw) {
 			res = i;
 			break;
 		}
-	} while (i-- > 0);
+		i -= 4;
+	} while (i > 0);
 
-	return res;
+	if (dw & 0xFF000000)		res += 4;
+	else if (dw & 0x00FF0000) 	res += 3;
+	else if (dw & 0x0000FF00) 	res += 2;
+	else if (dw & 0x000000FF) 	res += 1;
+
+	return res >=  0 ? res - 1 : res;
 }
 
 bch_size bch_ffs(bch_data v) {
@@ -464,9 +472,11 @@ int8_t bch_cmp(bch_p l, bch_p r) {
 
 	int32_t i;
 	register uint32_t l_data, r_data;
+	register bch_data *l_ptr = xdata(l_);
+	register bch_data *r_ptr = xdata(r_);
 	for (i = BCH_MAX(l_->size,r_->size) - sizeof(uint32_t); i >= 0; i -= sizeof(uint32_t)) {
-		l_data = (i < l_->size) ? uint32_data(xdata(l_),i) : 0;
-		r_data = (i < r_->size) ? uint32_data(xdata(r_),i) : 0;
+		l_data = (i < l_->size) ? uint32_data(l_ptr,i) : 0;
+		r_data = (i < r_->size) ? uint32_data(r_ptr,i) : 0;
 		if (l_data != r_data) {
 			res = (l_data > r_data) ? 1 : -1;
 			res += l_data == r_data;
@@ -928,7 +938,7 @@ void bch_div_mod_internal(bch_p r, bch_p m_, bch_p divided_, bch_p divider_)
 	int32_t exp 		= (divided_exp-divider_exp);
 
 	int32_t m_exp = divided_exp;
-	uint16_t q = 0;
+	register uint16_t q = 0;
 	uint32_t a, b = 0;
 
 	if (divider_exp >= 2) {
@@ -946,61 +956,72 @@ void bch_div_mod_internal(bch_p r, bch_p m_, bch_p divided_, bch_p divider_)
 	
 	bch_byte_shl(divider_,exp++);
 	
-	register bch_size i;
+	register bch_size i,dst_size;
 	register uint32_t v = 0;
 	register uint32_t u = 1;
-	do {
+	uint16_t *ptr = 0;
+	bch_data *m_ptr = m_->data;
+	bch_size m_size = m_->size - 1;
+	bch_data *src_data = divider_->data;
+	bch_size src_size = divider_->size - 1;
+	bch_data *r_data = 0;
+	
+	bch_data_p shr_buffer = bch__alloc(divider_->size);
 
-#define BCH_SUB_MUL_S__STEP(dst,src,mul) \
-			if (dst->size <= i) break;\
-			v += uint16_data(xdata(src),i) * mul;\
-			u += uint16_data(xdata(dst),i);\
-			u += (v & 0xFFFF) ^ 0xFFFF;\
-			uint16_data(xdata(dst),i) = u & 0xFFFF;\
+	if (r) r_data = r->data;
+	while (exp > 0) {
+
+#define BCH_SUB_MUL_S__STEP(mul) \
+			if (dst_size <= i) break;\
+			ptr = (uint16_t*)(m_ptr + i);\
+			v += uint16_data(src_data,i) * mul;\
+			u += *ptr + ((v & 0xFFFF) ^ 0xFFFF);\
+			*ptr = u & 0xFFFF;\
 			u >>= 16;\
-			v >>= 16;
+			v >>= 16;\
+			i+=2;
 
-#define BCH_SUB_MUL_S(dst,src,mul)\
+#define BCH_SUB_MUL_S(mul)\
 		v = 0,u = 1;\
 		i = 0;\
-		while(i < dst->size || u) {\
-			BCH_SUB_MUL_S__STEP(dst,src,mul);\
-			i+=2;\
-			BCH_SUB_MUL_S__STEP(dst,src,mul);\
-			i+=2;\
+		dst_size = m_exp + 1;\
+		while(i < dst_size || u) {\
+			BCH_SUB_MUL_S__STEP(mul);\
+			BCH_SUB_MUL_S__STEP(mul);\
 		}
 
-		if (exp <= 0 || m_exp < 0) break;
 		if (bch_cmp(divider_, m_) <= 0) {
-			a = 0;
 			if (m_exp >= 3) {
-				a = uint32_data(xdata(m_),m_exp-3);
-			}
-			else if (m_exp == 2) {
-				a = (m_->data[m_exp] << 24);
-				a |= (m_->data[m_exp-1] << 16);
-				a |= (m_->data[m_exp-2] << 8);
-			}
-			else if (m_exp == 1) {
-				a = (m_->data[m_exp] << 24);
-				a |= (m_->data[m_exp-1] << 16);
-			}
-			else {
-				a = (m_->data[m_exp] << 24);
+				a = uint32_data(m_ptr,m_exp-3);
+			} else {
+				a = 0;
+				switch(m_exp) {
+				case 2:
+					a |= (m_ptr[m_exp-2] << 8);
+				case 1:
+					a |= (m_ptr[m_exp-1] << 16);
+				case 0:
+					a |= (m_ptr[m_exp] << 24);
+				}
 			}
 			q = a/b;
 			if (q & 0xFF00) q >>= 8;
-			BCH_SUB_MUL_S(m_,divider_,q);
-			if (bch_is_negative(m_)) {
+			BCH_SUB_MUL_S(q);			
+			if (m_ptr[m_size] & 0x80) {
 				bch_add(m_,divider_);
 				q--;
 			}
-			if (r) bch_set_byte(r,exp-1,q);
-			m_exp = bch_hexp(m_);
+			if (r_data) r_data[exp-1] = q;
+			while(m_exp >= 0 && !m_ptr[m_exp]) m_exp -= 1;
 		}
-		if (--exp) bch_byte_shr(divider_,1);
+		if (--exp) {
+			memcpy(shr_buffer, src_data + 1, src_size);
+			memcpy(src_data, shr_buffer, src_size);
+			src_data[src_size] = 0;
+		}
+	}
 
-	} while(1);
+	bch__free(shr_buffer);
 }
 
 void bch_div_mod(bch_p r, bch_p m, bch_p divided, bch_p divider) {

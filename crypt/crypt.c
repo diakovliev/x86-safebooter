@@ -4,8 +4,10 @@
 #include "blowfish.h"
 #include "crypt.h"
 
+/* Encryption modes */
 /*#define CONFIG_BLOWFISH_MODE_ECB /* not recomended to use */
-#define CONFIG_BLOWFISH_MODE_CTR
+/*#define CONFIG_BLOWFISH_MODE_CTR_S /* simple inc counter */
+#define CONFIG_BLOWFISH_MODE_CTR_D /* double inc counter */
 /*#define CONFIG_BLOWFISH_MODE_CBC*/
 /*#define CONFIG_BLOWFISH_MODE_CFB*/
 /*#define CONFIG_BLOWFISH_MODE_OFB*/
@@ -37,7 +39,39 @@ void blowfish_decrypt_memory(void* buffer, uint32_t size) {
 	}
 }
 
-#elif defined(CONFIG_BLOWFISH_MODE_CTR)
+#elif defined(CONFIG_BLOWFISH_MODE_CTR_S)
+
+void blowfish_encrypt_memory(void* buffer, uint32_t size) {
+	unsigned long ctr = 0;
+	unsigned long a_0 = 0;
+	unsigned long a_1 = 0;
+	unsigned long *array = (unsigned long *)buffer;	
+	for ( ; array+1 < (unsigned long *)(buffer+size+size%2); array += 2) {
+		a_0 = ctr ^ *array;
+		a_1 = ctr ^ *(array + 1);
+		Blowfish_Encrypt(&blowfish_context, &a_0, &a_1);
+		*array = a_0;
+		*(array + 1) = a_1;
+		ctr++;
+	}
+}
+
+void blowfish_decrypt_memory(void* buffer, uint32_t size) {
+	unsigned long ctr = 0;
+	unsigned long a_0 = 0;
+	unsigned long a_1 = 0;
+	unsigned long *array = (unsigned long *)buffer;	
+	for ( ; array+1 < (unsigned long *)(buffer+size+size%2); array += 2) {
+		a_0 = *array;
+		a_1 = *(array + 1);
+		Blowfish_Decrypt(&blowfish_context, &a_0, &a_1);
+		*array = a_0 ^ ctr;
+		*(array + 1) = a_1 ^ ctr;
+		ctr++;
+	}
+}
+
+#elif defined(CONFIG_BLOWFISH_MODE_CTR_D)
 
 void blowfish_encrypt_memory(void* buffer, uint32_t size) {
 	unsigned long ctr = 0;

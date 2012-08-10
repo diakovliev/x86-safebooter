@@ -38,6 +38,15 @@
 #define ATA_CMD_WRITE_SECTORS	0x30
 #define ATA_CMD_FLUSH			0xE7
 
+typedef struct ata_device_s {
+	word_t bus;				/* bus */
+	byte_t drive;			/* drive */
+	byte_t type;			/* device type */
+	word_t identify[256];	/* data returned by identify */
+} ata_device_t, *ata_device_p;
+
+static ata_device_t ata_devices[4];
+
 #define _ATA_CHECK_ERROR(msg,ret) \
 	do { \
 		idle(); \
@@ -48,7 +57,7 @@
 		return ret; \
 	}
 	
-static byte_t ata_identify_device(word_t bus, byte_t drive) {
+static byte_t ata_identify_device(word_t bus, byte_t drive, word_t *data) {
 
 	byte_t devtype = ATADEV_NONE;
 	byte_t status = 0;
@@ -65,10 +74,15 @@ static byte_t ata_identify_device(word_t bus, byte_t drive) {
 	/* Send command */
 	outb(ATA_COMMAND_PORT(bus),ATA_CMD_IDENTIFY);
 	_ATA_CHECK_ERROR(0,devtype);
+	if (!status) {
+		/* no device */
+		return devtype;
+	}
 
 	/* Checking for ATA device type */
 	byte_t cl = inb(ATA_ADDRESS2_PORT(bus));
 	byte_t ch = inb(ATA_ADDRESS3_PORT(bus));
+
 	if (cl==0 && ch == 0) 	  		devtype = ATADEV_PATA;
 	else if (cl==0x3c && ch==0xc3)	devtype = ATADEV_SATA;
 	else if (cl==0x14 && ch==0xeb)	devtype = ATADEV_PATAPI;
@@ -79,20 +93,80 @@ static byte_t ata_identify_device(word_t bus, byte_t drive) {
 	}
 
 	/* Waitng identify data */
-	if ( status & ATA_ERR ) {
-		while ( status & ATA_ERR ) {
-			status = inb(ATA_COMMAND_PORT(bus));
-			idle();
-		}
-	}
+	if ( status & ATA_ERR )
+	do {
+		status = inb(ATA_COMMAND_PORT(bus));
+		idle();
+		printf("ATA_ERR\n\r");
+	} while ( status & ATA_ERR );
 	
 	/* Reading identify data from data port */
 	word_t i = 0;	
 	do {
-		word_t data = inw(ATA_DATA_PORT(bus));		
+		if (data)
+			data[i] = inw(ATA_DATA_PORT(bus));		
+		else 
+			inw(ATA_DATA_PORT(bus));
+
 	} while (i++ < 256);
 
 	return devtype;
+}
+
+static void extract_ata_string(char *buf, word_t *identify, byte_t wc)
+{
+	memset(buf, 0, wc*2 + 1);	
+	memcpy(buf, identify, wc*2);
+}
+
+static void trace_ata_device(byte_t index, ata_device_p device)
+{
+	if (!device->type)
+		return;
+
+	printf("\t%d - bus: 0x%X drive: 0x%X type: 0x%X\n\r", index, 
+		device->bus, device->drive, device->type);
+
+	char tmp[55]; 
+	extract_ata_string(tmp, &device->identify[10], 9);
+	printf("\t\tserial: %s\n\r", tmp);
+	extract_ata_string(tmp, &device->identify[23], 3);
+	printf("\t\tfirmware: %s\n\r", tmp);
+	extract_ata_string(tmp, &device->identify[27], 19);
+	printf("\t\tmodel: %s\n\r", tmp);	
+}
+
+byte_t ata_probe_devices(void) 
+{
+	byte_t num = 0;
+	memset(&ata_devices, 0, sizeof(ata_devices));
+
+	struct probe_list_s {
+		word_t bus; byte_t drive;
+	} probe_list[] = {
+		{ATA_BUS_PRIMARY, ATA_DRIVE_MASTER},
+		{ATA_BUS_PRIMARY, ATA_DRIVE_SLAVE},
+		{ATA_BUS_SECONDARY, ATA_DRIVE_MASTER},
+		{ATA_BUS_SECONDARY, ATA_DRIVE_SLAVE},
+		{0,0}
+	};
+
+	struct probe_list_s *iter = &probe_list[0];
+	while(iter->bus) {		
+		ata_devices[num].type = ata_identify_device(iter->bus, 
+			iter->drive, ata_devices[num].identify);
+		if (ata_devices[num].type) {
+			ata_devices[num].bus	= iter->bus;
+			ata_devices[num].drive	= iter->drive;
+			trace_ata_device(num, &ata_devices[num]);
+			++num;
+		} else {
+			memset(&ata_devices[num], 0, sizeof(ata_device_t));
+		}
+		++iter;
+	}
+
+	return num;
 }
 
 /* Typedef */
@@ -207,7 +281,7 @@ void ata_enum_devices(ata_enum_callback callback, void *context) {
 	byte_t type = ATADEV_NONE;
 
 #define ATA_ENUM(bus,drive) \
-	type = ata_identify_device(bus, drive); \
+	type = ata_identify_device(bus, drive, 0); \
 	if (type != ATADEV_NONE) { \
 		if (callback) res = (*callback)(bus, drive, type, context); \
 		if (res) return; \

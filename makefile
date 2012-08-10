@@ -28,6 +28,7 @@ DRIVERS_HEADERS+=drivers/ascii_driver.h
 DRIVERS_HEADERS+=drivers/ata_driver.h
 DRIVERS_HEADERS+=drivers/serial_driver.h
 DRIVERS_HEADERS+=drivers/rtc_driver.h
+DRIVERS_HEADERS+=drivers/3rd/ata/mindrvr.h
 HEADERS+=$(DRIVERS_HEADERS)
 
 SOURCES+=main/main.c
@@ -57,6 +58,7 @@ DRIVERS_SOURCES+=drivers/ascii_driver.c
 DRIVERS_SOURCES+=drivers/ata_driver.c
 DRIVERS_SOURCES+=drivers/serial_driver.c
 DRIVERS_SOURCES+=drivers/rtc_driver.c
+DRIVERS_SOURCES+=drivers/3rd/ata/mindrvr.c
 SOURCES+=$(DRIVERS_SOURCES)
 
 #-----------------------------------------------------------------------------------
@@ -92,7 +94,7 @@ BASE_HEADERS+=gdt_table.gen.h
 BASE_OBJECTS+=loader_start.o 
 BASE_OBJECTS+=gdt_table.o
 
-OBJECTS=$(patsubst %.c,%.o,$(patsubst %.S,%.o,$(notdir $(SOURCES))))
+OBJECTS=$(patsubst %.C,%.o,$(patsubst %.c,%.o,$(patsubst %.S,%.o,$(notdir ${SOURCES}))))
 
 GCCARGS			:= -c $(CONFIG-DBG-$(CONFIG_DBG)) -m32 -march=i386 -nostdlib -fno-builtin $(DEFINES) $(INCLUDES)
 GCC				:= gcc
@@ -142,7 +144,8 @@ loader_descriptor.o: core/loader_descriptor.S loader.img.size loader_descriptor.
 	$(GCC_CMD) $<
 
 # Objects
-$(OBJECTS) : makefile.config $(HEADERS) $(SOURCES)
+${OBJECTS} : makefile.config ${HEADERS} ${SOURCES}
+	echo ">>>> ${SOURCES}"
 	$(GCC_CMD) $(SOURCES)
 
 # Generated headers
@@ -180,8 +183,9 @@ loader_descriptor.img: loader_descriptor.o
 	cp -f loader_descriptor.img loader_descriptor.img.orig 
 	./tools/xor loader_descriptor.img s 
 
-loader.img: $(BASE_OBJECTS) $(OBJECTS)
+loader.img: ${BASE_OBJECTS} ${OBJECTS}
 	$(call LD_CMD,$(LOADER_CODE_ADDRESS))
+	echo "${OBJECTS}"
 	cp -f loader.img loader.img.orig
 	./tools/xor loader.img s
 
@@ -242,10 +246,14 @@ qemu_gdb: ${HDD_IMG}
 	qemu $(QEMU_ARGS) $<
 	gdb $(GDB_ARGS)
 
-#qemu_serial: QEMU_ARGS=-serial stdio -nographic
-qemu_serial: QEMU_ARGS=-serial stdio
+qemu_serial: QEMU_ARGS=-serial stdio -hdb ${HDD_IMG}
 qemu_serial: ${HDD_IMG}
 	qemu $(QEMU_ARGS) $<
+
+#qemu_serial_usb: QEMU_ARGS=-serial stdio -monitor stdio
+qemu_usb: QEMU_ARGS=-monitor stdio
+qemu_usb: ${HDD_IMG}
+	qemu $(QEMU_ARGS) -usb -drive file=$<,if=none,id=usb-0,boot=on -device usb-storage,drive=usb-0
 
 bochs: ${HDD_IMG}
 	bochs -f bochsrc -q

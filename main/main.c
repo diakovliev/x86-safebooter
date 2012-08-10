@@ -30,6 +30,7 @@ byte_t TOOLS_display_memory(byte_t *cmd_buffer);
 byte_t TOOLS_help(byte_t *cmd_buffer);
 byte_t TOOLS_heap_info(byte_t *cmd_buffer);
 byte_t TOOLS_print_env(byte_t *cmd_buffer);
+byte_t TOOLS_ata_detect(byte_t *cmd_buffer);
 
 /* Pointer to loader descriptor */
 static loader_descriptor_p loader_descriptor = 0;
@@ -43,6 +44,7 @@ static cmd_command_t commands[] = {
 	{"display", "d", "display memory", TOOLS_display_memory},
 	{"heapinfo", "e", "show heap info", TOOLS_heap_info},
 	{"printenv", "p", "show environment", TOOLS_print_env},
+	{"atadetect", "a", "detect ata devices", TOOLS_ata_detect},
 
 	/* last element */
 	{0,0,0,0},
@@ -54,6 +56,27 @@ byte_t *strdup(byte_t *src) {
 	memcpy(ptr,src,sz);
 	return ptr;
 }
+
+
+byte_t TOOLS_ata_enum_callback(word_t bus, byte_t drive, byte_t type, void *ctx)
+{
+	byte_t res = 0;
+
+	printf("bus: 0x%04x, drive: 0x%02x, type: 0x%02x\n\r", bus, drive, type);
+
+	return res;	
+}
+
+byte_t TOOLS_ata_detect(byte_t *cmd_buffer)
+{
+	byte_t res = ERR_CMD_FAIL;
+
+	ata_probe_devices();
+/*	ata_enum_devices(TOOLS_ata_enum_callback, 0);*/
+
+	return res;
+}
+
 
 byte_t IMAGE_load_kernel_to_memory(byte_t *cmd_buffer)
 {
@@ -218,15 +241,21 @@ byte_t IMAGE_load_to_memory(byte_t *cmd_buffer)
 
 	if (image_type == 'R') {
 #ifdef CONFIG_RAW_IMAGES_ENABLED
-		/*res = image_load_raw(s, lba, size) == 0 ? ERR_CMD_OK : ERR_CMD_FAIL;*/
-		printf("No support of RAW images\n\r");
+		printf("Loading RAW data... ");
+		word_t read_res = blk_read((void*)address, size, s);
+		if (read_res == size) {
+			printf("[%p - %p] DONE\n\r", address, (address + (size * DISK_SECTOR_SIZE)));
+			res = ERR_CMD_OK;
+		} else {
+			puts("FAIL\n\r");
+		}
 #else
 		printf("No support of RAW images\n\r");
 #endif/*CONFIG_RAW_IMAGES_ENABLED*/
 	} else
 	if (image_type == 'S') {
 		int load_res = 0;
-		printf("Loading data... ");
+		printf("Loading SIMG data... ");
 		load_res = load_simg((void*)address, s);
 		if (load_res > 0) {
 			printf("[%p - %p] DONE\n\r", address, (address + load_res));
@@ -398,19 +427,6 @@ void C_start(void *loader_descriptor_address, void *loader_code_address)
 	printf("Stack: %p\r\n", LOADER_STACK_ADDRESS);
 #endif/*__DEBUG__*/
 
-	/* Waiting for break */
-	byte_t ctrl_break = 0;
-	quad_t tm = 5;
-	byte_t c = 0;
-	byte_t recv = 0;
-	printf("Waiting %ld seconds for the BREAK command\n\r", tm);
-	while (recv = waitc(&tm, &c)) {
-		if (c == 'B') {
-			ctrl_break = 1;
-			break;
-		}
-	}
-
 	/* Init heap */
 	heap_init((void*)LOADER_HEAP_START,LOADER_HEAP_SIZE);
 	/* Init environment */
@@ -418,18 +434,32 @@ void C_start(void *loader_descriptor_address, void *loader_code_address)
 	/* Register commands set */
 	cmd_register_commands(commands);
 
+	printf("Probe ATA: %d\n\r", ata_probe_devices());
+
 	/* Run environment STARTUP commands */
-	if (!ctrl_break) {
-		byte_t *startup = env_get("STARTUP");
-		if (!startup) {
-			printf("STARTUP variable is not set\n\r");
-		} else {
-			byte_t res = cmd_process_command(startup);
-			if (res) {
-				printf("STARTUP commands error: %s\n\r", cmd_error(res));
+	byte_t ctrl_break = 0;
+	byte_t *startup = env_get("STARTUP");
+	if (!startup) {
+		printf("STARTUP variable is not set\n\r");
+	} else {
+		/* Waiting for break */
+		quad_t tm = 5;
+		byte_t c = 0;
+		byte_t recv = 0;
+		printf("Waiting %ld seconds for the BREAK command\n\r", tm);
+		while (recv = waitc(&tm, &c)) {
+			if (c == 'B') {
+				ctrl_break = 1;
+				break;
 			}
 		}
-	} else {
+	}
+	if (!ctrl_break && startup) {
+		byte_t res = cmd_process_command(startup);
+		if (res) {
+			printf("STARTUP commands error: %s\n\r", cmd_error(res));
+		}
+	} else if (ctrl_break) {
 		printf("BREAK revieved, ignore STARTUP variable\n\r");
 	}
 

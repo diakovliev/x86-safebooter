@@ -20,6 +20,8 @@
 #define ATADEV_SATAPI		0x04
 #define ATADEV_UNKNOWN		0xFF
 
+byte_t ata_probe_devices(void);
+
 /* Enumerate drives */
 typedef byte_t (*ata_enum_callback)(word_t bus, byte_t drive, byte_t type, void *ctx);
 void ata_enum_devices(ata_enum_callback callback, void *ctx);

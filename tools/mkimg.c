@@ -170,95 +170,77 @@ int process_buffer(void *buffer, long size, void *start_block) {
 /*********************************************************************************/
 int process_raw_file(char *output_file, char *input_file) {
 
-	int res = -3;
-	long size = 0;
-	long alloc_size = 0;
-	long readed = 0;
-	void *buffer = 0;
-	void *start_block = 0;
+	int		res 			= -3;
+	size_t	size 			= 0;
+	size_t	alloc_size		= 0;
+	size_t	readed 			= 0;
+	size_t	written 		= 0;
+	void	*buffer 		= 0;
+	void	*start_block 	= 0;
 
 	FILE *input = fopen(input_file, "r");
-	/* load file to memory */
-	if (input) {
-		fseek(input, 0, SEEK_END);
-		size = ftell(input);
-		alloc_size = ((size/4)+(size%4?1:0))*4;
-		if (verbose) {
-			printf("Input size: %ld bytes\n\r", size);
-			printf("Allocated size: %ld bytes\n\r", alloc_size);
-		}
-		fseek(input, 0, SEEK_SET);
+	if (!input) {
+		printf("Unable to open file '%s'\n\r", input_file);
+		res = -1;
+		goto out;
+	}
 
-		buffer = malloc(alloc_size);
-		memset(buffer,0,alloc_size);
+	fseek(input, 0, SEEK_END);
+	size = ftell(input);
+	alloc_size = ((size/4)+(size%4?1:0))*4;
+	if (verbose) {
+		printf("Input size: %ld bytes\n\r", size);
+		printf("Allocated size: %ld bytes\n\r", alloc_size);
+	}
+	fseek(input, 0, SEEK_SET);
 
-		if (buffer && verbose) {
-			printf("Allocated buffer at %p\n\r", buffer);
-		} else
-		if (!buffer){
-			printf("Buffer allocation error\n\r");
-			res = -1;
-		}
+	buffer = malloc(alloc_size);
+	if (!buffer){
+		printf("Buffer allocation error\n\r");
+		res = -1;
+		goto out;
+	}
+	memset(buffer,0,alloc_size);
 
-		start_block = malloc(DISK_SECTOR_SIZE);
-		memset(start_block,0,DISK_SECTOR_SIZE);
+	start_block = malloc(DISK_SECTOR_SIZE);
+	if (!start_block){
+		printf("Start block allocation error\n\r");
+		res = -1;
+		goto out;
+	}
+	memset(start_block,0,DISK_SECTOR_SIZE);
 
-		if (buffer && verbose) {
-			printf("Allocated start block at %p\n\r", start_block);
-		} else
-		if (!buffer){
-			printf("Start block allocation error\n\r");
-			res = -1;
-		}
-
-		if (buffer && start_block) {
-
-			readed = 0;
-			do {
-				readed += fread(buffer + readed, 1, size - readed, input);
-				if (verbose) {
-					printf("Readed %ld bytes\n\r", readed);
-				}
-			} while (readed < size);
-
-		}
-
-		fclose(input);
+	readed += fread(buffer, size, 1, input);
+	if (readed != 1) {
+		printf("Unable to read data\n\r");
+		res = -1;
+		goto out;
 	}
 
 	/* Write output */
-	if (buffer && start_block) {
-		FILE *output = fopen(output_file, "w+");
-		if (output) {
-
-			res = process_buffer(buffer, size, start_block);
-			if (!res) {
-				readed = 0;
-				do {
-					readed += fwrite(start_block + readed, 1, DISK_SECTOR_SIZE - readed, output);
-					if (verbose) {
-						printf("Wrote %ld bytes\n\r", readed);
-					}
-				} while (readed < DISK_SECTOR_SIZE);
-
-				readed = 0;
-				do {
-					readed += fwrite(buffer + readed, 1, size - readed, output);
-					if (verbose) {
-						printf("Wrote %ld bytes\n\r", readed);
-					}
-				} while (readed < size);
-
-				fclose(output);
-				res = 0;
-			}
-		} else {
-			res = -2;
-		}
-
-		free(buffer);
-		free(start_block);
+	FILE *output = fopen(output_file, "w+");
+	if (!output) {
+		printf("Unable to open file '%s'\n\r", output_file);
+		res = -1;
+		goto out;
 	}
+
+	res = process_buffer(buffer, size, start_block);
+	if (res) {
+		printf("Process buffer error\n\r");
+		res = -1;
+		goto out;
+	}
+
+	written = 0;
+	written += fwrite(start_block, DISK_SECTOR_SIZE, 1, output);
+	written += fwrite(buffer, size, 1, output);
+
+out:
+	if (start_block) free(start_block);
+	if (buffer) free(buffer);
+	if (output) fclose(output);
+	if (input) fclose(input);
 
 	return res;
 }
@@ -359,8 +341,9 @@ int process_kernel_file(char *output_file, char *input_file) {
 	}
 
 	/* Write real mode kernel buffer */
-	written = fwrite(start_block, DISK_SECTOR_SIZE, 1, output);
-	written = fwrite(buffer, size, 1, output);
+	written = 0;
+	written += fwrite(start_block, DISK_SECTOR_SIZE, 1, output);
+	written += fwrite(buffer, size, 1, output);
 
 	/* Realloc buffer for whole protected mode kernel */
 	size = (whole_image_sectors - setup_sects) * DISK_SECTOR_SIZE;
@@ -387,8 +370,8 @@ int process_kernel_file(char *output_file, char *input_file) {
 	}
 
 	/* Write protected mode kernel buffer */
-	written = fwrite(start_block, DISK_SECTOR_SIZE, 1, output);
-	written = fwrite(buffer, size, 1, output);
+	written += fwrite(start_block, DISK_SECTOR_SIZE, 1, output);
+	written += fwrite(buffer, size, 1, output);
 
 out:
 	if (start_block) free(start_block);
