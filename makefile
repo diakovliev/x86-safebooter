@@ -221,16 +221,23 @@ clean:
 #	dd if=loader.img 				of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc seek=${LOADER_CODE_LBA} && \
 #	dd if=${BZIMAGE}				of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc seek=${KERNEL_CODE_LBA}
 
-kernel.simg: ${BZIMAGE}
-	./tools/mkimg --verbose -i ${BZIMAGE} -o kernel.simg  
+kernel.simg kernel.simg.size: ${BZIMAGE}
+	./tools/mkimg --verbose -i ${BZIMAGE} -o kernel.simg
+	expr `du --apparent-size -B512 kernel.simg | cut -f 1` + 200 > kernel.simg.size
+
+initrd.simg: kernel.simg ${INITRD}
+	./tools/mkimg --verbose -i ${INITRD} -o initrd.simg
 
 #$(HDD_IMG): build
-$(HDD_IMG): build kernel.simg
+$(HDD_IMG): build kernel.simg kernel.simg.size initrd.simg
 	dd if=/dev/zero 				of=$@ bs=$(DISK_SECTOR_SIZE) count=208080 && \
 	dd if=mbr.img 					of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc && \
 	dd if=loader_descriptor.img 	of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc seek=${LOADER_DESCRIPTOR_LBA} && \
 	dd if=loader.img 				of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc seek=${LOADER_CODE_LBA} && \
-	dd if=kernel.simg				of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc seek=${KERNEL_CODE_LBA}
+	dd if=kernel.simg				of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc seek=${KERNEL_CODE_LBA} && \
+	dd if=initrd.simg				of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc seek=$(shell cat kernel.simg.size)
+	printf "0x%X\n" ${KERNEL_CODE_LBA} >> env.txt
+	printf "0x%X\n" $(shell cat kernel.simg.size) >> env.txt
 
 # Run targets
 qemu: PORT=9999

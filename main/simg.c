@@ -6,7 +6,7 @@
 
 #include "simg.h"
 
-int load_simg(void *address, blk_iostream_p s) {
+int load_simg(void *address, blk_iostream_p s, dword_p sz) {
 
 	byte_t res = 0;
 	uint8_t processed_sha2[SHA2_SIZE/8];
@@ -42,6 +42,9 @@ int load_simg(void *address, blk_iostream_p s) {
 	/* Image size */
 	dword_t size = 0;
 	memcpy(&size, start_block, sizeof(size));
+	if (sz) {
+		*sz = size;
+	}		
 	start_block += sizeof(size);
 
 	bch_p dsa_r = dsa_alloc();

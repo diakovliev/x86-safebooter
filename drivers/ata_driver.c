@@ -196,23 +196,24 @@ static byte_t ata_read_sectors_internal(word_t bus, byte_t drive, void *buffer, 
 	word_t i = 0, j;
 	for (i = 0; i < sectors; ++i) {
 
-		/*j = 0;	
+		j = 0;	
 		do {
 			((word_t*)buffer)[(i*(DISK_SECTOR_SIZE/2))+j] = inw(ATA_DATA_PORT(bus));
 		} while (++j < (DISK_SECTOR_SIZE/2));
-		*/
-
+		
 		/* input data */
+		/*
 		__asm__ __volatile__(
 			"movl %0,%%ecx\n"
 			"movl %1,%%edi\n"
 			"movl %2,%%edx\n"
 			"cld\n"
 			"rep insw"
-		: /*no output*/
+		: //no output
 		: "g" (DISK_SECTOR_SIZE/2), "g" (buffer+(i*DISK_SECTOR_SIZE)), "g" (ATA_DATA_PORT(bus))
 		: "ecx", "edi", "edx"
 		);
+		*/
 
 		_ATA_CHECK_ERROR("ATA_ERR read\n\r", i);
 	}

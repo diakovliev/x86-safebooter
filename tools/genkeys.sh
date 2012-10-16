@@ -46,19 +46,19 @@ targetfile=$TARGET_DIR/dsa_key.c
 openssl dsaparam 1024 < /dev/urandom > $TARGET_DIR/dsa_param.pem
 openssl gendsa $TARGET_DIR/dsa_param.pem -out $TARGET_DIR/dsa_priv.pem
 openssl asn1parse -inform PEM -in $TARGET_DIR/dsa_priv.pem -dump | sed s#^.*:##g > $asn1file
-echo "$(formatheader)" > $targetfile
-echo "$(formatarray "dsa_pub" "`getline $asn1file 6`")" >> $targetfile
-echo "$(formatarray "dsa_P" "`getline $asn1file 3`")" >> $targetfile
-echo "$(formatarray "dsa_Q" "`getline $asn1file 4`")" >> $targetfile
-echo "$(formatarray "dsa_G" "`getline $asn1file 5`")" >> $targetfile
-echo "$(formatsize "dsa_pub")" >> $targetfile
-echo "$(formatsize "dsa_P")" >> $targetfile
-echo "$(formatsize "dsa_Q")" >> $targetfile
-echo "$(formatsize "dsa_G")" >> $targetfile
+formatheader > $targetfile
+formatarray "dsa_pub" "`getline $asn1file 6`" >> $targetfile
+formatarray "dsa_P" "`getline $asn1file 3`" >> $targetfile
+formatarray "dsa_Q" "`getline $asn1file 4`" >> $targetfile
+formatarray "dsa_G" "`getline $asn1file 5`" >> $targetfile
+formatsize "dsa_pub" >> $targetfile
+formatsize "dsa_P" >> $targetfile
+formatsize "dsa_Q" >> $targetfile
+formatsize "dsa_G" >> $targetfile
 targetfile=$TARGET_DIR/dsa_pkey.c
-echo "$(formatheader)" > $targetfile
-echo "$(formatarray "dsa_priv" "`getline $asn1file 7`")" >> $targetfile
-echo "$(formatsize "dsa_priv")" >> $targetfile
+formatheader > $targetfile
+formatarray "dsa_priv" "`getline $asn1file 7`" >> $targetfile
+formatsize "dsa_priv" >> $targetfile
 rm $asn1file
 
 #---------------------------- RSA -----------------------------------
@@ -66,22 +66,22 @@ asn1file=`tempfile`
 targetfile=$TARGET_DIR/rsa_pkey.c
 openssl genrsa -out $TARGET_DIR/rsa_priv.pem 512
 openssl asn1parse -inform PEM -in $TARGET_DIR/rsa_priv.pem -dump | sed s#^.*:##g > $asn1file
-echo "$(formatheader)" > $targetfile
-echo "$(formatarray "rsa_n" "`getline $asn1file 3`")" >> $targetfile
-echo "$(formatarray "rsa_e" "`getline $asn1file 4`")" >> $targetfile
-echo "$(formatarray "rsa_d" "`getline $asn1file 5`")" >> $targetfile
-echo "$(formatarray "rsa_p" "`getline $asn1file 6`")" >> $targetfile
-echo "$(formatarray "rsa_q" "`getline $asn1file 7`")" >> $targetfile
-echo "$(formatarray "rsa_dmp1" "`getline $asn1file 8`")" >> $targetfile
-echo "$(formatarray "rsa_dmq1" "`getline $asn1file 9`")" >> $targetfile
-echo "$(formatarray "rsa_iqmp" "`getline $asn1file 10`")" >> $targetfile
-echo "$(formatsize "rsa_n")" >> $targetfile
-echo "$(formatsize "rsa_e")" >> $targetfile
-echo "$(formatsize "rsa_d")" >> $targetfile
-echo "$(formatsize "rsa_p")" >> $targetfile
-echo "$(formatsize "rsa_q")" >> $targetfile
-echo "$(formatsize "rsa_dmp1")" >> $targetfile
-echo "$(formatsize "rsa_dmq1")" >> $targetfile
-echo "$(formatsize "rsa_iqmp")" >> $targetfile
+formatheader > $targetfile
+formatarray "rsa_n" "`getline $asn1file 3`" >> $targetfile
+formatarray "rsa_e" "`getline $asn1file 4`" >> $targetfile
+formatarray "rsa_d" "`getline $asn1file 5`" >> $targetfile
+formatarray "rsa_p" "`getline $asn1file 6`" >> $targetfile
+formatarray "rsa_q" "`getline $asn1file 7`" >> $targetfile
+formatarray "rsa_dmp1" "`getline $asn1file 8`" >> $targetfile
+formatarray "rsa_dmq1" "`getline $asn1file 9`" >> $targetfile
+formatarray "rsa_iqmp" "`getline $asn1file 10`" >> $targetfile
+formatsize "rsa_n" >> $targetfile
+formatsize "rsa_e" >> $targetfile
+formatsize "rsa_d" >> $targetfile
+formatsize "rsa_p" >> $targetfile
+formatsize "rsa_q" >> $targetfile
+formatsize "rsa_dmp1" >> $targetfile
+formatsize "rsa_dmq1" >> $targetfile
+formatsize "rsa_iqmp" >> $targetfile
 rm $asn1file
 

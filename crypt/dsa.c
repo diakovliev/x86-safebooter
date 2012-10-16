@@ -7,10 +7,10 @@ void dsa_sign(bch_p H, bch_p r, bch_p s, bch_random_p random) {
 	bch_p k =		bch_alloc(DSA_SIZE);
 	bch_p k_inv =	bch_alloc(DSA_SIZE);
 
-	bch_p G =		bch_rev(bch_from_ba(DSA_SIZE, (bch_data_p)dsa_G, dsa_G_size));
-	bch_p P =		bch_rev(bch_from_ba(DSA_SIZE, (bch_data_p)dsa_P, dsa_P_size));
-	bch_p Q =		bch_rev(bch_from_ba(DSA_SIZE, (bch_data_p)dsa_Q, dsa_Q_size));
-	bch_p priv =	bch_rev(bch_from_ba(DSA_SIZE, (bch_data_p)dsa_priv, dsa_priv_size));
+	bch_p G =		dsa_from_ba((bch_data_p)dsa_G, dsa_G_size);
+	bch_p P =		dsa_from_ba((bch_data_p)dsa_P, dsa_P_size);
+	bch_p Q =		dsa_from_ba((bch_data_p)dsa_Q, dsa_Q_size);
+	bch_p priv =	dsa_from_ba((bch_data_p)dsa_priv, dsa_priv_size);
 
 	/* Generate random k E [ 0.. G )*/
 	bch_p inv_res = 0;
@@ -22,6 +22,7 @@ void dsa_sign(bch_p H, bch_p r, bch_p s, bch_random_p random) {
 
 #ifdef __DEBUG__
 	bch_print("k = ",k);
+	bch_print("k_inv = ",k_inv);
 #endif/*__DEBUG__*/
 
     /* (G ^ k mod P) mod Q */
@@ -47,10 +48,10 @@ void dsa_sign(bch_p H, bch_p r, bch_p s, bch_random_p random) {
 int8_t dsa_check(bch_p H, bch_p r, bch_p s) {
 	int8_t res = -1;
 
-	bch_p G =		bch_rev(bch_from_ba(DSA_SIZE, (bch_data_p)dsa_G, dsa_G_size));
-	bch_p P =		bch_rev(bch_from_ba(DSA_SIZE, (bch_data_p)dsa_P, dsa_P_size));
-	bch_p Q =		bch_rev(bch_from_ba(DSA_SIZE, (bch_data_p)dsa_Q, dsa_Q_size));
-	bch_p pub =		bch_rev(bch_from_ba(DSA_SIZE, (bch_data_p)dsa_pub, dsa_pub_size));
+	bch_p G =		dsa_from_ba((bch_data_p)dsa_G, dsa_G_size);
+	bch_p P =		dsa_from_ba((bch_data_p)dsa_P, dsa_P_size);
+	bch_p Q =		dsa_from_ba((bch_data_p)dsa_Q, dsa_Q_size);
+	bch_p pub =		dsa_from_ba((bch_data_p)dsa_pub, dsa_pub_size);
 
     bch_p w =		bch_alloc(DSA_SIZE);
     bch_p u1 =		bch_alloc(DSA_SIZE);

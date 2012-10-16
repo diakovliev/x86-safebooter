@@ -55,6 +55,55 @@ void free(void *ptr);
 
 size_t malloc_usable_size(void *ptr);
 
+#if 0
+/* Slub */
+typedef struct slub_node_s {
+	uint8_t busy;
+	uint8_t data[];
+} slub_node_t, *slub_node_p;
+
+typedef struct slub_s {
+	size_t isize;
+	size_t icount;
+	struct slub_node_s *first;
+} slub_t, *slub_p;
+
+int slub__init(slub_p slub, size_t isize, size_t icount)
+{	
+	slub->isize = isize;
+	slub->icount = icount;
+	slub->first = (slub_node_p)malloc((isize*icount) + icount);
+	if (slub->first) {
+		memset(slub->first,0,isize*icount + icount);
+		return 0;
+	}
+	else
+		return -1;
+}
+
+void *slub__alloc(slub_p slub)
+{
+	void *result = 0;
+	size_t step = slub->isize + 1;
+	void *current = slub->first;
+	do {
+		if (!((slub_node_p)current)->busy) {
+			((slub_node_p)current)->busy = 1;
+			result = &((slub_node_p)current)->data;
+			break;
+		}
+		current += step;
+	} while (slub->first + slub->icount > current);
+	return result;
+}
+
+void slub__free(void *ptr)
+{
+
+}
+
+#endif
+
 /* Debug */
 void dump_heap_info(void);
 

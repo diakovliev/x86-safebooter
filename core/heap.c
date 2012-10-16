@@ -8,6 +8,8 @@
 
 #include "heap.h"
 
+#define SECURED_HEAP
+
 #define IS_NOT_IN_HEAP(heap,ptr) (((void*)(ptr) < heap->start) || ((void*)(ptr) >= (void*)(heap->start + heap->size)))
 
 #ifdef DEBUG_HEAP
@@ -178,6 +180,9 @@ void heap__free(heap_p heap, void *ptr)
 
 	node->busy = 0;
 	node->start = node->raw_start;
+#ifdef SECURED_HEAP
+	memset(node->start, 0, node->size);
+#endif
 
 #ifdef DEBUG_HEAP
 	--heap->busy_nodes_count;
@@ -207,7 +212,12 @@ void heap__init(heap_p heap, void *start, size_t size)
 	/* fill start sizeof(node_ctl_t) + sizeof(heap_node_p) by zero to make possible first 
 	 * allocation 
 	 */
+#ifdef SECURED_HEAP
+	memset(heap->start, 0,  heap->size);
+#else
 	memset(heap->start, 0,  sizeof(heap_node_t));
+#endif
+
 }
 
 /***************************************************************************/

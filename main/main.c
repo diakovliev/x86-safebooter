@@ -77,7 +77,6 @@ byte_t TOOLS_ata_detect(byte_t *cmd_buffer)
 	return res;
 }
 
-
 byte_t IMAGE_load_kernel_to_memory(byte_t *cmd_buffer)
 {
 	byte_t res = ERR_CMD_FAIL;
@@ -99,61 +98,75 @@ byte_t IMAGE_load_kernel_to_memory(byte_t *cmd_buffer)
 
 	/* Parse image info */
 	byte_t env_name[32];
+	byte_p env_s = 0;
+
 	memset(env_name, 0, sizeof(env_name));
 	sprintf(env_name, "IMAGE_%d", index);
-	byte_t *env_s = strdup(env_get(env_name));
-	printf("Image: \"%s\"\n\r", env_s);
+	env_s = strdup(env_get(env_name));
 
-	strtok(":", env_s);
-	byte_p type_s = strtok(":", 0);
-	if (!type_s) {
-		printf("Wrong environment variable \"%s\" format\n\r", env_name);
+	image_ata_address_t kernel_address;
+	if (env_s) {
+		printf("Image: \"%s\"\n\r", env_s);
+	}
+	if (!env_s || image_parse_ata_address(&kernel_address,env_s)) {
+		printf("Unable to parse kernel image address\n\r");
 		goto finish;
 	}
-	byte_t image_type = *type_s;
-	if (image_type != 'R' && image_type != 'S') {
-		printf("Wrong environment variable \"%s\" format\n\r", env_name);
-		goto finish;
-	}
-	byte_p bus_s = strtok(":", 0);
-	if (!bus_s) {
-		printf("Wrong environment variable \"%s\" format\n\r", env_name);
-		goto finish;
-	}
-	word_t bus = atol(bus_s,16);
-	byte_p drive_s = strtok(":", 0);
-	if (!drive_s) {
-		printf("Wrong environment variable \"%s\" format\n\r", env_name);
-		goto finish;
-	}
-	word_t drive = atol(drive_s,16);
-	byte_p lba_s = strtok(":", 0);
-	if (!lba_s) {
-		printf("Wrong environment variable \"%s\" format\n\r", env_name);
-		goto finish;
-	}
-	dword_t lba = atol(lba_s,16);
-	byte_p size_s = strtok(":", 0);
-	if (!size_s && *type_s == 'R') {
-		printf("Wrong environment variable \"%s\" format\n\r", env_name);
-		goto finish;
-	}
-	dword_t size = atol(size_s,16);
-	blk_iostream_p s = ata_blk_stream_open(bus,drive,lba);
+
+	blk_iostream_p s = 0;
+
+	/* Loading kernel */
+	s = ata_blk_stream_open(kernel_address.bus,kernel_address.drive,kernel_address.lba);
 	if (!s) {
 		printf("Unable to open input stream\n\r");
 		goto finish;
 	}
 
-	if (image_type == 'R') {
+	if (kernel_address.type == 'R') {
 #ifdef CONFIG_RAW_IMAGES_ENABLED
-		res = image_load_raw(s, lba, size) == 0 ? ERR_CMD_OK : ERR_CMD_FAIL;
+		res = image_load_raw(s, kernel_address.lba, kernel_address.size) == 0 ? ERR_CMD_OK : ERR_CMD_FAIL;
 #else
 		printf("No support of RAW images\n\r");
 #endif/*CONFIG_RAW_IMAGES_ENABLED*/
 	} else
-	if (image_type == 'S') {
-		res = image_load_sig(s, lba) == 0 ? ERR_CMD_OK : ERR_CMD_FAIL;
+	if (kernel_address.type == 'S') {
+		res = image_load_sig(s, kernel_address.lba) == 0 ? ERR_CMD_OK : ERR_CMD_FAIL;
+	}
+
+	ata_blk_stream_close(s);
+
+	/* Loading initrd image */
+	memset(env_name, 0, sizeof(env_name));
+	sprintf(env_name, "INITRD_%d", index);
+	if (!env_get(env_name)) {
+		goto finish;
+	}
+	env_s = strdup(env_get(env_name));
+
+	image_ata_address_t initrd_address;
+	if (env_s) {
+		printf("Initrd: \"%s\"\n\r", env_s);
+	}
+	if (!env_s || image_parse_ata_address(&initrd_address,env_s)) {
+		/*printf("Unable to parse initrd address\n\r");*/
+		goto finish;
+	}
+
+	s = ata_blk_stream_open(initrd_address.bus,initrd_address.drive,initrd_address.lba);
+	if (!s) {
+		printf("Unable to open input stream\n\r");
+		goto finish;
+	}
+
+	if (initrd_address.type == 'R') {
+#ifdef CONFIG_RAW_IMAGES_ENABLED
+		res = image_load_initrd_raw(s, initrd_address.lba, initrd_address.size) == 0 ? ERR_CMD_OK : ERR_CMD_FAIL;
+#else
+		printf("No support of RAW images\n\r");
+#endif/*CONFIG_RAW_IMAGES_ENABLED*/
+	} else
+	if (initrd_address.type == 'S') {
+		res = image_load_initrd_sig(s, initrd_address.lba) == 0 ? ERR_CMD_OK : ERR_CMD_FAIL;
 	}
 
 	ata_blk_stream_close(s);
@@ -441,6 +454,7 @@ void C_start(void *loader_descriptor_address, void *loader_code_address)
 	byte_t *startup = env_get("STARTUP");
 	if (!startup) {
 		printf("STARTUP variable is not set\n\r");
+#ifdef CONFIG_CONSOLE_ENABLED
 	} else {
 		/* Waiting for break */
 		quad_t tm = 5;
@@ -453,6 +467,7 @@ void C_start(void *loader_descriptor_address, void *loader_code_address)
 				break;
 			}
 		}
+#endif//CONFIG_CONSOLE_ENABLED
 	}
 	if (!ctrl_break && startup) {
 		byte_t res = cmd_process_command(startup);
