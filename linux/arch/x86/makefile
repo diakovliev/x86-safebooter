@@ -7,18 +7,9 @@ include ../../../mk/functions.mk
 INCLUDES += -I$(CDIR)/../../../
 INCLUDES += -I$(CDIR)/
 
-MODULE=jump_to_kernel.lib
+MODULE=jump_to_kernel
 
-SRCS=$(wildcard *.S)
-OBJS=$(patsubst %.c,%.o,$(patsubst %.S,%.o,$(notdir $(SRCS))))
-
-build: $(MODULE)
-
-$(MODULE): $(OBJS)
-	$(Q)$(call LD_LIB_CMD, $(OBJS))
-
-$(OBJS): $(SRCS)
-	$(Q)$(foreach file,$(SRCS),$(call GCC_CMD,$(file));)
+include ../../../mk/module.mk
 
 clean:
 	$(Q)rm -f *.o

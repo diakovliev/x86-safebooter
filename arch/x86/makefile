@@ -4,7 +4,7 @@ include ../../makefile.config
 include ../../mk/defconfig.mk
 include ../../mk/functions.mk
 
-MODULE=start.lib
+MODULE=start
 
 BASE_HEADERS+=../../core/loader.h 
 BASE_HEADERS+=../../core/gdt_table.h 
