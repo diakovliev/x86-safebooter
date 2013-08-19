@@ -49,7 +49,7 @@ entry_point:
 	.byte 0x66,0xEA
 	.int _32entry
 _gdt_selector:
-	.int gdt_code_segment_addr
+	.int 0
 
 .code32
 _32entry:

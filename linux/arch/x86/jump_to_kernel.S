@@ -26,7 +26,7 @@ jump_to_kernel_asm:
 	.byte 0xEA
 	.int change_segment
 _gdt_selector:
-	.int gdt_r_code_segment_addr
+	.int 0
 
 .code16gcc
 change_segment:

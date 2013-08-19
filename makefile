@@ -53,12 +53,13 @@ loader.img: submodules_build $(TO_LINK)
 	$(Q)./tools/xor loader.img s
 
 # Build
-build: mkimg xor loader.img loader_descriptor.img
+build: xor loader.img loader_descriptor.img
 
 # Clean
 clean: submodules_clean
 	$(Q)make -C ./tools -f mkimg.mk clean
 	$(Q)rm -f config.h
+	$(Q)rm -f $(TO_LINK)
 	$(Q)rm -f ${HDD_IMG}
 	$(Q)rm -f ./drivers/*.gch
 	$(Q)rm -f ./core/*.gch
@@ -84,7 +85,7 @@ clean: submodules_clean
 #	$(Q)dd if=loader.img 				of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc seek=${LOADER_CODE_LBA} && \
 #	$(Q)dd if=${BZIMAGE}				of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc seek=${KERNEL_CODE_LBA}
 
-kernel.simg: ${BZIMAGE}
+kernel.simg: mkimg ${BZIMAGE}
 	$(Q)./tools/mkimg --verbose -i ${BZIMAGE} -o kernel.simg  
 
 #$(HDD_IMG): build
