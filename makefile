@@ -38,7 +38,7 @@ loader_descriptor.img: loader_descriptor.o
 
 TO_LINK=$(CDIR)/.to_link
 
-include submodules.mk
+include mk/submodules.mk
 
 submodules_build: config.h
 	$(Q)$(foreach directory, $(SUBMODULES), make -e TO_LINK=$(TO_LINK) -C $(directory) -f makefile build && )$(GREEN) && printf "** ALL SUBMODULES READY **\n" && $(NORMAL)
