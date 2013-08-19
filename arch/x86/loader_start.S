@@ -1,5 +1,4 @@
-#include "loader.h"
-#include "gdt_table.gen.h"
+#include <config.h>
 
 .file "loader_start.S"
 
@@ -41,24 +40,23 @@ entry_point:
 	or $1,%al
 	mov %eax,%cr0
 
+	mov gdt_code_segment_addr,%eax
+	mov %eax,_gdt_selector
+
+	xor %eax,%eax
+
 	/* jmpl _32_entry */
 	.byte 0x66,0xEA
 	.int _32entry
-	.int GDT_CODE_SEGMENT
+_gdt_selector:
+	.int gdt_code_segment_addr
 
 .code32
 _32entry:
 	/* set selectors */
-	mov $GDT_DATA_SEGMENT,%ax
+	mov gdt_data_segment_addr,%ax
 	mov %ax,%ds
-	
-#	mov $GDT_STACK_SEGMENT,%ax
-#	mov %ax,%ss
-	
-	mov $GDT_DATA_SEGMENT,%ax
 	mov %ax,%ss
-
-	mov $GDT_DATA_SEGMENT,%ax
 	mov %ax,%es
 	mov %ax,%fs
 	mov %ax,%gs
@@ -76,3 +74,4 @@ _32entry:
 	cli
 	hlt
 
+.global _start

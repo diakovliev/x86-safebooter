@@ -1,3 +1,4 @@
+Q=@
 # Xor tool makefile
 
 CONFIG-DEBUG=y
@@ -29,11 +30,11 @@ GCC_CMD=gcc $(CONFIG-ENABLE-ASM-OUTPUT-$(CONFIG-ENABLE-ASM-OUTPUT)) $(CONFIG-GPR
 
 xor: GCC_ARGS=
 xor: compile
-	$(GCC_CMD) $(GCC_ARGS) $(OBJECTS) -o xor
+	$(Q)$(GCC_CMD) $(GCC_ARGS) $(OBJECTS) -o xor
 
 compile: GCC_ARGS:=$(CONFIG-DEBUG-$(CONFIG-DEBUG)) -c -I./../crypt -D__HOST_COMPILE__
 compile: $(HEADERS) $(SOURCES)
-	$(GCC_CMD) $(GCC_ARGS) $(SOURCES)
+	$(Q)$(GCC_CMD) $(GCC_ARGS) $(SOURCES)
 
 clean:
 	rm -rf ./*.o

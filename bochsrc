@@ -20,7 +20,7 @@
 #=======================================================================
 #config_interface: textconfig
 #config_interface: win32config
-#config_interface: wx
+config_interface: wx
 
 #=======================================================================
 # DISPLAY_LIBRARY

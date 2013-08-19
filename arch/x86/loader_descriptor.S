@@ -1,4 +1,5 @@
-#include "loader.h"
+#include <config.h>
+#include <loader.h>
 
 .file "loader_descriptor.S"
 

@@ -1,5 +1,4 @@
-#include "gdt_table.gen.h"
-#include "loader.gen.h"
+#include <config.h>
 
 .file "jump_to_kernel.S"
 
@@ -18,16 +17,22 @@ jump_to_kernel_asm:
 	lea r_mode_entry,%ax
 	mov %ax,r_mode_offset
 
+	mov gdt_r_code_segment_addr,%eax
+	mov %eax,_gdt_selector
+	
+	xor %eax,%eax
+
 	/* jmpl to 16bit code segment */
 	.byte 0xEA
 	.int change_segment
-	.int GDT_R_CODE_SEGMENT
+_gdt_selector:
+	.int gdt_r_code_segment_addr
 
 .code16gcc
 change_segment:
 
 /* set 16 bit data segment */
-	mov $GDT_R_DATA_SEGMENT,%ax
+	mov gdt_r_data_segment_addr,%ax
 	mov %ax,%ss
 	mov %ax,%ds
 	mov %ax,%es

@@ -95,7 +95,7 @@ byte_t image_load_sig(blk_iostream_p s, dword_t image_start) {
 
 	res = load_simg((void*)KERNEL_CODE_ADDRESS,s);
 	if (res > 0) {
-		simg_end_address = KERNEL_CODE_ADDRESS + res;
+		simg_end_address = (void*)(KERNEL_CODE_ADDRESS + res);
 		puts("DONE\n\r");
 	}
 	else {

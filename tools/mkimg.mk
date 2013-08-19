@@ -1,3 +1,4 @@
+Q=@
 # Mkimg tool makefile
 
 CONFIG-DEBUG=y
@@ -13,8 +14,8 @@ HEADERS += ../crypt/dsa.h
 HEADERS += ../crypt/crypt.h
 HEADERS += ../crypt/xor_algos.h
 
-SOURCES += ../crypt/blowfish_key.S
-SOURCES += ../crypt/xor_key.S
+SOURCES += blowfish_key.S
+SOURCES += xor_key.S
 SOURCES += ../crypt/blowfish.c
 SOURCES += ../crypt/sha1.c
 SOURCES += ../crypt/sha2.c
@@ -50,15 +51,15 @@ GCC_CMD=gcc $(CONFIG-ENABLE-ASM-OUTPUT-$(CONFIG-ENABLE-ASM-OUTPUT)) $(CONFIG-GPR
 
 mkimg: GCC_ARGS=
 mkimg: compile
-	$(GCC_CMD) $(GCC_ARGS) $(OBJECTS) -o mkimg 
+	$(Q)$(GCC_CMD) $(GCC_ARGS) $(OBJECTS) -o mkimg 
 
 prepare:
 #	rm -rf ../crypt/dsa_*
-	if [ ! -f ../crypt/dsa_pkey.c ]; then ./gendsa.sh; fi
+	$(Q)if [ ! -f ../crypt/dsa_pkey.c ]; then ./gendsa.sh; fi
 
 compile: GCC_ARGS:=$(CONFIG-DEBUG-$(CONFIG-DEBUG)) -c -I./../crypt -D__HOST_COMPILE__
 compile: prepare $(HEADERS) $(SOURCES)
-	$(GCC_CMD) $(GCC_ARGS) $(SOURCES)
+	$(Q)$(GCC_CMD) $(GCC_ARGS) $(SOURCES)
 
 clean:
-	rm -rf ./*.o
+	$(Q)rm -rf ./*.o

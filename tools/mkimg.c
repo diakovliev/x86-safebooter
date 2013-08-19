@@ -53,7 +53,6 @@ int process_buffer(void *buffer, long size, void *start_block) {
 	int res = 0;
 	void *start_block_ptr = start_block;
 
-    uint8_t original_sha2[SHA2_SIZE/8];
     uint8_t processed_sha2[SHA2_SIZE/8];
 
 	/* Random generator */
@@ -276,7 +275,6 @@ int process_kernel_file(char *output_file, char *input_file) {
 	size_t 			size				= 0;
 	void 			*start_block		= NULL;
 	size_t			readed				= 0;
-	size_t			written				= 0;
 
 	/* Open kernel file */
 	FILE *input = fopen(input_file, "r");
@@ -359,8 +357,8 @@ int process_kernel_file(char *output_file, char *input_file) {
 	}
 
 	/* Write real mode kernel buffer */
-	written = fwrite(start_block, DISK_SECTOR_SIZE, 1, output);
-	written = fwrite(buffer, size, 1, output);
+	fwrite(start_block, DISK_SECTOR_SIZE, 1, output);
+	fwrite(buffer, size, 1, output);
 
 	/* Realloc buffer for whole protected mode kernel */
 	size = (whole_image_sectors - setup_sects) * DISK_SECTOR_SIZE;
@@ -387,8 +385,8 @@ int process_kernel_file(char *output_file, char *input_file) {
 	}
 
 	/* Write protected mode kernel buffer */
-	written = fwrite(start_block, DISK_SECTOR_SIZE, 1, output);
-	written = fwrite(buffer, size, 1, output);
+	fwrite(start_block, DISK_SECTOR_SIZE, 1, output);
+	fwrite(buffer, size, 1, output);
 
 out:
 	if (start_block) free(start_block);

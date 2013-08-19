@@ -139,7 +139,7 @@ void *heap__memalign(heap_p heap, size_t align, size_t size)
 
 		/* align pointer */
 		if ((dword_t)node->start % align) {
-			node->start = ((((dword_t)node->start / align) + 1) * align);
+			node->start = (void*)((((dword_t)node->start / align) + 1) * align);
 		}
 
 		return node->start;	

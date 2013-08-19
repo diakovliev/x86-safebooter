@@ -1,5 +1,6 @@
 #include "ata_driver.h"
-#include <loader.h>
+#include <config.h>
+#include <loader_types.h>
 #include <common.h>
 #include <stdio.h>
 #include <heap.h>

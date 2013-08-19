@@ -6,9 +6,9 @@ IMAGE_0=S:1F0:A0:C8
 IMAGE_1=S:1F0:A0:C8
 #IMAGE_3=
 # Kernel command line
-APPEND=console\=ttyS0,115200 vga\=0x318
+APPEND=console\=ttyS0,115200 vga\=0x318 UNHANDLED1\=1 UNHANDLED2\=2 UNHANDLED3\=3
 #APPEND=vga\=0x318
 # Startup commands
 #STARTUP=printenv
 #STARTUP=printenv;kernelload 0;boot
-STARTUP=p;l 1 90000;k 0;b
+STARTUP=p;l 0 90000;k 0;b

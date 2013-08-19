@@ -60,7 +60,7 @@ typedef struct kernel_header_s {
 	LBP_209(uint64_t	setup_data);
 	LBP_210(uint64_t	pref_address);
 	LBP_210(uint32_t	init_size);
-} kernel_header_t __attribute__((packed));
+} kernel_header_t;
 #pragma pack(pop)
 typedef kernel_header_t *kernel_header_p;
 

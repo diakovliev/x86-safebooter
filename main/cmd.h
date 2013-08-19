@@ -12,7 +12,9 @@
 #ifndef CMD_HEADER
 #define CMD_HEADER
 
+#include <config.h>
 #include <loader.h>
+#include <loader_types.h>
 
 /* Max command identifier size */
 #define CMD_BUFFER_MAX 0x20

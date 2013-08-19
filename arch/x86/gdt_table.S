@@ -15,7 +15,7 @@ __gdt_table:
 //	granumarity: 1
 //
 //              LIMI   CODE
-__code:	
+gdt_code_segment:	
 		.word 0xFFFF,0x0000
 //           P  STYPE   GD0 LIMI
 //                CRA    B
@@ -27,7 +27,7 @@ __code:
 //	granumarity: 1
 //
 //              LIMI   CODE
-__data:	
+gdt_data_segment:	
 		.word 0xFFFF,0x0000
 //           P  STYPE   GD0 LIMI
 //                EWA    B
@@ -39,7 +39,7 @@ __data:
 //	granumarity: 0
 //
 //              LIMI   CODE
-__r_code:	
+gdt_r_code_segment:	
 		.word 0xFFFF,0x0000
 //           P  STYPE   GD0 LIMI
 //                EWA    B
@@ -51,29 +51,43 @@ __r_code:
 //	granumarity: 0
 //
 //              LIMI   CODE
-__r_data:	
+gdt_r_data_segment:	
 		.word 0xFFFF,0x0000
 //           P  STYPE   GD0 LIMI
 //                EWA    B
 .byte 0x00,0b10010010,0b00001111,0x00
 
 /**************************************************************/
-gdtr:		.word	.-__gdt_table-1
-gdt_addr:	.int	0
+gdtr:						.word	.-__gdt_table-1
+gdt_addr:					.int 	0
+gdt_code_segment_addr: 		.int 	gdt_code_segment - __gdt_table
+gdt_data_segment_addr: 		.int 	gdt_data_segment - __gdt_table
+gdt_r_code_segment_addr: 	.int	gdt_r_code_segment - __gdt_table
+gdt_r_data_segment_addr: 	.int 	gdt_r_data_segment - __gdt_table
 
 /**************************************************************/
 /* Calculate physical address of GDT and place it to gdt_addr */
+
 .type	init_gdt, @function
 init_gdt:		
 		xor %eax,%eax
 		mov %ds,%ax
 		shl $4,%eax
-		lea __gdt_table,%dx
-		add %edx,%eax
-		mov %eax,gdt_addr
+
+#define LOAD_EFFECTIVE_ADDRESS(ADDR,VAR) \
+		lea VAR,%dx; \
+		add %edx,%eax; \
+		mov %eax,ADDR;
+
+		LOAD_EFFECTIVE_ADDRESS(gdt_addr, __gdt_table)
+
 		ret
 
 /**************************************************************/
 .global gdtr
 .global gdt_addr
+.global gdt_code_segment_addr
+.global gdt_data_segment_addr
+.global gdt_r_code_segment_addr
+.global gdt_r_data_segment_addr
 .global	init_gdt

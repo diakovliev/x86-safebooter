@@ -1,4 +1,4 @@
-#include "loader.h"
+#include <config.h>
 
 /*
 
@@ -231,7 +231,7 @@ string_jump:		.string "J"
 #endif/*__DEBUG_MBR__*/
 
 loader_sectors_count:	.byte 0x00
-mbr_xor_key: 			.incbin "mbr_xor_key"
+mbr_xor_key: 			.incbin "../../mbr_xor_key"
 mbr_xor_key_size: 		.int . - mbr_xor_key
 
 /* Partitions table */
@@ -259,3 +259,5 @@ partition1_lba_sector_cnt:	.byte 0x00,0x90,0x01,0x00
 /* MBR signature */
 .byte 0x55,0xAA
 . = _start + 512
+
+.global _start
