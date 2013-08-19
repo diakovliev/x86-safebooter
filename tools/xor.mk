@@ -37,4 +37,5 @@ compile: $(HEADERS) $(SOURCES)
 	$(Q)$(GCC_CMD) $(GCC_ARGS) $(SOURCES)
 
 clean:
-	rm -rf ./*.o
+	$(Q)rm -f ./xor
+	$(Q)rm -f ./*.o

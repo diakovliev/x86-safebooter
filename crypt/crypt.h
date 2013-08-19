@@ -3,6 +3,12 @@
 
 #include <stdint.h>
 
+typedef struct encryptor_s {		
+	void (*reset)(void);
+	void (*encrypt)(void* buffer, uint32_t size);
+	void (*decrypt)(void* buffer, uint32_t size);
+} encryptor, *encryptor_p;
+
 void blowfish_reset(void);
 void blowfish_encrypt_memory(void* buffer, uint32_t size);
 void blowfish_decrypt_memory(void* buffer, uint32_t size);

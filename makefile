@@ -58,6 +58,7 @@ build: xor loader.img loader_descriptor.img
 # Clean
 clean: submodules_clean
 	$(Q)make -C ./tools -f mkimg.mk clean
+	$(Q)make -C ./tools -f xor.mk clean
 	$(Q)rm -f config.h
 	$(Q)rm -f $(TO_LINK)
 	$(Q)rm -f ${HDD_IMG}

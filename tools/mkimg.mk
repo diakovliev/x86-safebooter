@@ -62,4 +62,5 @@ compile: prepare $(HEADERS) $(SOURCES)
 	$(Q)$(GCC_CMD) $(GCC_ARGS) $(SOURCES)
 
 clean:
-	$(Q)rm -rf ./*.o
+	$(Q)rm -f ./mkimg
+	$(Q)rm -f ./*.o
