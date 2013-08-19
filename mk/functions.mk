@@ -10,20 +10,23 @@ BLUE=printf "\x1b[34m"
 NORMAL=printf "\x1b[0m"
 REVERSE=printf "\x1b[7m"
 
+SUPPRESS_LD_OUTPUT= > /dev/null 2>/dev/null
+#SUPPRESS_LD_OUTPUT=
+
 # ---- tools ----
 GCC_CMD	= $(YELLOW) && printf "[CC]" && $(NORMAL) && printf " %s " $1 && \
 	$(GCC) $(GCCARGS) $1 && \
 	$(GREEN) && printf "OK\n" && $(NORMAL)
 
 LD_IMG_CMD	= $(CYAN) && printf "[LD]" && $(NORMAL) && printf " %s " $@ && \
-	ld -A i386 -melf_i386 -N -static -Ttext $2 -Map=$@.map $1 -o$@.elf > /dev/null 2>/dev/null && \
+	ld -A i386 -melf_i386 -N -static -Ttext $2 -Map=$@.map $1 -o$@.elf $(SUPPRESS_LD_OUTPUT) && \
 	objcopy --only-keep-debug $@.elf $@.dbg && \
 	objcopy --strip-debug $@.elf && \
 	objcopy -O binary $@.elf $@ && \
 	$(GREEN) && printf "OK\n" && $(NORMAL)
 
 LD_LIB_CMD	= $(BLUE) && printf "[LD]" && $(NORMAL) && printf " %s " $@ && \
-	ld --whole-archive -r $1 -o$@.lib > /dev/null 2>/dev/null && \
+	ld --whole-archive -r $1 -o$@.lib $(SUPPRESS_LD_OUTPUT) && \
 	if [ ! -z "$(TO_LINK)" ]; then echo $(CDIR)/$@.lib >> $(TO_LINK); fi && \
 	$(GREEN) && printf "OK\n" && $(NORMAL)
 

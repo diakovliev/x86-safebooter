@@ -41,6 +41,7 @@ TO_LINK=$(CDIR)/.to_link
 include mk/submodules.mk
 
 submodules_build: config.h
+	$(Q)echo -n > $(TO_LINK)
 	$(Q)$(foreach directory, $(SUBMODULES), make -e TO_LINK=$(TO_LINK) -C $(directory) -f makefile build && )$(GREEN) && printf "** ALL SUBMODULES READY **\n" && $(NORMAL)
 
 submodules_clean:
