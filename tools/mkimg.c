@@ -489,12 +489,15 @@ int main(int argc, char **argv) {
 	}
 
 	/* Detect input type */
-	if (!file_is_kernel(input_file)) {
-		printf("Creating RAW data image\n\r");
-		res = process_raw_file(output_file, input_file);
-	} else {
-		printf("Creating kernel image\n\r");
-		res = process_kernel_file(output_file, input_file);
+	if (input_file)
+	{
+		if (!file_is_kernel(input_file)) {
+			printf("Creating RAW data image\n\r");
+			res = process_raw_file(output_file, input_file);
+		} else {
+			printf("Creating kernel image\n\r");
+			res = process_kernel_file(output_file, input_file);
+		}
 	}
 
 	if (input_file) free(input_file);
@@ -503,6 +506,7 @@ int main(int argc, char **argv) {
 #ifdef __DEBUG__
 	if (verbose) {
 		bch__memory_usage();
+		printf("res: %d\n\r", res);
 	}
 #endif
 

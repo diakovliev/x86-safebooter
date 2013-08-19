@@ -19,7 +19,7 @@ $(MODULE): $(OBJS)
 	$(Q)$(call LD_LIB_CMD, $(OBJS))
 
 $(OBJS): $(SRCS)
-	$(Q)$(foreach file,$(SRCS),$(call GCC_CMD,$(file));)
+	$(Q)$(foreach file,$(SRCS),$(call GCC_CMD,$(file)) &&) true
 
 clean:
 	$(Q)rm -f *.o
