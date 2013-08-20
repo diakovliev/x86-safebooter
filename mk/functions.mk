@@ -38,3 +38,13 @@ LD_IMG_CMD = $(CYAN) && printf "[LD]" && $(NORMAL) && printf " %s " $@ && \
 	$(OBJCOPY) -O binary $@.elf $@ && \
 	$(GREEN) && printf "OK\n" && $(NORMAL)
 
+# Common targets
+ifneq ($(MODULE),)
+pre-build:
+	$(Q)$(GREEN) && printf "** %s **\n" $(MODULE) && $(NORMAL)
+
+post-build:
+	$(Q)$(GREEN) && printf "** %s IS READY **\n" $(MODULE) && $(NORMAL)
+
+build: pre-build $(MODULE) post-build
+endif

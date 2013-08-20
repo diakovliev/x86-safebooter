@@ -2,13 +2,13 @@ Q=@
 
 include ../makefile.config
 include ../mk/defconfig.mk
-include ../mk/functions.mk
 
 INCLUDES += -I$(CDIR)/../
 INCLUDES += -I$(CDIR)/
 
 MODULE=core
 
+include ../mk/functions.mk
 include ../mk/module.mk
 
 clean:

@@ -2,9 +2,10 @@ Q=@
 
 include ../../makefile.config
 include ../../mk/defconfig.mk
-include ../../mk/functions.mk
 
 MODULE=start
+
+include ../../mk/functions.mk
 
 BASE_HEADERS+=../../core/loader.h 
 BASE_HEADERS+=../../core/gdt_table.h 
@@ -12,9 +13,7 @@ BASE_HEADERS+=../../config.h
 
 INCLUDES += -I$(CDIR)/../../
 
-build: $(MODULE) mbr.img 
-
-$(MODULE): gdt_table.o loader_start.o
+$(MODULE): gdt_table.o loader_start.o mbr.img 
 	$(Q)$(call LD_LIB_CMD, loader_start.o gdt_table.o)
 
 # Base objects
