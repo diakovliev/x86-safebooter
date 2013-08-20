@@ -28,7 +28,7 @@ OBJECTS=$(patsubst %.c,%.o,$(patsubst %.S,%.o,$(notdir $(SOURCES))))
 
 GCC_CMD=gcc $(CONFIG-ENABLE-ASM-OUTPUT-$(CONFIG-ENABLE-ASM-OUTPUT)) $(CONFIG-GPROF-SUPPORT-$(CONFIG-GPROF-SUPPORT)) 
 
-xor: GCC_ARGS=
+xor: GCC_ARGS=-static
 xor: compile
 	$(Q)$(GCC_CMD) $(GCC_ARGS) $(OBJECTS) -o xor
 

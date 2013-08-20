@@ -1,5 +1,6 @@
 # ---- arch ----
 GCC				= gcc
+#GCC				= clang
 LD				= ld
 OBJCOPY			= objcopy
 GCCARGS			= -c $(CONFIG-DBG-$(CONFIG_DBG)) -m32 -march=i386 -nostdlib -fno-builtin $(DEFINES) $(INCLUDES)
@@ -40,6 +41,8 @@ LD_IMG_CMD = $(CYAN) && printf "[LD]" && $(NORMAL) && printf " %s " $@ && \
 
 # Common targets
 ifneq ($(MODULE),)
+default: build
+
 pre-build:
 	$(Q)$(GREEN) && printf "** %s **\n" $(MODULE) && $(NORMAL)
 

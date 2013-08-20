@@ -33,8 +33,8 @@ loader_descriptor.o: arch/x86/loader_descriptor.S loader.img.size loader_descrip
 
 loader_descriptor.img: loader_descriptor.o
 	$(Q)$(call LD_IMG_CMD, loader_descriptor.o, $(LOADER_DESCRIPTOR_ADDRESS))
-	$(Q)cp -f loader_descriptor.img loader_descriptor.img.orig 
-	$(Q)./tools/xor loader_descriptor.img s 
+	$(Q)mv loader_descriptor.img loader_descriptor.img.orig 
+	$(Q)./tools/xor -s -i loader_descriptor.img.orig -o loader_descriptor.img
 
 TO_LINK=$(CDIR)/.to_link
 
@@ -50,8 +50,8 @@ submodules_clean:
 
 loader.img: submodules_build $(TO_LINK)
 	$(Q)$(call LD_IMG_CMD, $(shell cat $(TO_LINK)), $(LOADER_CODE_ADDRESS))
-	$(Q)cp -f loader.img loader.img.orig
-	$(Q)./tools/xor loader.img s
+	$(Q)mv loader.img loader.img.orig
+	$(Q)./tools/xor -s -i loader.img.orig -o loader.img
 
 # Build
 build: xor loader.img loader_descriptor.img

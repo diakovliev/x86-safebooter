@@ -13,34 +13,52 @@ void xor_encrypt_memory(void* buffer, uint32_t size) {
 	}
 }
 
+typedef struct xor_scrambler_data_s {
+	uint8_t *key;
+	uint8_t b;
+} xor_scrambler_data_t;
+
+static xor_scrambler_data_t *get_scrambler_data()
+{
+	static xor_scrambler_data_t data = { 0, 0 };
+	return &data;
+}
+
+void xor_scrambler_reset()
+{
+	get_scrambler_data()->key = xor_key;
+	get_scrambler_data()->b = 0;
+}
+
 void xor_scramble_memory(void* buffer, uint32_t size) {
-	uint8_t *key = xor_key;
+	xor_scrambler_data_t *data = get_scrambler_data();
+	
 	uint8_t *array = (uint8_t*)buffer;
-	uint8_t b = 0;
 
 	for ( ; array < (uint8_t*)(buffer+size); ++array) {
 
-		*array = *array ^ (uint8_t)(*(key++) ^ b) ;
+		*array = *array ^ (uint8_t)(*(data->key++) ^ data->b) ;
 
-		b = *array;
-		if (key > xor_key + xor_key_size - 1)
-			key = xor_key;
+		data->b = *array;
+		if (data->key > xor_key + xor_key_size - 1)
+			data->key = xor_key;
 	}
 }
 
 void xor_descramble_memory(void* buffer, uint32_t size) {
-	uint8_t *key = xor_key;
+	xor_scrambler_data_t *data = get_scrambler_data();
+
+	uint8_t b_next = 0;
 	uint8_t *array = (uint8_t*)buffer;
-	uint8_t b = 0, b_next = 0;
 
 	for ( ; array < (uint8_t*)(buffer+size); ++array) {
 		b_next = *array;
 
-		*array = *array ^ (uint8_t)(*(key++) ^ b);
+		*array = *array ^ (uint8_t)(*(data->key++) ^ data->b);
 
-		b = b_next;
-		if (key > xor_key + xor_key_size - 1)
-			key = xor_key;
+		data->b = b_next;
+		if (data->key > xor_key + xor_key_size - 1)
+			data->key = xor_key;
 	}
 }
 

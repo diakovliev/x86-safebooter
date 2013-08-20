@@ -31,18 +31,23 @@ byte_t TOOLS_help(byte_t *cmd_buffer);
 byte_t TOOLS_heap_info(byte_t *cmd_buffer);
 byte_t TOOLS_print_env(byte_t *cmd_buffer);
 
+#if 0
+byte_t TOOLS_load_kernel_from_serial_port_to_memory(byte_t *cmd_buffer);
+byte_t TOOLS_load_from_serial_port_to_memory(byte_t cmd_buffer);
+#endif
+
 /* Pointer to loader descriptor */
 static loader_descriptor_p loader_descriptor = 0;
 
 /* Registered commands */
 static cmd_command_t commands[] = {
-	{"help", "h", "list available commands", TOOLS_help},
-	{"kernelload", "k", "load kernel to memory", IMAGE_load_kernel_to_memory},
-	{"load", "l", "load data to memory", IMAGE_load_to_memory},
-	{"boot", "b", "boot kernel", IMAGE_boot},
-	{"display", "d", "display memory", TOOLS_display_memory},
-	{"heapinfo", "e", "show heap info", TOOLS_heap_info},
-	{"printenv", "p", "show environment", TOOLS_print_env},
+	{"help", 		"h", "list available commands", TOOLS_help},
+	{"kernelload",	"k", "load kernel to memory", 	IMAGE_load_kernel_to_memory},
+	{"load", 		"l", "load data to memory", 	IMAGE_load_to_memory},
+	{"boot", 		"b", "boot kernel", 			IMAGE_boot},
+	{"display", 	"d", "display memory", 			TOOLS_display_memory},
+	{"heapinfo", 	"e", "show heap info", 			TOOLS_heap_info},
+	{"printenv", 	"p", "show environment", 		TOOLS_print_env},
 
 	/* last element */
 	{0,0,0,0},
@@ -131,6 +136,8 @@ byte_t IMAGE_load_kernel_to_memory(byte_t *cmd_buffer)
 	} else
 	if (image_type == 'S') {
 		res = image_load_sig(s, lba) == 0 ? ERR_CMD_OK : ERR_CMD_FAIL;
+	} else {
+		printf("Unsupported image type: %c\n\r", image_type);
 	}
 
 	ata_blk_stream_close(s);
@@ -234,6 +241,8 @@ byte_t IMAGE_load_to_memory(byte_t *cmd_buffer)
 		} else {
 			puts("FAIL\n\r");
 		}
+	} else {
+		printf("Unsupported image type: %c\n\r", image_type);
 	}
 
 	ata_blk_stream_close(s);

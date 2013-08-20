@@ -78,6 +78,7 @@ int load_simg(void *address, blk_iostream_p s) {
 #endif
 
 #ifdef CONFIG_SIMG_XOR_SCRAMBLED
+	xor_scrambler_reset();
    	xor_descramble_memory(address+res,size);
 #endif/*CONFIG_SIMG_XOR_SCRAMBLED*/
 
