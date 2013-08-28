@@ -7,8 +7,10 @@ CONFIG-ENABLE-ASM-OUTPUT=n
 
 #------------------------------------------------------------------------
 HEADERS += ../crypt/xor_algos.h
+HEADERS += ../crypt/xor_scrambler.h
 
 SOURCES += ../crypt/xor_algos.c
+SOURCES += ../crypt/xor_scrambler.c
 SOURCES += mbr_xor_key.S
 SOURCES += xor.c
 

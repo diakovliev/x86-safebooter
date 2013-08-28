@@ -13,6 +13,7 @@ HEADERS += ../crypt/bch.h
 HEADERS += ../crypt/dsa.h
 HEADERS += ../crypt/crypt.h
 HEADERS += ../crypt/xor_algos.h
+HEADERS += ../crypt/xor_scrambler.h
 
 SOURCES += blowfish_key.S
 SOURCES += xor_key.S
@@ -25,6 +26,7 @@ SOURCES += ../crypt/crypt.c
 SOURCES += ../crypt/dsa_key.c
 SOURCES += ../crypt/dsa_pkey.c
 SOURCES += ../crypt/xor_algos.c
+SOURCES += ../crypt/xor_scrambler.c
 SOURCES += mkimg.c
 
 #------------------------------------------------------------------------

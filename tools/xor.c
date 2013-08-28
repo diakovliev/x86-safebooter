@@ -86,7 +86,7 @@ int main(int argc, char **argv)
 		default:
 			print_help();
 			res = -1;
-			return res;
+			goto out;
 		}
 	}
 
@@ -119,7 +119,7 @@ int main(int argc, char **argv)
 					break;
 					default:
 						res = -2;
-						return res;
+						goto out;
 					}
 					fwrite(buffer, 1, readed, output);
 				}
@@ -129,7 +129,7 @@ int main(int argc, char **argv)
 		}
 		else {
 			res = -3;
-			return res;
+			goto out;
 		}
 
 		fclose(input);
@@ -140,6 +140,9 @@ int main(int argc, char **argv)
 		res = -1;
 	} 		
 
+out:
+	if (output_file_name) free(output_file_name);
+	if (input_file_name) free(input_file_name);
 	return res;
 }
 
