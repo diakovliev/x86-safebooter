@@ -1,7 +1,5 @@
 #include "xor_scrambler.h"
 
-#define XOR_GENKEY_DATA_SIZE 16
-
 /***************************************************************************/
 static uint32_t genkey_rand(xor_scrambler_data_t *data)
 {
@@ -57,9 +55,9 @@ uint8_t xor_scrambler_generate_next_key_byte(void *scrambler_data)
 		if (data->key > data->key_orig + data->key_size - 1)
 			data->key = data->key_orig;
 
-		/* reinit pseudo random generator and generate XOR_GENKEY_DATA_SIZE bytes for the key */
+		/* reinit pseudo random generator and generate genkey_size bytes for the key */
 		genkey_srand(data, initial_value);
-		for ( ;data->genkey_data_ptr < data->genkey_data + XOR_GENKEY_DATA_SIZE; ++data->genkey_data_ptr)
+		for ( ;data->genkey_data_ptr < data->genkey_data + data->genkey_size; ++data->genkey_data_ptr)
 		{
 			*data->genkey_data_ptr = (uint8_t)genkey_rand(data);
 		}
@@ -67,7 +65,7 @@ uint8_t xor_scrambler_generate_next_key_byte(void *scrambler_data)
 	}
 
 	uint8_t result = *data->genkey_data_ptr++;
-	if (data->genkey_data_ptr > data->genkey_data + XOR_GENKEY_DATA_SIZE)
+	if (data->genkey_data_ptr > data->genkey_data + data->genkey_size)
 		data->genkey_data_ptr = data->genkey_data;
 
 	return result;

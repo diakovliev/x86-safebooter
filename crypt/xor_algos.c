@@ -22,7 +22,7 @@ void xor_encrypt_memory(void* buffer, uint32_t size) {
 void xor_scrambler_reset()
 {
 	init_xor_scrambler(&scrambler_data, xor_key, xor_key_size, xor_scrambler_get_next_key_byte, 0);
- /*	init_xor_scrambler(&scrambler_data, xor_key, xor_key_size, xor_scrambler_generate_next_key_byte, 16); */
+/*	init_xor_scrambler(&scrambler_data, xor_key, xor_key_size, xor_scrambler_generate_next_key_byte, 16);*/
 	reset_xor_scrambler(&scrambler_data);
 }
 
