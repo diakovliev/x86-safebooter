@@ -68,7 +68,7 @@ loader_descriptor_pre_loaded:
 	pop %dx
 	mov %ax,%bx
 	mov $LOADER_DESCRIPTOR_ADDRESS,%ax
-	call xor_encrypt_memory
+	call xor_descramble_memory
 /**/
 
 	movw $LOADER_DESCRIPTOR_ADDRESS,%bx
@@ -93,7 +93,7 @@ loader_descriptor_loaded:
 	pop %dx
 	mov %ax,%bx
 	mov $LOADER_DESCRIPTOR_ADDRESS,%ax
-	call xor_encrypt_memory
+	call xor_descramble_memory
 /**/
 
 /* Get data from loader descriptor */
@@ -125,7 +125,7 @@ loader_code_loaded:
 	pop %dx
 	mov %ax,%bx
 	mov $LOADER_CODE_ADDRESS,%ax
-	call xor_encrypt_memory
+	call xor_descramble_memory
 /**/
 
 	MSG(string_ok)
@@ -155,71 +155,7 @@ print_screen_exit_function:
 
 #endif/*__DEBUG_MBR__*/
 
-/* %ax - buffer */
-/* %bx - buffer_size */
-xor_encrypt_memory:
-    mov    %eax, mbr_xor_buffer_ptr
-    mov    %eax, mbr_xor_buffer_stored_ptr
-    mov    %ebx, mbr_xor_buffer_size
-	mov    $mbr_xor_key, %eax
-	mov    %eax, mbr_xor_key_ptr
-	mov    %eax, mbr_xor_key_stored_ptr
-    jmp check_buffer_bounds
-
-xor_loop:
- 	mov   mbr_xor_buffer_ptr,%eax
- 	xor   %ecx,%ecx
-    movb  (%eax), %cl
- 	mov   mbr_xor_key_ptr,%eax
- 	xor   %ebx,%ebx
-    movb  (%eax), %bl
-
-	movb  %cl,mbr_xor_b_next
-	xor  mbr_xor_b,%bl
-
-    xor   %bl, %cl
- 	mov   mbr_xor_buffer_ptr,%eax
-    movb  %cl, (%eax)
-
-	movb  mbr_xor_b_next,%cl
-	movb  %cl,mbr_xor_b
-
-    incl  mbr_xor_key_ptr
-
-    mov   mbr_xor_key_size, %eax
-    dec   %eax
-    add   mbr_xor_key_stored_ptr, %eax
-    mov   mbr_xor_key_ptr, %ebx
-    cmp   %ebx, %eax
-    jae inc_buffer_ptr
-
-	mov   mbr_xor_key_stored_ptr, %eax
-	mov   %eax, mbr_xor_key_ptr
-
- inc_buffer_ptr:
-    incl  mbr_xor_buffer_ptr
-
- check_buffer_bounds:
-    mov   mbr_xor_buffer_stored_ptr, %eax
-    add   mbr_xor_buffer_size, %eax
-    mov   mbr_xor_buffer_ptr, %ebx
-    cmp   %ebx, %eax
-	ja xor_loop
-    ret
-
-fail:
-	cli
-	hlt
-
-/* Variables */
-mbr_xor_key_ptr:			.int 0x00000000
-mbr_xor_key_stored_ptr:		.int 0x00000000
-mbr_xor_buffer_ptr:			.int 0x00000000
-mbr_xor_buffer_stored_ptr: 	.int 0x00000000
-mbr_xor_buffer_size:		.int 0x00000000
-
-mbr_xor_b:					.byte 0x00
-mbr_xor_b_next:				.byte 0x00
+#include "xor_descrambler.S"
 
 /* Data */
 #ifdef __DEBUG_MBR__
@@ -230,34 +166,4 @@ string_ok:			.string "O"
 string_jump:		.string "J"
 #endif/*__DEBUG_MBR__*/
 
-loader_sectors_count:	.byte 0x00
-mbr_xor_key: 			.incbin "../../mbr_xor_key"
-mbr_xor_key_size: 		.int . - mbr_xor_key
-
-/* Partitions table */
-	. = _start + 440
-disk_signature: 			.byte 0,0,0,0
-reserved: 					.byte 0,0
-
-/* Using GUID partitoinal table for me. So I need one entry */
-/* Partition 1 */
-
-#if 0
-partition1_status:			.byte 0x80		/* Active */
-partition1_chs_start:		.byte 0x00,0x01,0x01		
-											/* Not used by me */
-partition1_type:			.byte 0xEE		/* EFI partition */
-partition1_chs_end:			.byte 0x00,0x01,0x01		
-											/* Not used by me */
-partition1_lba_start:		.byte 0x00,0xA0,0x00,0x00	
-											/* Start LBA address */
-partition1_lba_sector_cnt:	.byte 0x00,0x90,0x01,0x00	
-											/* !!! Shall be filled during installation !!! */
-#endif
-
-. = _start + 510
-/* MBR signature */
-.byte 0x55,0xAA
-. = _start + 512
-
-.global _start
+loader_sectors_count:		.byte 0x00

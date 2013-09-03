@@ -1,20 +1,20 @@
 #include "xor_scrambler.h"
 
 /***************************************************************************/
-static uint32_t genkey_rand(xor_scrambler_data_t *data)
+static inline uint32_t genkey_rand(xor_scrambler_data_t *data)
 {
 	data->genkey_seed = data->genkey_seed * 1103515245 + 12345;
 	return (uint32_t)(data->genkey_seed / 65536) % 32768;
 }
             
 /***************************************************************************/
-static void genkey_srand(xor_scrambler_data_t *data, uint32_t seed)
+static inline void genkey_srand(xor_scrambler_data_t *data, uint32_t seed)
 {
 	data->genkey_seed = seed;
 }
 
 /***************************************************************************/
-static void init_genkey_data(xor_scrambler_data_t *data, uint32_t genkey_size)
+static inline void init_genkey_data(xor_scrambler_data_t *data, uint32_t genkey_size)
 {
 	data->genkey_seed = 0;
 	data->genkey_size = genkey_size;
@@ -23,7 +23,7 @@ static void init_genkey_data(xor_scrambler_data_t *data, uint32_t genkey_size)
 }
 
 /***************************************************************************/
-static void reset_genkey_data(xor_scrambler_data_t *data)
+static inline void reset_genkey_data(xor_scrambler_data_t *data)
 {
 	data->genkey_seed = 0;
 	data->genkey_data_ptr = 0;
@@ -35,7 +35,7 @@ static void reset_genkey_data(xor_scrambler_data_t *data)
 }
 
 /***************************************************************************/
-uint8_t xor_scrambler_generate_next_key_byte(void *scrambler_data)
+inline uint8_t xor_scrambler_generate_next_key_byte(void *scrambler_data)
 {	
 	xor_scrambler_data_t *data = (xor_scrambler_data_t *)scrambler_data;
 
@@ -72,7 +72,7 @@ uint8_t xor_scrambler_generate_next_key_byte(void *scrambler_data)
 }
 
 /***************************************************************************/
-uint8_t xor_scrambler_get_next_key_byte(void *scrambler_data)
+inline uint8_t xor_scrambler_get_next_key_byte(void *scrambler_data)
 {
 	xor_scrambler_data_t *data = (xor_scrambler_data_t *)scrambler_data;
 	uint8_t result = *data->key++;
