@@ -6,6 +6,5 @@ SECTIONS {
 		FILL(0)
 		. = 510;
 		SHORT(0xAA55)
-		. = 512;
 	}
 }
