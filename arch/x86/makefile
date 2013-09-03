@@ -28,9 +28,8 @@ gdt_table.o : gdt_table.S
 
 # Images
 mbr.img: mbr.o
-	$(Q)$(GREEN) && printf "Generate MBR image... " && \
-	$(LD) -T mbr.ld mbr.o -o mbr.img && printf "OK\n" && $(NORMAL)
-#	$(Q)$(call LD_IMG_CMD, mbr.o, $(MBR_CODE_ADDRESS))
+	$(Q)$(GREEN) && printf "Generate MBR... " && \
+	$(LD) -T mbr.ld -o mbr.img && printf "OK\n" && $(NORMAL)
 
 clean:
 	$(Q)rm -f *.img
