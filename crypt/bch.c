@@ -39,7 +39,7 @@ static inline void bch__free(void *ptr) {
 
 #ifdef __DEBUG__
 
-#include "dsa.h"
+#include "dsa_base.h"
 
 void bch__memory_usage() {
 	printf("DEBUG: BCH memory usage %ld (%ld Kb).\n\r", max_usage, (max_usage * DSA_SIZE) / 1024);

@@ -10,7 +10,9 @@ HEADERS += ../crypt/blowfish.h
 HEADERS += ../crypt/sha1.h
 HEADERS += ../crypt/sha2.h
 HEADERS += ../crypt/bch.h
-HEADERS += ../crypt/dsa.h
+HEADERS += ../crypt/dsa_base.h
+HEADERS += ../crypt/dsa_check.h
+HEADERS += ../crypt/private/dsa_sign.h
 HEADERS += ../crypt/crypt.h
 HEADERS += ../crypt/xor_algos.h
 HEADERS += ../crypt/xor_scrambler.h
@@ -21,10 +23,11 @@ SOURCES += ../crypt/blowfish.c
 SOURCES += ../crypt/sha1.c
 SOURCES += ../crypt/sha2.c
 SOURCES += ../crypt/bch.c
-SOURCES += ../crypt/dsa.c
-SOURCES += ../crypt/crypt.c
+SOURCES += ../crypt/private/dsa_sign.c
+SOURCES += ../crypt/private/dsa_pkey.c
+SOURCES += ../crypt/dsa_check.c
 SOURCES += ../crypt/dsa_key.c
-SOURCES += ../crypt/dsa_pkey.c
+SOURCES += ../crypt/crypt.c
 SOURCES += ../crypt/xor_algos.c
 SOURCES += ../crypt/xor_scrambler.c
 SOURCES += mkimg.c
@@ -57,9 +60,9 @@ mkimg: compile
 
 prepare:
 #	rm -rf ../crypt/dsa_*
-	$(Q)if [ ! -f ../crypt/dsa_pkey.c ]; then ./gendsa.sh; fi
+	$(Q)if [ ! -f ../crypt/private/dsa_pkey.c ]; then ./gendsa.sh; fi
 
-compile: GCC_ARGS:=$(CONFIG-DEBUG-$(CONFIG-DEBUG)) -c -I./../crypt -D__HOST_COMPILE__
+compile: GCC_ARGS:=$(CONFIG-DEBUG-$(CONFIG-DEBUG)) -c -I./../crypt -I./../crypt/private -D__HOST_COMPILE__
 compile: prepare $(HEADERS) $(SOURCES)
 	$(Q)$(GCC_CMD) $(GCC_ARGS) $(SOURCES)
 

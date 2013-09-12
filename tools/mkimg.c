@@ -14,7 +14,8 @@
 
 #include <crypt.h>
 #include <bch.h>
-#include <dsa.h>
+#include <dsa_sign.h>
+#include <dsa_check.h>
 #include <assert.h>
 
 #include "lbp.h"
@@ -27,6 +28,20 @@ static int verbose = 0;
 #define DISK_SECTOR_SIZE 512
 #define KERNEL_SETUP_SECTORS 4
 #define FILL	0xFF
+
+#ifdef __DEBUG__
+extern unsigned char dsa_pub[];
+extern unsigned char dsa_P[];
+extern unsigned char dsa_Q[];
+extern unsigned char dsa_G[];
+extern unsigned int dsa_pub_size;
+extern unsigned int dsa_P_size;
+extern unsigned int dsa_Q_size;
+extern unsigned int dsa_G_size;
+
+extern unsigned char dsa_priv[];
+extern unsigned int dsa_priv_size;
+#endif
 
 /*********************************************************************************/
 void custom_random_init(void) {

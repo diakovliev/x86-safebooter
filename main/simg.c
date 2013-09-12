@@ -2,7 +2,7 @@
 #include <heap.h>
 #include <string.h>
 #include <loader.h>
-#include <crypt/dsa.h>
+#include <crypt/dsa_check.h>
 #include <crypt/crypt.h>
 
 #include "simg.h"

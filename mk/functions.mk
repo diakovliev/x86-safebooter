@@ -2,6 +2,7 @@
 GCC				= gcc
 #GCC				= clang
 LD				= ld
+AR				= ar
 OBJCOPY			= objcopy
 GCCARGS			= -c $(CONFIG-DBG-$(CONFIG_DBG)) -m32 -march=i386 -nostdlib -fno-builtin $(DEFINES) $(INCLUDES)
 

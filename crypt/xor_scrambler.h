@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-typedef uint8_t (*get_next_key_byte_t)(void *scrambler_ctx);
+typedef uint8_t (*get_next_key_byte_t)(void *scrambler_data);
 
 typedef struct xor_scrambler_data_s {
 	uint8_t *key;
