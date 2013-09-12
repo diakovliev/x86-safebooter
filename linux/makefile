@@ -9,6 +9,7 @@ INCLUDES += -I$(CDIR)/
 
 MODULE=linux
 
+include ../mk/colors.mk
 include ../mk/functions.mk
 include ../mk/module.mk
 

@@ -8,6 +8,7 @@ INCLUDES += -I$(CDIR)/
 
 MODULE=core
 
+include ../mk/colors.mk
 include ../mk/functions.mk
 include ../mk/module.mk
 

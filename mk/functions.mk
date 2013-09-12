@@ -6,19 +6,11 @@ AR				= ar
 OBJCOPY			= objcopy
 GCCARGS			= -c $(CONFIG-DBG-$(CONFIG_DBG)) -m32 -march=i386 -nostdlib -fno-builtin $(DEFINES) $(INCLUDES)
 
-RED=printf "\x1b[31m"
-GREEN=printf "\x1b[32m"
-YELLOW=printf "\x1b[33m"
-CYAN=printf "\x1b[36m"
-BLUE=printf "\x1b[34m"
-NORMAL=printf "\x1b[0m"
-REVERSE=printf "\x1b[7m"
-
 SUPPRESS_LD_OUTPUT= > /dev/null 2>/dev/null
 #SUPPRESS_LD_OUTPUT=
 
 # ---- tools ----
-GCC_CMD	= $(YELLOW) && printf "[CC]" && $(NORMAL) && printf " %s " $1 && \
+GCC_CMD	= $(BROWN) && printf "[CC]" && $(NORMAL) && printf " %s " $1 && \
 	$(GCC) $(GCCARGS) $1 && \
 	$(GREEN) && printf "OK\n" && $(NORMAL)
 

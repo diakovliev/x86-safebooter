@@ -5,6 +5,7 @@ include ../../mk/defconfig.mk
 
 MODULE=start
 
+include ../../mk/colors.mk
 include ../../mk/functions.mk
 
 BASE_HEADERS+=../../core/loader.h 

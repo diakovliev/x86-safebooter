@@ -9,6 +9,7 @@ INCLUDES += -I$(CDIR)/
 
 MODULE=drivers
 
+include ../mk/colors.mk
 include ../mk/functions.mk
 include ../mk/module.mk
 

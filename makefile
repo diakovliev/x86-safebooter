@@ -2,6 +2,7 @@ Q=@
 
 include makefile.config
 include mk/defconfig.mk
+include mk/colors.mk
 include mk/functions.mk
 
 default: build

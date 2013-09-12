@@ -10,6 +10,7 @@ INCLUDES += -I$(CDIR)/
 
 MODULE=main
 
+include ../mk/colors.mk
 include ../mk/functions.mk
 include ../mk/module.mk
 
