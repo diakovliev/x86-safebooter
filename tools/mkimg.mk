@@ -8,7 +8,7 @@ CONFIG-ENABLE-ASM-OUTPUT=n
 #------------------------------------------------------------------------
 HEADERS += ../crypt/blowfish.h
 HEADERS += ../crypt/sha1.h
-HEADERS += ../crypt/sha2.h
+#HEADERS += ../crypt/sha2.h
 HEADERS += ../crypt/bch.h
 HEADERS += ../crypt/dsa_base.h
 HEADERS += ../crypt/dsa_check.h
@@ -21,7 +21,7 @@ SOURCES += blowfish_key.S
 SOURCES += xor_key.S
 SOURCES += ../crypt/blowfish.c
 SOURCES += ../crypt/sha1.c
-SOURCES += ../crypt/sha2.c
+#SOURCES += ../crypt/sha2.c
 SOURCES += ../crypt/bch.c
 SOURCES += ../crypt/private/dsa_sign.c
 SOURCES += ../crypt/private/dsa_pkey.c
