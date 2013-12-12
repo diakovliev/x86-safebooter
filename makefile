@@ -49,13 +49,13 @@ submodules_clean:
 	$(Q)$(foreach directory, $(SUBMODULES), make -C $(directory) -f makefile clean ; )
 	$(Q)rm -f $(TO_LINK)
 
-loader.img: submodules_build $(TO_LINK)
+loader.img: xor submodules_build $(TO_LINK)
 	$(Q)$(call LD_IMG_CMD, $(shell cat $(TO_LINK)), $(LOADER_CODE_ADDRESS))
 	$(Q)mv loader.img loader.img.orig
 	$(Q)./tools/xor -s -i loader.img.orig -o loader.img
 
 # Build
-build: xor loader.img loader_descriptor.img
+build: loader_descriptor.img
 
 # Clean
 clean: submodules_clean

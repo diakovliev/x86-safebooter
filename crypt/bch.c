@@ -61,10 +61,18 @@ void bch__memory_usage() {
 		   | ((x & 0x11111111) << 3);\
 		i = x;\
 	}
-	
+
+#if 0	
 #define uint8_data(val,index) *((uint8_t*)(val+(index)))
 #define uint16_data(val,index) *((uint16_t*)(val+(index)))
 #define uint32_data(val,index) *((uint32_t*)(val+(index)))
+#endif
+//#if 0	
+#define uint8_data(val,index) *(uint8_t*)&(val)[index]
+#define uint16_data(val,index) *(uint16_t*)&(val)[index]
+#define uint32_data(val,index) *(uint32_t*)&(val)[index]
+//#endif
+
 #define xdata(x) x->data
 
 /********************************************************************************************************
@@ -357,6 +365,7 @@ int32_t bch_bexp(bch_p op) {
 	return res + i;
 }
 
+static inline
 void
 bch_add_arr(
 	bch_data_p dst, bch_size dst_size,
@@ -391,15 +400,19 @@ bch_add_arr(
 
 	loop_cnt = ((BCH_MIN(dst_size,add_size)/2)+1)*2;
 	for (i = 0; i < loop_cnt && i < dst_size; i += 2) {
-		uint16_t a = sub ? (*(uint16_t*)(add+i)) ^ 0xFFFF : *(uint16_t*)(add+i);
-		v += *(uint16_t*)(dst+i) + a;
-		*(uint16_t*)(dst+i) = v & 0xFFFF;
+		//uint16_t a = sub ? (*(uint16_t*)(add+i)) ^ 0xFFFF : *(uint16_t*)(add+i);
+		//v += *(uint16_t*)(dst+i) + a;
+		//*(uint16_t*)(dst+i) = v & 0xFFFF;
+		v += uint16_data(dst,i) + (sub ? uint16_data(add,i) ^ 0xFFFF : uint16_data(add,i));
+		uint16_data(dst,i) = v & 0xFFFF;
 		v >>= 16;
 	}
 	while (v && dst_size-1 > i) {
 		if (i < dst_size) {
-			v += *(uint16_t*)(dst+i);
-			*(uint16_t*)(dst+i) = v & 0xFFFF;
+			//v += *(uint16_t*)(dst+i);
+			//*(uint16_t*)(dst+i) = v & 0xFFFF;
+			v += uint16_data(dst,i);
+			uint16_data(dst,i) = v & 0xFFFF;
 			v >>= 16;
 		}
 		else break;
@@ -434,8 +447,10 @@ bch_p bch_add_s(bch_p dst, bch_data add) {
 
 	bch_size i = 0;
 	while (v && i < dst->size) {
-		v += *(uint16_t*)(dst->data+i);
-		*(uint16_t*)(dst->data+i) = v & 0xFFFF;
+		//v += *(uint16_t*)(dst->data+i);
+		//*(uint16_t*)(dst->data+i) = v & 0xFFFF;
+		v += uint16_data(dst->data,i);
+		uint16_data(dst->data,i) = v & 0xFFFF;
 		v >>= 16;
 		i += 2;
 	}
@@ -449,7 +464,8 @@ bch_p bch_negate(bch_p op) {
 	assert(op != 0);
 
 	for (i = 0; i < op->size; i += 4) {
-		*(uint32_t*)(op->data + i) ^= 0xFFFFFFFF;
+		//*(uint32_t*)(op->data + i) ^= 0xFFFFFFFF;
+		uint32_data(op->data,i) ^= 0xFFFFFFFF;
 	}
 	bch_add_s(op,1);
 
@@ -514,8 +530,8 @@ int8_t bch_cmp(bch_p l, bch_p r) {
 }
 
 bch_p bch_mul_s(bch_p dst, bch_data mul) {
-	bch_size i, loop_cnt;
-	bch_data2x v = 0;
+
+	bch_size i;
 	bch_p dst_ = dst;
 
 	assert(dst != 0);
@@ -525,6 +541,9 @@ bch_p bch_mul_s(bch_p dst, bch_data mul) {
 		dst_ = bch_abs(bch_clone(dst));
 	}
 
+#if 0
+	bch_size loop_cnt;
+	bch_data2x v = 0;
 	loop_cnt = bch_hexp(dst_) + 1;
 	for (i = 0; i < loop_cnt || v; ++i) {
 		if (dst_->size > i) {
@@ -534,6 +553,18 @@ bch_p bch_mul_s(bch_p dst, bch_data mul) {
 			break;
 		}
 		v >>= 8;
+	}
+#endif
+
+	uint32_t v = 0;
+	for (i = 0; i < dst->size || v; i += 2) {
+		if (dst_->size > i) {
+			v += uint16_data(dst_->data,i) * mul;
+			uint16_data(dst_->data,i) = v & 0xFFFF;
+		} else {
+			break;
+		}
+		v >>= 16;
 	}
 
 	if (sign) {
@@ -610,10 +641,13 @@ bch_p bch_bit_shl(bch_p dst, bch_size shift) {
 	uint32_t v, tmp = 0;
 
 	for (i = 0; i < dst->size; i += 4) {
-		v = *((uint32_t*)(dst->data + i));
+		//v = *((uint32_t*)(dst->data + i));
+		v = uint32_data(dst->data,i);
 		v = (v << bit_shift) | (tmp >> (32-bit_shift));
-		tmp = *((uint32_t*)(dst->data + i)) & l_mask;
-		*((uint32_t*)(dst->data + i)) = v;
+		//tmp = *((uint32_t*)(dst->data + i)) & l_mask;
+		//*((uint32_t*)(dst->data + i)) = v;
+		tmp = uint32_data(dst->data,i) & l_mask;		
+		uint32_data(dst->data,i) = v;
 	}
 
 	return dst;
@@ -651,11 +685,15 @@ bch_p bch_bit_shr(bch_p dst, bch_size shift) {
 	uint32_t v, tmp = 0;
 
 	for (i = dst->size - 4; i >= 0; i -= 4) {
-		if (*((uint32_t*)(dst->data + i)) || tmp) {
-			v = *((uint32_t*)(dst->data + i));
+		//if (*((uint32_t*)(dst->data + i)) || tmp) {
+		if (uint32_data(dst->data,i) || tmp) {
+			//v = *((uint32_t*)(dst->data + i));
+			v = uint32_data(dst->data,i);
 			v = (v >> bit_shift) | (tmp << (32-bit_shift));
-			tmp = *((uint32_t*)(dst->data + i)) & r_mask;
-			*((uint32_t*)(dst->data + i)) = v;
+			//tmp = *((uint32_t*)(dst->data + i)) & r_mask;
+			//*((uint32_t*)(dst->data + i)) = v;
+			tmp = uint32_data(dst->data,i) & r_mask;
+			uint32_data(dst->data,i) = v;
 		}
 		if (i == 0) break;
 	}
@@ -698,12 +736,15 @@ bch_p bch_keep_sign_shift_right(bch_p dst) {
 	uint32_t is_negative = bch_is_negative(dst) ? 0x80000000 : 0x0;
 
 	for (i = dst->size - 4; i >= 0; i -= 4) {
-		v = *((uint32_t*)(dst->data + i));
+		//v = *((uint32_t*)(dst->data + i));
+		v = uint32_data(dst->data,i);
 		v = (v >> bit_shift) | (tmp << (32-bit_shift));
-		tmp = *((uint32_t*)(dst->data + i)) & r_mask;
+		//tmp = *((uint32_t*)(dst->data + i)) & r_mask;
+		tmp = uint32_data(dst->data,i) & r_mask;
 		if (i == dst->size - 4)
 			v |= is_negative;
-		*((uint32_t*)(dst->data + i)) = v;
+		//*((uint32_t*)(dst->data + i)) = v;
+		uint32_data(dst->data,i) = v;
 		if (i == 0) break;
 	}
 
@@ -748,27 +789,25 @@ bch_mul_arr_base(
 	}
 	*/
 
-#define data(val,index) *((uint16_t*)(val+(index)))
 	for (i = 0; i < op0_size; i += 2) {
 		v = 0; u = 0;
 		for (j = 0; j < op1_size; j += 2) {
-			v = v + u + ( data(op0,i) * data(op1,j) );
+			v = v + u + ( uint16_data(op0,i) * uint16_data(op1,j) );
 			if (dst_size > i+j) {
-				u = data(dst,i+j) + (v & 0xFFFF);
-				data(dst,i+j) = u & 0xFFFF;
+				u = uint16_data(dst,i+j) + (v & 0xFFFF);
+				uint16_data(dst,i+j) = u & 0xFFFF;
 			}
 			v >>= 16; u >>= 16;
 		}
 		while ((v+u) && dst_size > i+j) {
 			v = v + u;
 			if (dst_size > i+j) {
-				u = data(dst,i+j) + (v & 0xFFFF);
-				data(dst,i+j) = u & 0xFFFF;
+				u = uint16_data(dst,i+j) + (v & 0xFFFF);
+				uint16_data(dst,i+j) = u & 0xFFFF;
 			}
 			v >>= 16; u >>= 16;
 		}
 	}
-#undef data
 }
 
 void
@@ -780,26 +819,24 @@ bch_sqr_arr_base(
 	bch_size i = 0,j = 0;
 	uint32_t t = 0,c = 0;
 
-#define data(val,index) *((uint8_t*)(val+(index)))
 	for (i = 0; i < op_size + 1; ++i) {
 		if (2*i < dst_size) {
-			t = data(dst,2*i) + data(op,i) * data(op,i);
-			data(dst,2*i) = t & 0xFF;
+			t = uint8_data(dst,2*i) + uint8_data(op,i) * uint8_data(op,i);
+			uint8_data(dst,2*i) = t & 0xFF;
 		}
 		c = t >> 8;
 		for (j = i + 1; j < op_size + 1; ++j) {
 
 			if (i+j < dst_size) {
-				t = data(dst,i+j) + (2 * data(op,i) * data(op,j)) + c;
-				data(dst,i+j) = t & 0xFF;
+				t = uint8_data(dst,i+j) + (2 * uint8_data(op,i) * uint8_data(op,j)) + c;
+				uint8_data(dst,i+j) = t & 0xFF;
 			}
 			c = t >> 8;
 		}
 		if (i+op_size+1 < dst_size) {
-			data(dst,i+op_size+1) = c;
+			uint8_data(dst,i+op_size+1) = c;
 		}
 	}
-#undef data
 }
 
 bch_p bch_mul_base(bch_p dst, bch_p mul) {
@@ -943,7 +980,7 @@ void bch_div_mod_bin_internal(bch_p r, bch_p m_, bch_p divided_, bch_p divider_)
 bch_p bch_copy_mul_s(bch_p dst, bch_p src, bch_data mul) {
 
 	bch_size i, loop_cnt;
-	register bch_data2x v = 0;
+	bch_data2x v = 0;
 	bch_p dst_ = src;
 
 	assert(dst_ != 0);
@@ -980,7 +1017,7 @@ bch_p bch_copy_mul_s(bch_p dst, bch_p src, bch_data mul) {
 bch_p bch_sub_mul_s(bch_p dst, bch_p src, bch_data mul)
 {
 	bch_size i;
-	register uint32_t v = 0,u = 1;
+	uint32_t v = 0,u = 1;
 	bch_p sub_ = src;
 	uint8_t sign = bch_is_negative(sub_);
 	uint16_t xxx = 0xFFFF;
@@ -1011,15 +1048,17 @@ bch_p bch_sub_mul_s(bch_p dst, bch_p src, bch_data mul)
 }
 
 /* O(divided_byte_len - divider_byte_len) */
-void bch_div_mod_internal(bch_p r, bch_p m_, bch_p divided_, bch_p divider_)
+static void bch_div_mod_internal_smalln(bch_p r, bch_p m_, bch_p divided_, bch_p divider_, int32_t exps[2])
 {
-	int32_t divided_exp = bch_hexp(divided_);
+	//int32_t divided_exp = bch_hexp(divided_);
+	int32_t divided_exp = exps[0];
 	/* Zero divided */
 	if (divided_exp < 0) {
 		if (r) bch_zero(r);
 		return;
 	}
-	int32_t divider_exp = bch_hexp(divider_);
+	//int32_t divider_exp = bch_hexp(divider_);
+	int32_t divider_exp = exps[1];
 	/* Zero divider */
 	if (divider_exp < 0) {
 		return;
@@ -1072,10 +1111,11 @@ void bch_div_mod_internal(bch_p r, bch_p m_, bch_p divided_, bch_p divider_)
 			if (q & 0xFF00) {
 				q >>= 8;
 			}
-
+             
 			bch_sub_mul_s(m_,divider_,q);
+
 			if (bch_is_negative(m_)) {
-				bch_add(m_,divider_);
+				bch_add_arr(m_->data,m_->size, divider_->data, divider_->size, 0);
 				q--;
 			}
 
@@ -1090,6 +1130,107 @@ void bch_div_mod_internal(bch_p r, bch_p m_, bch_p divided_, bch_p divider_)
 			bch_byte_shr(divider_,1);
 		}
 	}
+}
+
+
+/* O(divided_byte_len - divider_byte_len) */
+static void bch_div_mod_internal_bign(bch_p r, bch_p m_, bch_p divided_, bch_p divider_, int32_t exps[2])
+{
+	//int32_t divided_exp = bch_hexp(divided_);
+	int32_t divided_exp = exps[0];
+	/* Zero divided */
+	if (divided_exp < 0) {
+		if (r) bch_zero(r);
+		return;
+	}
+	//int32_t divider_exp = bch_hexp(divider_);
+	int32_t divider_exp = exps[1];
+	/* Zero divider */
+	if (divider_exp < 0) {
+		return;
+	}
+
+    bch_p QSP[256];
+    bch m_copy;
+    memset(QSP, 0, sizeof(QSP));
+    QSP[1] = bch_clone(divider_);
+
+	int32_t exp 		= (divided_exp-divider_exp);
+
+	int32_t m_exp = divided_exp;
+	uint16_t q = 0;
+	uint32_t a, b = 0;
+
+	if (divider_exp >= 2) {
+		b = (divider_->data[divider_exp] << 16) |
+			(divider_->data[divider_exp-1] << 8) |
+			(divider_->data[divider_exp-2]);
+	} else if (divider_exp == 1) {
+		b = (divider_->data[divider_exp] << 16) |
+			(divider_->data[divider_exp-1] << 8);
+	} else if (divider_exp == 0) {
+		b = (divider_->data[divider_exp] << 16);
+	}
+
+	while (exp+1 > 0) {
+
+	    m_copy.data = m_->data;
+	    m_copy.size = m_->size;
+        m_copy.data += exp;
+        m_copy.size -= exp;
+
+		if ( bch_cmp(divider_, &m_copy) <= 0 ) {
+
+			a = 0;
+			if (m_exp >= 3) {
+				a = (m_->data[m_exp] << 24) |
+					(m_->data[m_exp-1] << 16) |
+					(m_->data[m_exp-2] << 8) |
+					(m_->data[m_exp-3]);
+			}
+			else if (m_exp == 2) {
+				a = (m_->data[m_exp] << 24) |
+					(m_->data[m_exp-1] << 16) |
+					(m_->data[m_exp-2] << 8);
+			}
+			else if (m_exp == 1) {
+				a = (m_->data[m_exp] << 24) |
+					(m_->data[m_exp-1] << 16);
+			}
+			else if (m_exp == 0) {
+				a = (m_->data[m_exp] << 24);
+			}
+
+			q = a/b;
+			if (q & 0xFF00) {
+				q >>= 8;
+			}
+             
+            if (!QSP[q]) {
+                QSP[q] = bch_clone(QSP[1]);
+                bch_mul_s(QSP[q],q);
+            }
+			bch_add_arr(m_->data + exp,m_->size - exp, QSP[q]->data, QSP[q]->size, 1);
+
+			if (bch_is_negative(m_)) {
+				bch_add_arr(m_->data + exp,m_->size + exp, divider_->data, divider_->size, 0);
+				q--;
+			}
+
+			if (r) {
+				bch_set_byte(r,exp,q);
+			}
+
+			m_exp = bch_hexp(m_);
+		}
+		
+		--exp;
+	}
+
+    for (q = 0; q < sizeof(QSP)/sizeof(QSP[0]); ++q)
+    {
+       if (QSP[q]) bch_free(QSP[q]);
+    }
 }
 
 void bch_div_mod(bch_p r, bch_p m, bch_p divided, bch_p divider) {
@@ -1134,8 +1275,15 @@ void bch_div_mod(bch_p r, bch_p m, bch_p divided, bch_p divider) {
 	assert(divider_ != 0);
 	assert(m_ != 0);
 
-//	bch_div_mod_bin_internal(r,m_,divided_,divider_);
-	bch_div_mod_internal(r,m_,divided_,divider_);
+	int32_t exps[2];
+    exps[0] = bch_hexp(divided_);
+	exps[1] = bch_hexp(divider_);
+
+    if (exps[0] <= 256) {
+		bch_div_mod_internal_smalln(r,m_,divided_,divider_,exps);
+    } else {
+		bch_div_mod_internal_bign(r,m_,divided_,divider_,exps);
+	}
 
 exit_func:
 	if (divideds) {
