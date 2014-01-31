@@ -22,10 +22,10 @@ loader_env.gen: loader_env
 	$(Q)grep -v "^#" loader_env > $@
 
 loader_descriptor.img.size: loader_env.gen
-	$(Q)echo ".word `du --apparent-size -B512 $^ | cut -f 1`+1" > $@
+	$(Q)echo ".word `du --apparent-size -B$(DISK_SECTOR_SIZE) $^ | cut -f 1`+1" > $@
 
 loader.img.size: loader.img
-	$(Q)echo ".word `du --apparent-size -B512 $^ | cut -f 1`+1" > $@
+	$(Q)echo ".word `du --apparent-size -B$(DISK_SECTOR_SIZE) $^ | cut -f 1`+1" > $@
 
 loader_descriptor.o: INCLUDES += -I$(CDIR)
 loader_descriptor.o: INCLUDES += -I$(CDIR)/core
@@ -93,8 +93,8 @@ kernel.simg: mkimg ${BZIMAGE}
 
 #$(HDD_IMG): build
 $(HDD_IMG): build kernel.simg
-	$(Q)dd if=/dev/zero 				of=$@ bs=$(DISK_SECTOR_SIZE) count=208080 && \
-	dd if=arch/x86/mbr.img 					of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc && \
+	$(Q)dd if=/dev/zero 			of=$@ bs=$(DISK_SECTOR_SIZE) count=208080 && \
+	dd if=arch/x86/mbr.img			of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc && \
 	dd if=loader_descriptor.img 	of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc seek=${LOADER_DESCRIPTOR_LBA} && \
 	dd if=loader.img 				of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc seek=${LOADER_CODE_LBA} && \
 	dd if=kernel.simg				of=$@ bs=$(DISK_SECTOR_SIZE) conv=notrunc seek=${KERNEL_CODE_LBA}

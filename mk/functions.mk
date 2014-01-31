@@ -10,27 +10,27 @@ SUPPRESS_LD_OUTPUT= > /dev/null 2>/dev/null
 #SUPPRESS_LD_OUTPUT=
 
 # ---- tools ----
-GCC_CMD	= $(BROWN) && printf "[CC]" && $(NORMAL) && printf " %s " $1 && \
+define GCC_CMD
+	$(BROWN) && printf "[CC]" && $(NORMAL) && printf " %s " $1 && \
 	$(GCC) $(GCCARGS) $1 && \
 	$(GREEN) && printf "OK\n" && $(NORMAL)
+endef
 
-ifneq ($(TO_LINK),)
-LD_LIB_CMD = $(BLUE) && printf "[LD]" && $(NORMAL) && printf " %s " $@ && \
+define LD_LIB_CMD 
+	$(BLUE) && printf "[LD]" && $(NORMAL) && printf " %s " $@ && \
 	$(LD) --whole-archive -r $1 -o$@.lib $(SUPPRESS_LD_OUTPUT) && \
 	$(GREEN) && printf "OK\n" && $(NORMAL) && \
-	if [ ! -z "$(TO_LINK)" ]; then echo $(CDIR)/$@.lib >> $(TO_LINK); fi
-else
-LD_LIB_CMD = $(BLUE) && printf "[LD]" && $(NORMAL) && printf " %s " $@ && \
-	$(LD) --whole-archive -r $1 -o$@.lib $(SUPPRESS_LD_OUTPUT) && \
-	$(GREEN) && printf "OK\n" && $(NORMAL)
-endif
+	$(if $(filter,$(TO_LINK),),true,if [ ! -z "$(TO_LINK)" ]; then echo $(CDIR)/$@.lib >> $(TO_LINK); fi)
+endef
 
-LD_IMG_CMD = $(CYAN) && printf "[LD]" && $(NORMAL) && printf " %s " $@ && \
+define LD_IMG_CMD 
+	$(CYAN) && printf "[LD]" && $(NORMAL) && printf " %s " $@ && \
 	$(LD) -A i386 -melf_i386 -N -static -Ttext $2 -Map=$@.map $1 -o$@.elf $(SUPPRESS_LD_OUTPUT) && \
 	$(OBJCOPY) --only-keep-debug $@.elf $@.dbg && \
 	$(OBJCOPY) --strip-debug $@.elf && \
 	$(OBJCOPY) -O binary $@.elf $@ && \
 	$(GREEN) && printf "OK\n" && $(NORMAL)
+endef
 
 # Common targets
 ifneq ($(MODULE),)
