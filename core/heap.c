@@ -43,19 +43,19 @@ static heap_node_p heap__get_free_node(heap_p heap, size_t size)
 			}
 
 #ifdef DEBUG_HEAP
-			current_node->magic_node_start = MAGIC_NODE_START;
+			current_node->magic_node_start 	= MAGIC_NODE_START;
 #endif
-			current_node->start = address;
-			current_node->raw_start = address;
-			current_node->size = size;
-			current_node->prev = prev_node;
-			current_node->next = current_node->raw_start + current_node->size;
+			current_node->start 			= address;
+			current_node->raw_start 		= address;
+			current_node->size 				= size;
+			current_node->prev 				= prev_node;
+			current_node->next 				= current_node->raw_start + current_node->size;
+#ifdef DEBUG_HEAP
+			current_node->magic_node_end 	= MAGIC_NODE_END;
+#endif
 			/* fill start sizeof(node_ctl_t) + sizeof(heap_node_p) by zero to make possible next
 			 * allocation 
 			 */
-#ifdef DEBUG_HEAP
-			current_node->magic_node_end = MAGIC_NODE_END;
-#endif
 			memset(current_node->next, 0,  sizeof(heap_node_t));
 			heap->last = current_node;
 
@@ -196,12 +196,12 @@ void heap__init(heap_p heap, void *start, size_t size)
 	heap->first = heap->last	= heap->start;
 
 #ifdef DEBUG_HEAP
-	heap->busy_nodes_count = 0;
-	heap->alloc_count = 0;
-	heap->allocated = 0;
-	heap->free_nodes_count = 0;
-	heap->free_count = 0;
-	heap->released = 0;
+	heap->busy_nodes_count 		= 0;
+	heap->alloc_count 			= 0;
+	heap->allocated 			= 0;
+	heap->free_nodes_count 		= 0;
+	heap->free_count 			= 0;
+	heap->released 				= 0;
 #endif
 
 	/* fill start sizeof(node_ctl_t) + sizeof(heap_node_p) by zero to make possible first 

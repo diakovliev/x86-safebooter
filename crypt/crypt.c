@@ -5,12 +5,14 @@
 #include "crypt.h"
 
 /* Encryption modes */
-/*#define CONFIG_BLOWFISH_MODE_ECB /* not recomended to use */
-/*#define CONFIG_BLOWFISH_MODE_CTR_S /* simple inc counter */
+#define CONFIG_BLOWFISH_MODE_ECB /* not recomended to use */
+#define CONFIG_BLOWFISH_MODE_CTR_S /* simple inc counter */
 #define CONFIG_BLOWFISH_MODE_CTR_D /* double inc counter */
-/*#define CONFIG_BLOWFISH_MODE_CBC*/
-/*#define CONFIG_BLOWFISH_MODE_CFB*/
-/*#define CONFIG_BLOWFISH_MODE_OFB*/
+#define CONFIG_BLOWFISH_MODE_CBC
+#define CONFIG_BLOWFISH_MODE_CFB
+#define CONFIG_BLOWFISH_MODE_OFB
+
+#define CONFIG_BLOWFISH_VARIANT "blowfish_ctr_d"
 
 extern uint8_t blowfish_key[];
 extern uint32_t blowfish_key_size;
@@ -352,27 +354,49 @@ static blowfish_variant_ctx_t BLOWFISH_OFB = {
 /**************************************************************************/
 static blowfish_variant_ctx_t *blowfish_variant = 0;
 
+blowfish_variant_ctx_t *get_blowfish_variant(const char *name)
+{
+	typedef struct browfish_variants_s {
+		const char 				*name;
+		blowfish_variant_ctx_t 	*variant;
+	} blowfish_variants_t;
+
+	static blowfish_variants_t blowfish_variants[] = {
+	#if defined(CONFIG_BLOWFISH_MODE_ECB)
+		{ "blowfish_ecb", 	&BLOWFISH_ECB },
+	#endif
+	#if defined(CONFIG_BLOWFISH_MODE_CTR_S)
+		{ "blowfish_ctr_s",	&BLOWFISH_CTR_S },
+	#endif
+	#if defined(CONFIG_BLOWFISH_MODE_CTR_D)
+		{ "blowfish_ctr_d",	&BLOWFISH_CTR_D },
+	#endif
+	#if defined(CONFIG_BLOWFISH_MODE_CBC)
+		{ "blowfish_cbc",	&BLOWFISH_CBC },
+	#endif
+	#if defined(CONFIG_BLOWFISH_MODE_CFB)
+		{ "blowfish_cfb",	&BLOWFISH_CFB },
+	#endif
+	#if defined(CONFIG_BLOWFISH_MODE_OFB)
+		{ "blowfish_ofb",	&BLOWFISH_OFB },
+	#endif
+		{ 0, 0 }
+	};
+
+	blowfish_variants_t *result = blowfish_variants;
+    while (result->name) {
+		if (!strcmp(name, result->name))
+			break;
+		result++;
+    }
+    
+    return result->variant;
+}
+
 /**************************************************************************/
 void blowfish_reset() 
 {
-	blowfish_variant = 
-#if defined(CONFIG_BLOWFISH_MODE_ECB)
-#warning "Enabled ECB encryption mode, we are strongly recommend do not use this mode."
-		&BLOWFISH_ECB;
-#elif defined(CONFIG_BLOWFISH_MODE_CTR_S)
-		&BLOWFISH_CTR_S;
-#elif defined(CONFIG_BLOWFISH_MODE_CTR_D)
-		&BLOWFISH_CTR_D;
-#elif defined(CONFIG_BLOWFISH_MODE_CBC)
-		&BLOWFISH_CBC;
-#elif defined(CONFIG_BLOWFISH_MODE_CFB)
-		&BLOWFISH_CFB;
-#elif defined(CONFIG_BLOWFISH_MODE_OFB)
-		&BLOWFISH_OFB;
-#else
-#error Blowfish encryption mode is not defined. Please define...
-       0;
-#endif
+	blowfish_variant = get_blowfish_variant(CONFIG_BLOWFISH_VARIANT);
 
 	if (blowfish_variant != 0) {
   		(*blowfish_variant->init)(blowfish_variant,blowfish_key,blowfish_key_size);

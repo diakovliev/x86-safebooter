@@ -30,7 +30,7 @@ void sprintf(const byte_p dst, const byte_t *fmt, ...);
 
 /* Block input/output stream */
 
-/* Simple abstract interface for working with raw data storages at block level */
+/* Simple abstract interface to work with raw data storages at the block level */
 typedef struct blk_iostream_s {
 	void *ctx;
 	word_t (*read)(byte_p dst, word_t size, void *ctx);
