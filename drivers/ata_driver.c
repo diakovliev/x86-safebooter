@@ -243,6 +243,9 @@ static word_t ata_read(byte_p dst, word_t size, void *ctx) {
 
 	word_t res = ata_io(CTX->bus,CTX->drive,(void*)dst,size,
 		CTX->caddr,ata_read_sectors_internal);
+
+	DBG_print("ATA device %x:%x read from %x %d sectors\n\r", CTX->bus, CTX->drive, CTX->caddr, res);
+
 	CTX->caddr += res;
 
 	return res;
@@ -262,6 +265,7 @@ static dword_t ata_seek(dword_t addr, void *ctx) {
 	dword_t res = CTX->caddr;
 
 	CTX->caddr = addr;
+	DBG_print("ATA device %x:%x seek to %x\n\r", CTX->bus, CTX->drive, CTX->caddr);
 
 	return res;
 }
@@ -274,6 +278,15 @@ static dword_t ata_addr(void *ctx) {
 #undef CTX
 
 blk_iostream_p ata_blk_stream_open(word_t bus, byte_t drive, dword_t addr) {
+
+	byte_t type = ATADEV_NONE;
+
+	type = ata_identify_device(bus, drive);
+	if (type == ATADEV_NONE) {
+		printf("No ATA device at %x:%x\n\r", bus, drive);
+		return 0;
+	}
+	DBG(else DBG_print("ATA device at %x:%x detected\n\r", bus, drive);)
 
 	blk_iostream_p res = malloc(sizeof(blk_iostream_t));
 	if (res) {
@@ -288,10 +301,10 @@ blk_iostream_p ata_blk_stream_open(word_t bus, byte_t drive, dword_t addr) {
 			res = 0;
 		} else {
 			memset(ctx, 0, sizeof(input_stream_context));
-			ctx->bus = bus;
-			ctx->drive = drive;
-			ctx->caddr = addr;
-			res->ctx = ctx;
+			ctx->bus 	= bus;
+			ctx->drive	= drive;
+			ctx->caddr	= addr;
+			res->ctx 	= ctx;
 		}
 	}
 

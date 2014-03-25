@@ -7,6 +7,34 @@
 
 #include "simg.h"
 
+#ifdef __DEBUG__
+static inline void tools_memory_dump(void *addr, word_t size)
+{
+	word_t i, j;
+	byte_t b;
+
+#define DUMP_WIDTH 8
+	word_t count = size / DUMP_WIDTH;
+	word_t finish = size % DUMP_WIDTH;
+
+	for (i = 0; i < count * DUMP_WIDTH; i+= DUMP_WIDTH) {
+		puts("\t");
+		for (j = 0; j < DUMP_WIDTH; ++j) {
+			b = ((byte_t*)addr)[i+j];
+			printf(b < 0x10 ? "0x0%x " : "0x%x ", b);
+		}
+		puts("\n\r");
+	}
+	if (finish) puts("\t");
+	for ( ;i < size; ++i) {
+		b = ((byte_t*)addr)[i];
+		printf(b < 0x10 ? "0x0%x " : "0x%x ", b);
+	}
+	if (finish) puts("\n\r");
+#undef DUMP_WIDTH
+}
+#endif
+
 int load_simg(void *address, blk_iostream_p s) {
 
 	byte_t res = 0;
@@ -27,6 +55,12 @@ int load_simg(void *address, blk_iostream_p s) {
 		free(start_block_orig);
 		return -2;
 	}
+
+#ifdef __DEBUG__
+	puts("-------------- Start block -----------------\n\r");
+	tools_memory_dump(start_block, DISK_SECTOR_SIZE);
+	puts("--------------------------------------------\n\r");
+#endif
 
 	/* Check SIMG */
 #ifdef CONFIG_SIMG_SIGNATURE_ENABLED

@@ -1,4 +1,5 @@
 HDRS=$(wildcard *.h)
+HDRS+=$(wildcard *.asm)
 SRCS=$(wildcard *.c)
 SRCS+=$(wildcard *.S)
 OBJS=$(patsubst %.c,%.o,$(patsubst %.S,%.o,$(notdir $(SRCS))))

@@ -6,7 +6,7 @@ AR				= ar
 OBJCOPY			= objcopy
 GCCARGS			= -c $(CONFIG-DBG-$(CONFIG_DBG)) -m32 -march=i386 -nostdlib -fno-builtin $(DEFINES) $(INCLUDES)
 
-SUPPRESS_LD_OUTPUT= > /dev/null 2>/dev/null
+#SUPPRESS_LD_OUTPUT= > /dev/null 2>/dev/null
 #SUPPRESS_LD_OUTPUT=
 
 # ---- tools ----
@@ -18,9 +18,8 @@ endef
 
 define LD_LIB_CMD 
 	$(BLUE) && printf " [LD]" && $(NORMAL) && printf " %s " $@ && \
-	$(LD) --whole-archive -r $1 -o$@.lib $(SUPPRESS_LD_OUTPUT) && \
-	$(GREEN) && printf "OK\n" && $(NORMAL) && \
-	$(if $(filter,$(TO_LINK),),true,if [ ! -z "$(TO_LINK)" ]; then echo $(CDIR)/$@.lib >> $(TO_LINK); fi)
+	$(LD) --whole-archive -r -Map=$@.map $1 -o$@.lib $(SUPPRESS_LD_OUTPUT) && \
+	$(GREEN) && printf "OK\n" && $(NORMAL)
 endef
 
 define LD_IMG_CMD 
@@ -44,3 +43,4 @@ post-build:
 
 build: pre-build $(MODULE) post-build
 endif
+

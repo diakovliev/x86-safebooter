@@ -1,0 +1,16 @@
+#ifndef COMMON_ASM
+#define COMMON_ASM
+
+#define FAR_JMP_(_SEGMENT_,_SEGMENT_VAL_,_OFFSET_,_OFFSET_VAL_) \
+.word 0xEA66; \
+_OFFSET_: 	.int _OFFSET_VAL_; \
+_SEGMENT_: 	.int _SEGMENT_VAL_;
+#define FAR_JMP(_SEGMENT_,_OFFSET_) FAR_JMP_(_SEGMENT_,0,_OFFSET_,0)
+
+#define LONG_JMP_(_SEGMENT_,_SEGMENT_VAL_,_OFFSET_,_OFFSET_VAL_) \
+.byte 0xEA; \
+_OFFSET_: 	.int _OFFSET_VAL_; \
+_SEGMENT_: 	.int _SEGMENT_VAL_;
+#define LONG_JMP(_SEGMENT_,_OFFSET_) LONG_JMP_(_SEGMENT_,0,_OFFSET_,0)
+
+#endif

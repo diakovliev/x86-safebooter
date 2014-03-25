@@ -5,14 +5,14 @@
 #include "crypt.h"
 
 /* Encryption modes */
-#define CONFIG_BLOWFISH_MODE_ECB /* not recomended to use */
-#define CONFIG_BLOWFISH_MODE_CTR_S /* simple inc counter */
+/*#define CONFIG_BLOWFISH_MODE_ECB /* not recomended to use */
+/*#define CONFIG_BLOWFISH_MODE_CTR_S /* simple inc counter */
 #define CONFIG_BLOWFISH_MODE_CTR_D /* double inc counter */
-#define CONFIG_BLOWFISH_MODE_CBC
-#define CONFIG_BLOWFISH_MODE_CFB
-#define CONFIG_BLOWFISH_MODE_OFB
+/*#define CONFIG_BLOWFISH_MODE_CBC*/
+/*#define CONFIG_BLOWFISH_MODE_CFB*/
+/*#define CONFIG_BLOWFISH_MODE_OFB*/
 
-#define CONFIG_BLOWFISH_VARIANT "blowfish_ctr_d"
+#define CONFIG_BLOWFISH_VARIANT "blowfish-ctr_d"
 
 extern uint8_t blowfish_key[];
 extern uint32_t blowfish_key_size;
@@ -44,6 +44,7 @@ void blowfish_reset_ctx(void *ctx)
 	Blowfish_Init(&variant->context, variant->key, variant->ksize);
 }
 
+#ifdef CONFIG_BLOWFISH_MODE_ECB
 /**************************************************************************/
 static void blowfish_encrypt_memory__ecb(void *ctx, void* buffer, uint32_t size) 
 {
@@ -71,8 +72,9 @@ static blowfish_variant_ctx_t BLOWFISH_ECB = {
     .encrypt = blowfish_encrypt_memory__ecb,
     .decrypt = blowfish_decrypt_memory__ecb
 };
+#endif
 
-
+#ifdef CONFIG_BLOWFISH_MODE_CTR_S
 /**************************************************************************/
 static void blowfish_encrypt_memory__ctr_s(void *ctx, void* buffer, uint32_t size) 
 {
@@ -116,8 +118,9 @@ static blowfish_variant_ctx_t BLOWFISH_CTR_S = {
     .encrypt = blowfish_encrypt_memory__ctr_s,
     .decrypt = blowfish_decrypt_memory__ctr_s
 };
+#endif
 
-
+#ifdef CONFIG_BLOWFISH_MODE_CTR_D
 /**************************************************************************/
 static void blowfish_encrypt_memory__ctr_d(void *ctx, void* buffer, uint32_t size) 
 {
@@ -159,8 +162,9 @@ static blowfish_variant_ctx_t BLOWFISH_CTR_D = {
     .encrypt = blowfish_encrypt_memory__ctr_d,
     .decrypt = blowfish_decrypt_memory__ctr_d
 };
+#endif
 
-
+#ifdef CONFIG_BLOWFISH_MODE_CBC
 /**************************************************************************/
 static void blowfish_encrypt_memory__cbc(void *ctx, void* buffer, uint32_t size) 
 {
@@ -222,8 +226,9 @@ static blowfish_variant_ctx_t BLOWFISH_CBC = {
     .encrypt = blowfish_encrypt_memory__cbc,
     .decrypt = blowfish_decrypt_memory__cbc
 };
+#endif
 
-
+#ifdef CONFIG_BLOWFISH_MODE_CFB
 /**************************************************************************/
 static void blowfish_encrypt_memory__cfb(void *ctx, void* buffer, uint32_t size) 
 {
@@ -285,8 +290,9 @@ static blowfish_variant_ctx_t BLOWFISH_CFB = {
     .encrypt = blowfish_encrypt_memory__cfb,
     .decrypt = blowfish_decrypt_memory__cfb
 };
+#endif
 
-
+#ifdef CONFIG_BLOWFISH_MODE_OFB
 /**************************************************************************/
 static void blowfish_encrypt_memory__ofb(void *ctx, void* buffer, uint32_t size) 
 {
@@ -348,6 +354,7 @@ static blowfish_variant_ctx_t BLOWFISH_OFB = {
     .encrypt = blowfish_encrypt_memory__ofb,
     .decrypt = blowfish_decrypt_memory__ofb
 };
+#endif
 
 /**************************************************************************/
 /**************************************************************************/
@@ -363,22 +370,22 @@ blowfish_variant_ctx_t *get_blowfish_variant(const char *name)
 
 	static blowfish_variants_t blowfish_variants[] = {
 	#if defined(CONFIG_BLOWFISH_MODE_ECB)
-		{ "blowfish_ecb", 	&BLOWFISH_ECB },
+		{ "blowfish-ecb", 	&BLOWFISH_ECB },
 	#endif
 	#if defined(CONFIG_BLOWFISH_MODE_CTR_S)
-		{ "blowfish_ctr_s",	&BLOWFISH_CTR_S },
+		{ "blowfish-ctr_s",	&BLOWFISH_CTR_S },
 	#endif
 	#if defined(CONFIG_BLOWFISH_MODE_CTR_D)
-		{ "blowfish_ctr_d",	&BLOWFISH_CTR_D },
+		{ "blowfish-ctr_d",	&BLOWFISH_CTR_D },
 	#endif
 	#if defined(CONFIG_BLOWFISH_MODE_CBC)
-		{ "blowfish_cbc",	&BLOWFISH_CBC },
+		{ "blowfish-cbc",	&BLOWFISH_CBC },
 	#endif
 	#if defined(CONFIG_BLOWFISH_MODE_CFB)
-		{ "blowfish_cfb",	&BLOWFISH_CFB },
+		{ "blowfish-cfb",	&BLOWFISH_CFB },
 	#endif
 	#if defined(CONFIG_BLOWFISH_MODE_OFB)
-		{ "blowfish_ofb",	&BLOWFISH_OFB },
+		{ "blowfish-ofb",	&BLOWFISH_OFB },
 	#endif
 		{ 0, 0 }
 	};
@@ -389,7 +396,16 @@ blowfish_variant_ctx_t *get_blowfish_variant(const char *name)
 			break;
 		result++;
     }
-    
+	
+#ifdef __DEBUG__
+	if (result->name) {
+		printf("blowfish variant: %s\n", result->name);
+	}
+	else {
+		printf("blowfish variant: NONE\n");
+	}
+#endif    
+
     return result->variant;
 }
 

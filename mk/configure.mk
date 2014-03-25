@@ -17,3 +17,4 @@ config.h: makefile.config makefile
 	$(Q)$(call define_var,LOADER_DESCRIPTOR_LBA) >> $@
 	$(Q)$(call define_var,KERNEL_SETUP_SECTORS) >> $@
 	$(Q)$(call define_var,DISK_SECTOR_SIZE) >> $@
+

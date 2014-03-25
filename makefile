@@ -37,20 +37,14 @@ loader_descriptor.img: loader_descriptor.o
 	$(Q)mv loader_descriptor.img loader_descriptor.img.orig 
 	$(Q)./tools/xor -s -i loader_descriptor.img.orig -o loader_descriptor.img
 
-TO_LINK=$(CDIR)/.to_link
-
 include mk/submodules.mk
 
-submodules_build: config.h
-	$(Q)echo -n > $(TO_LINK)
-	$(Q)$(foreach directory, $(SUBMODULES), make -e TO_LINK=$(TO_LINK) -C $(directory) -f makefile build && )$(GREEN) && printf "** ALL SUBMODULES READY **\n" && $(NORMAL)
+submodules_build: config.h whole_submodules_build
 
-submodules_clean:
-	$(Q)$(foreach directory, $(SUBMODULES), make -C $(directory) -f makefile clean ; )
-	$(Q)rm -f $(TO_LINK)
+submodules_clean: whole_submodules_clean
 
-loader.img: xor submodules_build $(TO_LINK)
-	$(Q)$(call LD_IMG_CMD, $(shell cat $(TO_LINK)), $(LOADER_CODE_ADDRESS))
+loader.img: xor submodules_build
+	$(Q)$(call LD_IMG_CMD, $(TOLINK), $(LOADER_CODE_ADDRESS))
 	$(Q)mv loader.img loader.img.orig
 	$(Q)./tools/xor -s -i loader.img.orig -o loader.img
 

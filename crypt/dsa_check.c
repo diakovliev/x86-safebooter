@@ -12,6 +12,12 @@ extern unsigned int dsa_G_size;
 int8_t dsa_check(bch_p H, bch_p r, bch_p s) {
 	int8_t res = -1;
 
+#ifdef __DEBUG__
+	printf(">> dsa_check\n");
+	bch_hprint("H", H);
+	bch_hprint("r", r);
+	bch_hprint("s", s);
+#endif
 	bch_p G =		bch_rev(bch_from_ba(DSA_SIZE, (bch_data_p)dsa_G, dsa_G_size));
 	bch_p P =		bch_rev(bch_from_ba(DSA_SIZE, (bch_data_p)dsa_P, dsa_P_size));
 	bch_p Q =		bch_rev(bch_from_ba(DSA_SIZE, (bch_data_p)dsa_Q, dsa_Q_size));
@@ -54,8 +60,16 @@ int8_t dsa_check(bch_p H, bch_p r, bch_p s) {
 
 		res = bch_cmp(r,v);
 	}
+#ifdef __DEBUG__
+	else
+		printf("<< dsa_check: unable to inverse\n");
+#endif
 
     bch_free(w, u1, u2, v, t0, t1, G, P, Q, pub);
+
+#ifdef __DEBUG__
+	printf("<< dsa_check\n");
+#endif
 
 	return res;
 }

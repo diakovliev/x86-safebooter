@@ -16,4 +16,5 @@ include ../mk/module.mk
 clean:
 	$(Q)rm -f *.o
 	$(Q)rm -f *.lib
+	$(Q)rm -f *.map
 

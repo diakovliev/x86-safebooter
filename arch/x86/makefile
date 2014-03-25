@@ -13,6 +13,7 @@ BASE_HEADERS+=../../core/gdt_table.h
 BASE_HEADERS+=../../config.h
 
 INCLUDES += -I$(CDIR)/../../
+INCLUDES += -I$(CDIR)/
 
 $(MODULE): gdt_table.o loader_start.o mbr.img 
 	$(Q)$(call LD_LIB_CMD, loader_start.o gdt_table.o)
