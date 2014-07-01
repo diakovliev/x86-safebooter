@@ -17,6 +17,9 @@ mkimg:
 xor:
 	$(Q)make -C ./tools -f xor.mk
 
+auth: 
+	$(Q)make -C ./tools -f auth.mk	
+
 # Geometry
 loader_env.gen: loader_env
 	$(Q)grep -v "^#" loader_env > $@
@@ -43,7 +46,7 @@ submodules_build: config.h whole_submodules_build
 
 submodules_clean: whole_submodules_clean
 
-loader.img: xor submodules_build
+loader.img: xor auth submodules_build
 	$(Q)$(call LD_IMG_CMD, $(TOLINK), $(LOADER_CODE_ADDRESS))
 	$(Q)mv loader.img loader.img.orig
 	$(Q)./tools/xor -s -i loader.img.orig -o loader.img

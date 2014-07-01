@@ -20,6 +20,10 @@
 #include <drivers/ata_driver.h>
 #include <drivers/serial_driver.h>
 
+#include <crypt/auth.h>
+#include <crypt/dsa_check.h>
+#include <crypt/crypt.h>
+
 #include "cmd.h"
 
 /* forward declarations */
@@ -377,10 +381,78 @@ void console_initialize(void) {
 #endif//CONFIG_CONSOLE_ENABLED
 }
 
+int console_auth(void) {
+
+/* if res == 1 - auth failed */
+	int res = 1;
+
+#ifdef CONFIG_CONSOLE_ENABLED
+#ifdef CONFIG_COMMAND_LINE_ENABLED
+
+	quad_t tm = 1;
+	byte_t c = 0;
+	byte_t recv = 0;
+	word_t nr_recv = 0;
+
+	byte_t *buffer = (byte_t*)malloc(AUTH_BLOCK_SIZE);
+	bch_p dsa_r = dsa_alloc();
+	bch_p dsa_s = dsa_alloc();
+	byte_t *sha2_buffer = (byte_t*)malloc(SHA2_SIZE/8);
+	bch_p bch_sha2 = 0;
+
+	BUG_if(!buffer);
+	BUG_if(!dsa_r);
+	BUG_if(!dsa_s);
+	BUG_if(!sha2_buffer);
+
+	while (recv = waitc(&tm, &c) && nr_recv < AUTH_BLOCK_SIZE) {
+		buffer[nr_recv++]	= c;
+		tm = 1;
+	}
+	if (!nr_recv == AUTH_BLOCK_SIZE - 1) goto auth_finish;
+	
+	nr_recv = 0;
+	while (recv = waitc(&tm, &c) && nr_recv < DSA_SIZE) {
+		dsa_r->data[nr_recv++]	= c;		
+		tm = 1;
+	}
+	if (!nr_recv == DSA_SIZE - 1) goto auth_finish;
+
+	nr_recv = 0;
+	while (recv = waitc(&tm, &c) && nr_recv < DSA_SIZE) {
+		dsa_s->data[nr_recv++]	= c;		
+		tm = 1;
+	}
+	if (!nr_recv == DSA_SIZE - 1) goto auth_finish;
+
+	SHA2_func(sha2_buffer,buffer,AUTH_BLOCK_SIZE);
+
+   	bch_sha2 = dsa_from_ba((bch_data_p)sha2_buffer, SHA2_SIZE/8);
+    BUG_if(!bch_sha2);
+   	res = dsa_check(bch_sha2, dsa_r, dsa_s);
+
+auth_finish:
+	dsa_free(bch_sha2);
+	free(sha2_buffer);
+	dsa_free(dsa_s);
+    dsa_free(dsa_r);
+	free(buffer);
+
+#endif//CONFIG_COMMAND_LINE_ENABLED
+#endif//CONFIG_CONSOLE_ENABLED
+
+	return res;
+}
+
 /* 32 bit C code entry point */
 void C_start(void *, void *) __attribute__((noreturn));
 void C_start(void *loader_descriptor_address, void *loader_code_address)
 {
+	byte_t ctrl_break = 0;
+	quad_t tm = 5;
+	byte_t c = 0;
+	byte_t recv = 0;
+
 	/* Get loader descriptor information */
 	loader_descriptor_p desc = (loader_descriptor_p)loader_descriptor_address;
 	loader_descriptor = desc;
@@ -395,6 +467,13 @@ void C_start(void *loader_descriptor_address, void *loader_code_address)
 	BUG_if_not(desc->version[1] == VER_MID);
 	BUG_if_not(desc->version[2] == VER_MIN);
 
+	/* Init heap */
+	heap_init((void*)LOADER_HEAP_START,LOADER_HEAP_SIZE);
+
+    /* Here will be auth to use console*/
+	puts("S3\r\n");
+	console_auth();
+
 	printf("32bit secured bootloader v%d.%d.%d (c)daemondzk@gmail.com\r\n", 
 		desc->version[0], 
 		desc->version[1],
@@ -408,10 +487,9 @@ void C_start(void *loader_descriptor_address, void *loader_code_address)
 #endif/*__DEBUG__*/
 
 	/* Waiting for break */
-	byte_t ctrl_break = 0;
-	quad_t tm = 5;
-	byte_t c = 0;
-	byte_t recv = 0;
+	tm = 5;
+	c = 0;
+	recv = 0;
 	printf("Waiting %ld seconds for the BREAK command\n\r", tm);
 	while (recv = waitc(&tm, &c)) {
 		if (c == 'B') {
@@ -420,8 +498,6 @@ void C_start(void *loader_descriptor_address, void *loader_code_address)
 		}
 	}
 
-	/* Init heap */
-	heap_init((void*)LOADER_HEAP_START,LOADER_HEAP_SIZE);
 	/* Init environment */
 	env_init(desc);
 	/* Register commands set */

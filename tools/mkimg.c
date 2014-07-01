@@ -63,6 +63,27 @@ void print_sha2(uint8_t *sha2) {
 }
 
 /*********************************************************************************/
+void encrypt_buffer(void *buffer, long size) {
+
+#ifdef CONFIG_SIMG_XOR_SCRAMBLED
+	xor_scrambler_reset();
+	xor_scramble_memory(buffer, size);
+#endif/*CONFIG_SIMG_XOR_SCRAMBLED*/
+
+#ifdef CONFIG_SIMG_BLOWFISH_ENCRYPTED
+    blowfish_reset();
+	if(verbose){
+        printf("Encryption...");
+    }
+    blowfish_encrypt_memory(buffer, size);
+    if(verbose){
+        printf("DONE\n\r");
+    }
+#endif
+
+}
+
+/*********************************************************************************/
 int process_buffer(void *buffer, long size, void *start_block) {
 
 	int res = 0;
@@ -104,21 +125,7 @@ int process_buffer(void *buffer, long size, void *start_block) {
 
     printf("size: %ld\n\r", size);
 
-#ifdef CONFIG_SIMG_XOR_SCRAMBLED
-	xor_scrambler_reset();
-	xor_scramble_memory(buffer, size);
-#endif/*CONFIG_SIMG_XOR_SCRAMBLED*/
-
-#ifdef CONFIG_SIMG_BLOWFISH_ENCRYPTED
-    blowfish_reset();
-	if(verbose){
-        printf("Encryption...");
-    }
-    blowfish_encrypt_memory(buffer, size);
-    if(verbose){
-        printf("DONE\n\r");
-    }
-#endif
+	encrypt_buffer(buffer,size);
 
     /* SHA2 for processed buffer */
     SHA2_func(processed_sha2, buffer, size);
