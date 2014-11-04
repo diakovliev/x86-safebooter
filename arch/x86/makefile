@@ -31,7 +31,7 @@ gdt_table.o : gdt_table.S
 # Images
 mbr.img: mbr.o
 	$(Q)$(GREEN) && printf "Generate MBR... " && \
-	($(LD) -T mbr.ld -o mbr.img && printf "OK\n" && $(NORMAL) ) || $(NORMAL)
+	($(LD) -melf_i386 -T mbr.ld -o mbr.img && printf "OK\n" && $(NORMAL) ) || $(NORMAL)
 
 clean:
 	$(Q)rm -f *.img
